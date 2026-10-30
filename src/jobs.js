@@ -5,6 +5,7 @@ import { activeSites, findStructure, HELP_WORK, ensureConstruction } from './con
 import { gainXp, giveItem, itemCount, spendItem } from './systems.js';
 import { POINTS } from './world.js';
 import { logEvent, addHistory } from './gameState.js';
+import { payIncome } from './economy.js';
 
 export const CAREERS = {
   courier: { th: 'คนส่งของ', icon: '📦', outfit: null },
@@ -15,11 +16,11 @@ export const CAREERS = {
 export const CAREER_OUTFIT_JOBS = 3; // jobs needed in a career to unlock its work outfit
 
 export const JOBS = {
-  delivery: { th: 'ส่งพัสดุ', icon: '📦', career: 'courier', energy: 6, pay: 12, xp: 9, desc: 'รับพัสดุที่กระดานประกาศ แล้วเดินไปส่งที่ร้านค้าในหมู่บ้าน' },
-  farmhand: { th: 'ช่วยงานสวนอาหาร', icon: '🌾', career: 'farmer', energy: 10, pay: 14, xp: 8, needs: 'farm', desc: 'ไปที่สวนอาหารชุมชน ช่วยลุงมีเก็บผัก ได้ค่าแรง + ผัก 1' },
-  haul: { th: 'ขนวัสดุไปไซต์ก่อสร้าง', icon: '🧱', career: 'builder', energy: 10, pay: 10, xp: 8, needs: 'construction', desc: `เดินไปไซต์ที่กำลังสร้าง ช่วยงาน +${HELP_WORK} นาทีงาน และรับค่าแรง` },
-  workshift: { th: 'กะโรงงานงานฝีมือ', icon: '🛠️', career: 'builder', energy: 12, pay: 16, xp: 10, needs: 'workshop', desc: 'ไปที่โรงงานของคุณ แปรรูปไม้ให้ช่าง ได้ค่าแรง + แผ่นไม้ 1' },
-  stall: { th: 'ช่วยขายของที่ตลาด', icon: '🧺', career: 'trader', energy: 8, pay: 10, xp: 7, needs: 'market', desc: 'ไปช่วยป้าแสงขายของในตลาด ถ้ามีผักติดตัวจะขายได้ราคาพิเศษ' },
+  delivery: { th: 'ส่งพัสดุ', icon: '📦', career: 'courier', energy: 20, pay: 12, xp: 9, desc: 'รับพัสดุที่กระดานประกาศ แล้วเดินไปส่งที่ร้านค้าในหมู่บ้าน' },
+  farmhand: { th: 'ช่วยงานสวนอาหาร', icon: '🌾', career: 'farmer', energy: 25, pay: 14, xp: 8, needs: 'farm', desc: 'ไปที่สวนอาหารชุมชน ช่วยลุงมีเก็บผัก ได้ค่าแรง + ผัก 1' },
+  haul: { th: 'ขนวัสดุไปไซต์ก่อสร้าง', icon: '🧱', career: 'builder', energy: 25, pay: 10, xp: 8, needs: 'construction', desc: `เดินไปไซต์ที่กำลังสร้าง ช่วยงาน +${HELP_WORK} นาทีงาน และรับค่าแรง` },
+  workshift: { th: 'กะโรงงานงานฝีมือ', icon: '🛠️', career: 'builder', energy: 28, pay: 16, xp: 10, needs: 'workshop', desc: 'ไปที่โรงงานของคุณ แปรรูปไม้ให้ช่าง ได้ค่าแรง + แผ่นไม้ 1' },
+  stall: { th: 'ช่วยขายของที่ตลาด', icon: '🧺', career: 'trader', energy: 21, pay: 10, xp: 7, needs: 'market', desc: 'ไปช่วยป้าแสงขายของในตลาด ถ้ามีผักติดตัวจะขายได้ราคาพิเศษ' },
 };
 
 export function ensureJobs(s) {
@@ -93,7 +94,7 @@ export function workAt(s, ref) {
   if (s.job.id === 'workshift') { giveItem(s, 'planks', 1); extra = ' + แผ่นไม้ 1'; }
   if (s.job.id === 'stall' && itemCount(s, 'vegetables') > 0) { spendItem(s, 'vegetables', 1); pay += 12; extra = ' (ขายผักราคาพิเศษ +12)'; }
   if (s.job.id === 'haul') { const st = findStructure(s, t.ref); if (st) { st.obj.work = Math.min(st.obj.workNeeded, st.obj.work + HELP_WORK); } extra = ` · ไซต์ +${HELP_WORK} นาทีงาน`; }
-  s.player.coins += pay; s.stats.jobsDone += 1;
+  const { net, tax } = payIncome(s, pay, j.th); s.stats.jobsDone += 1; // v0.26 wages are taxed (tax -> treasury)
   gainXp(s, j.xp);
   const c = j.career; s.career.jobs[c] = (s.career.jobs[c] || 0) + 1;
   let unlockMsg = '';
@@ -102,9 +103,9 @@ export function workAt(s, ref) {
     s.unlockedOutfits.push(outfit); unlockMsg = ` · ปลดล็อกชุด${CAREERS[c].th}ในห้องแต่งตัว!`;
     addHistory(s, `ได้รับชุดอาชีพ${CAREERS[c].th}`);
   }
-  logEvent(s, `${j.th} สำเร็จ +${pay} เหรียญ`);
+  logEvent(s, `${j.th} สำเร็จ +${net} เหรียญ`);
   s.job = null;
-  return { ok: true, msg: `${j.icon} ${j.th} สำเร็จ +${pay} เหรียญ${extra}${unlockMsg}`, pay };
+  return { ok: true, msg: `${j.icon} ${j.th} สำเร็จ +${net} เหรียญ${tax ? ` (ภาษี ${tax} เข้าคลัง)` : ''}${extra}${unlockMsg}`, pay: net, gross: pay, tax };
 }
 
 export function chooseCareer(s, id) {

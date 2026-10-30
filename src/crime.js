@@ -51,7 +51,7 @@ export function crimeHour(s, hour, population = 0) {
   // a new thief? more likely in a bigger, unhappier town with few police
   if (c.thieves.length < (MAX_ACTIVE[t] || 0) && population >= 12) {
     const happy = Math.max(0, Math.min(100, s.town?.happiness ?? 60));
-    const chance = Math.min(.5, .08 + population / 400) * (1.3 - happy / 100) / (1 + officers * .35);
+    const chance = Math.min(.5, .08 + population / 400) * (1.3 - happy / 100) / (1 + officers * .35) * (s.town?.policies?.includes('lanterns') ? .5 : 1); // v0.26 street lights policy
     if (hash(key, 3, 812) < chance) {
       const targets = crimeTargets(s);
       if (targets.length) {

@@ -21,6 +21,10 @@ export function objective(s) {
   }
   if (s.player.knowledge < 3) return { stage: 4, title: 'อ่านหนังสือเตรียมสอบ', detail: `เพิ่มความรู้ ${s.player.knowledge}/3 ที่ขอนไม้นั่งเรียนหรือเมนู`, progress: s.player.knowledge / 3 };
   if (!s.examPassed) return { stage: 5, title: 'สอบผู้นำก่อนหมดวาระ', detail: 'ไม่ผ่านข้อสอบ = ลงเลือกตั้งสมัยหน้าไม่ได้ (เมนูผู้นำ)', progress: 0 };
+  const L = s.leadership;
+  if (L && !L.isLeader) return { stage: 6, title: 'ทวงตำแหน่งคืนในการเลือกตั้งครั้งหน้า', detail: `ตอนนี้${L.leaderName || 'NPC'}เป็นผู้นำ · ทำงานจิตอาสาสะสมผลงาน (เมนูผู้นำ) อ่านหนังสือ และช่วยชาวบ้านให้มีความสุข`, progress: 0 };
+  if (tierOf(s) >= 5) return L?.pm ? { stage: 9, title: '🇹🇭 คุณคือนายกรัฐมนตรี!', detail: 'รักษาความนิยม บริหารงบประเทศ มือสะอาด — ครบ 2 สมัยติดต้องเว้นวาระ', progress: 1 }
+    : { stage: 8, title: 'ชนะเลือกตั้งทั่วไป แล้วให้สภาลงมติเลือกเป็นนายกฯ', detail: `ต้องได้ที่นั่งพรรค + พรรคร่วมเกิน 250 · ผลงานทางการเมือง ${Math.floor(L?.record || 0)} (ยิ่งมากยิ่งได้ที่นั่ง) · มือสะอาด = มีพรรคร่วม`, progress: .8 };
   const c = nextTierCheck(s, population(s));
   if (c.next && !c.next.locked) {
     if (c.ok) return { stage: 6, title: `ยกระดับเป็น${c.next.th}!`, detail: `เมนูก่อสร้าง → ผังหมู่บ้าน → กด "ยกระดับ" แล้วคุณจะเป็น${c.next.title}`, progress: 1 };

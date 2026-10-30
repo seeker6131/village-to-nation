@@ -32,7 +32,7 @@ export const TIERS = [
     // all roads start on even tiles so they sit exactly on the 2x2 ground-tile cells (clean 2-tile-wide streets)
     roads: [[[[12, 50], [62, 50]], true], [[[40, 38], [40, 42]], true], [[[40, 52], [40, 72]], true], [[[32, 28], [32, 38]], true],
       [[[14, 58], [38, 58]]], [[[42, 58], [44, 58]]], [[[20, 40], [58, 40]]]] },
-  { tier: 2, th: 'หมู่บ้าน', title: 'ผู้ใหญ่บ้าน', icon: '🏡', radius: 33, minPop: 12, maxNpc: 30,
+  { tier: 2, th: 'หมู่บ้าน', title: 'ผู้ใหญ่บ้าน', icon: '🏡', radius: 33, minPop: 12, maxNpc: 30, office: { record: 0, knowledge: 3 },
     slots: [
       { id: 'market', kind: 'public', name: 'ตลาดหมู่บ้าน' },
       { id: 'hall', kind: 'public', name: 'ศาลาประชาคม' },
@@ -43,9 +43,12 @@ export const TIERS = [
       { id: 'h6', kind: 'cottage', tx: 52, ty: 37, name: 'ถนนเหนือ บ้านเลขที่ 6' },
     ],
     roads: [[[[14, 64], [60, 64]]], [[[14, 70], [60, 70]]]] },
-  { tier: 3, th: 'อำเภอ', title: 'นายอำเภอ', icon: '🏘️', radius: 36, minPop: 26, maxNpc: 60, locked: 'ผังเมืองระดับอำเภอพร้อมแล้ว (ดูได้ที่ปุ่ม 🏙) แต่ระบบก่อสร้างอาคารเมืองยังไม่เปิด', slots: [], roads: [] },
-  { tier: 4, th: 'จังหวัด', title: 'ผู้ว่าราชการจังหวัด', icon: '🏙️', radius: 48, minPop: 60, maxNpc: 120, locked: 'ต้องมีระบบออนไลน์ (หลายอำเภอรวมกัน)', slots: [], roads: [] },
-  { tier: 5, th: 'ประเทศ', title: 'นายกรัฐมนตรี', icon: '🇹🇭', radius: 60, minPop: 100, maxNpc: 200, locked: 'ปลายทางของเกม: เลือกตั้งระดับประเทศโดยผู้เล่นจริง — ซื้อไม่ได้', slots: [], roads: [] },
+  // v0.26 real Thai ladder: elected posts follow the area (ผู้ใหญ่บ้าน → นายก อบต. → ส.ส. → นายกรัฐมนตรี via parliament);
+  // นายอำเภอ / ผู้ว่าฯ are civil-service ranks (career.js). From tier 3 the area is raised with the treasury's development
+  // fund (`fund`, spent on upgrade) + public buildings + happiness; the candidate needs `office` qualifications to run.
+  { tier: 3, th: 'อำเภอ', title: 'นายก อบต.', icon: '🏘️', radius: 36, minPop: 26, maxNpc: 60, fund: 2000, publicLv: 2, happy: 55, office: { record: 60, knowledge: 6 }, slots: [], roads: [] },
+  { tier: 4, th: 'จังหวัด', title: 'ส.ส.', icon: '🏙️', radius: 48, minPop: 60, maxNpc: 120, fund: 9000, publicLv: 3, happy: 55, office: { record: 150, knowledge: 10 }, slots: [], roads: [] },
+  { tier: 5, th: 'ประเทศ', title: 'ส.ส. ระดับชาติ', icon: '🇹🇭', radius: 60, minPop: 100, maxNpc: 200, fund: 26000, publicLv: 4, happy: 55, office: { record: 260, knowledge: 14 }, slots: [], roads: [] },
 ];
 export const SLOT_KINDS = ['cottage', 'workshop']; // private buildings that need a slot
 
@@ -146,26 +149,59 @@ export function publicUnlocked(s, id) { return openSlots(s).some(x => x.kind ===
 export function publicTier(id) { return TIERS.find(T => T.slots.some(x => x.id === id))?.tier || 1; }
 
 /** Requirements for the next tier (all checks are world state; nothing is for sale). */
-export function nextTierCheck(s, population = 0) {
+export function nextTierCheck(s, population = 0, { npc = false } = {}) {
   const t = tierOf(s), next = TIERS[t];
   if (!next) return { ok: false, next: null, items: [], why: 'ระดับสูงสุดแล้ว' };
   const items = [];
   for (const x of TIERS[t - 1].slots) { const st = slotState(s, x).state; items.push({ label: x.name, ok: st === 'done', note: st === 'building' ? 'กำลังสร้าง' : st === 'empty' ? 'ยังไม่สร้าง' : '' }); }
   items.push({ label: `ประชากร ${next.minPop} คน`, ok: population >= next.minPop, note: `ตอนนี้ ${population}` });
-  const leader = !!s.leadership?.isLeader || s.election?.leader === 'player';
-  items.push({ label: 'คุณเป็นผู้นำของพื้นที่นี้', ok: leader, note: leader ? '' : 'ต้องชนะเลือกตั้งก่อน' });
+  if (next.publicLv) for (const id of ['home', 'market', 'hall', 'farm']) {
+    const need = Math.min(next.publicLv, id === 'farm' ? 3 : 5), lv = s.publicSites?.[id]?.status === 'done' || s.publicSites?.[id]?.upgradingTo ? s.publicSites[id].level : 0;
+    items.push({ label: `${PUBLIC_TH[id]} ระดับ ${need}`, ok: lv >= need, note: `ตอนนี้ ${lv}` });
+  }
+  if (next.happy) items.push({ label: `ความสุขชาวบ้าน ${next.happy}`, ok: (s.town?.happiness ?? 0) >= next.happy, note: `ตอนนี้ ${Math.round(s.town?.happiness ?? 0)}` });
+  if (next.fund) items.push({ label: `งบพัฒนาพื้นที่ในคลัง ${next.fund} เหรียญ (จ่ายตอนยกระดับ)`, ok: (s.town?.treasury || 0) >= next.fund, note: `คลังมี ${Math.floor(s.town?.treasury || 0)}` });
+  if (!npc) {
+    const leader = !!s.leadership?.isLeader || s.election?.leader === 'player';
+    items.push({ label: 'คุณเป็นผู้นำของพื้นที่นี้', ok: leader, note: leader ? '' : 'ต้องชนะเลือกตั้งก่อน' });
+    for (const q of officeNeeds(s, next.tier)) items.push(q);
+  }
   const ok = items.every(i => i.ok) && !next.locked;
   return { ok, next, items, why: next.locked || (ok ? '' : 'ยังทำไม่ครบตามผัง') };
+}
+const PUBLIC_TH = { home: 'บ้านพักชุมชน', market: 'ตลาด', hall: 'ศาลาประชาคม', farm: 'สวนอาหาร' };
+/** Qualifications to hold the elected office of tier t: political track record + education (no money involved). */
+export function officeNeeds(s, t) {
+  const o = TIERS[t - 1]?.office; if (!o) return [];
+  const out = [];
+  if (o.knowledge) out.push({ label: `ความรู้ ${o.knowledge} (อ่านหนังสือ/เรียน)`, ok: (s.player?.knowledge || 0) >= o.knowledge, note: `ตอนนี้ ${s.player?.knowledge || 0}` });
+  if (o.record) out.push({ label: `ผลงานทางการเมือง ${o.record}`, ok: (s.leadership?.record || 0) >= o.record, note: `ตอนนี้ ${Math.floor(s.leadership?.record || 0)}` });
+  return out;
 }
 
 /** Leader presses "ยกระดับ". */
 export function upgradeVillage(s, population = 0) {
   const c = nextTierCheck(s, population);
   if (!c.ok) return { ok: false, msg: c.why };
+  if (c.next.fund) s.town.treasury -= c.next.fund; // the development fund is spent on the new district (roads, offices)
   s.town.stage = c.next.tier - 1;
+  if (s.leadership) s.leadership.consecutive = s.leadership.isLeader ? 1 : 0; // a new office: the term count starts again
   const cleared = openRoads(s);
   addHistory(s, `${c.next.icon} ยกระดับเป็น "${c.next.th}" — คุณคือ${c.next.title}`);
   return { ok: true, msg: `${c.next.icon} ยกระดับเป็น${c.next.th}! ผังขยาย มีที่ดินใหม่ ${c.next.slots.length} แปลง${cleared ? ` · ชาวบ้านช่วยกันเปิดถนนใหม่ (ตัดต้นไม้ ${cleared} ต้น)` : ''}`, tier: c.next };
+}
+
+/** v0.26 while an NPC holds the office, the area still grows: the NPC leader raises it when the plan, buildings,
+ *  happiness and treasury are ready (the player's own qualifications do not matter for that). Once per day. */
+export function npcUpgradeVillage(s, population = 0) {
+  if (s.leadership?.isLeader) return null;
+  if (((s.day * 7919 + 13) % 100) / 100 > .2) return null; // NPC leaders take their time (~1 day in 5)
+  const c = nextTierCheck(s, population, { npc: true });
+  if (!c.ok) return null;
+  if (c.next.fund) s.town.treasury -= c.next.fund;
+  s.town.stage = c.next.tier - 1; openRoads(s);
+  addHistory(s, `${c.next.icon} ${s.leadership?.leaderName || 'ผู้นำคนปัจจุบัน'} ยกระดับพื้นที่เป็น "${c.next.th}"`);
+  return c.next;
 }
 
 /** Road tiles of every unlocked tier (tile keys "x,y"), 2 tiles wide. `.main` = the main streets (drawn with sidewalks). */

@@ -69,14 +69,23 @@ test('upgrade needs every slot built + population + leader; money alone does not
   s.leadership.isLeader = false; s.election.leader = 'npc';
   assert.equal(V.upgradeVillage(s, population(s)).ok, false, 'only the leader can upgrade');
   s.leadership.isLeader = true; s.election.leader = 'player';
+  assert.equal(V.upgradeVillage(s, population(s)).ok, false, 'ผู้ใหญ่บ้าน needs education (knowledge 3)');
+  s.player.knowledge = 3;
   const r = V.upgradeVillage(s, population(s));
   assert.equal(r.ok, true, r.msg); assert.equal(V.tierOf(s), 2); assert.match(roleLabel(s), /ผู้ใหญ่บ้าน/);
   assert.ok(V.openSlots(s).some(x => x.id === 'h3')); assert.ok(V.villageRadius(s) > V.TIERS[0].radius);
   for (const k of V.roadTiles(s)) { const [x, y] = k.split(',').map(Number), n = W.nodeOnTile(x, y); if (n) assert.equal(W.nodeStatus(s, n), 'gone', 'roads cleared'); }
   finishTier(s, 2);
   while (population(s) < 26) { s.day++; settlerArrivals(s); if (s.day > 400) break; }
+  // v0.26 tier 3 (อำเภอ): public buildings Lv2, happiness, a development fund from the treasury, the office's qualifications
   const c = V.nextTierCheck(s, population(s));
-  assert.equal(c.ok, false); assert.match(c.why, /ยังไม่เปิด/, 'tier 3 waits for its art');
+  assert.equal(c.ok, false);
+  for (const id of ['home', 'market', 'hall', 'farm']) Object.assign(s.publicSites[id], { status: 'done', level: 2 });
+  s.town.happiness = 80; s.player.knowledge = 6; s.leadership.record = 60;
+  s.town.treasury = 1999; assert.equal(V.upgradeVillage(s, population(s)).ok, false, 'fund short by 1');
+  s.player.coins = 1e9; assert.equal(V.upgradeVillage(s, population(s)).ok, false, 'the leader\'s own money does not count');
+  s.town.treasury = 2100; assert.equal(V.upgradeVillage(s, population(s)).ok, true);
+  assert.equal(V.tierOf(s), 3); assert.equal(s.town.treasury, 100, 'fund spent'); assert.match(roleLabel(s), /นายก อบต/);
 });
 
 test('everyone wants a home: NPC villagers claim plots, save daily and build their own houses', () => {

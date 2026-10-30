@@ -24,17 +24,7 @@ const quests = [
  {id:'delivery',name:'ช่วยคนส่งของ',desc:'ส่งพัสดุสำเร็จ 1 ครั้ง',goal:1,stat:'deliveries',reward:16},
 ];
 export const QUESTS=quests;
-export const CIVIC_ACTIONS={
-  lanterns:{name:'ปรับปรุงไฟถนน',icon:'🏮',cost:12,desc:'จัดสรรงบติดไฟทางเดินในเมือง (สถานะโครงการ)'},
-  park:{name:'เปิดสวนหย่อม',icon:'🌷',cost:16,desc:'ทำให้ชุมชนมีสถานที่พักผ่อน (สถานะโครงการ)'},
-  library:{name:'จัดมุมอ่านหนังสือ',icon:'📚',cost:20,desc:'เตรียมพื้นที่การเรียนรู้ให้ชุมชน (สถานะโครงการ)'},
-};
-export function adoptCivicAction(s,id){ensureSystems(s);const action=CIVIC_ACTIONS[id];if(!action)return no('ไม่พบโครงการ');
- if(s.election?.leader!=='player')return no('ต้องได้รับเลือกเป็นผู้นำชุมชนก่อน');
- if(s.town.policies.includes(id))return no('ดำเนินโครงการแล้ว');
- if(s.town.treasury<action.cost)return no('งบชุมชนไม่พอ');
- s.town.treasury-=action.cost;s.town.policies.push(id);return ok(`อนุมัติโครงการ ${action.name} แล้ว`);
-}
+// v0.26 one-off civic actions were replaced by running policies with a daily budget (economy.js POLICIES)
 const ok=msg=>({ok:true,msg});
 const no=msg=>({ok:false,msg});
 export function ensureSystems(s){
@@ -113,5 +103,8 @@ export function claimQuest(s,id){const q=QUESTS.find(x=>x.id===id);if(!q)return 
  if(s.daily.claimed.includes(id))return no('รับรางวัลแล้ว');if(questProgress(s,id)<q.goal)return no('ยังทำภารกิจไม่ครบ');
  s.daily.claimed.push(id);s.player.coins+=q.reward;gainXp(s,8);return ok(`รับรางวัลภารกิจ +${q.reward} เหรียญ และ 8 XP`);
 }
-export function eatFood(s){if(s.player.stamina>=100)return no('พลังงานเต็มแล้ว');if(!spendItem(s,'food',1))return no('ไม่มีอาหาร ซื้อได้จากตลาด');s.player.stamina=Math.min(100,s.player.stamina+25);return ok('กินอาหาร ฟื้นพลัง 25');}
+export const MEALS_PER_DAY=3,MEAL_ENERGY=20;
+export function eatFood(s){if(s.player.stamina>=100)return no('พลังงานเต็มแล้ว');
+ const t=s.econ?.today;if(t&&t.day!==s.day){t.day=s.day;t.meals=0;t.napped=false;}if(t&&t.meals>=MEALS_PER_DAY)return no(`วันนี้กินครบ ${MEALS_PER_DAY} มื้อแล้ว อิ่มแล้ว`); // v0.26 meals per day are limited (energy is a daily budget)
+ if(!spendItem(s,'food',1))return no('ไม่มีอาหาร ซื้อได้จากตลาด');if(t)t.meals=(t.meals||0)+1;s.player.stamina=Math.min(100,s.player.stamina+MEAL_ENERGY);return ok(`กินอาหาร ฟื้นพลัง ${MEAL_ENERGY}`);}
 export function getTownStats(s){ensureSystems(s);return {publicBuilt:Object.values(s.projects).filter(Boolean).length,privateBuilt:s.placed.filter(b=>(b.level??1)>=1).length,farms:s.placed.filter(b=>b.type==='garden'&&(b.level??1)>=1).length,level:s.player.level,treasury:s.town.treasury};}

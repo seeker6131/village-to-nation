@@ -22,8 +22,8 @@ export const BUILDINGS = {
               desc: 'รองรับผู้อยู่อาศัยใหม่ 2 คน หมู่บ้านเติบโตเร็วขึ้น · อัปเกรดบ้านตามยุคของพื้นที่ (บุกเบิก → หมู่บ้าน → อำเภอ → จังหวัด → ประเทศ) · แต่ละแปลงมีขนาดต่างกัน: เล็ก กลาง ใหญ่ หรือบ้านทำร้านค้า',
               // house level = the era of the house (1 บุกเบิก … 5 ประเทศ); each era unlocks when the area reaches it
               // v0.24: house level = wealth tier, not era — whoever can pay may build a bigger house at any time (in-game money only)
-              levels: [{ residents: 2 }, { residents: 3, wood: 10, stone: 6, coins: 60, work: 360 }, { residents: 4, wood: 12, stone: 12, coins: 120, work: 400 },
-                { residents: 5, wood: 16, stone: 20, coins: 200, work: 450 }, { residents: 6, wood: 20, stone: 30, coins: 320, work: 500 }] },
+              levels: [{ residents: 2 }, { residents: 3, wood: 10, stone: 6, coins: 120, work: 360 }, { residents: 4, wood: 14, stone: 12, coins: 350, work: 400 },
+                { residents: 5, wood: 18, stone: 20, coins: 800, work: 450 }, { residents: 6, wood: 24, stone: 30, coins: 1600, work: 500 }] }, // v0.26 wealth tiers: a mansion is a long-term goal
   fence:    { name: 'รั้ว', icon: '🚧', width: 1, height: 1, wood: 1, stone: 0, coins: 1, work: 6,
               desc: 'กั้นแนวที่ดิน วางต่อกันเป็นแนวได้ · อัปเกรดวัสดุ ไม้ไผ่ → ไม้ → หิน → ปูน → เหล็ก',
               levels: [{ material: 'bamboo' }, { material: 'wood', wood: 1, coins: 2, work: 6 }, { material: 'stone', stone: 2, coins: 3, work: 8 },
@@ -68,10 +68,12 @@ const fail = reason => ({ ok: false, reason, msg: reason });
 const okr = msg => ({ ok: true, msg, reason: msg });
 
 function costText(c) { return [c.coins ? `${c.coins} เหรียญ` : '', c.wood ? `${c.wood} ไม้` : '', c.stone ? `${c.stone} หิน` : ''].filter(Boolean).join(' · ') || 'ไม่มีค่าใช้จ่าย'; }
-export function hasResources(s, c) { return (s.player.coins >= (c.coins || 0)) && (s.player.wood >= (c.wood || 0)) && (s.player.stone >= (c.stone || 0)); }
-function pay(s, c) { // never allow negatives: caller checks hasResources first
-  if (!hasResources(s, c)) return false;
-  s.player.coins -= c.coins || 0; s.player.wood -= c.wood || 0; s.player.stone -= c.stone || 0; return true;
+// v0.26 public works are paid by the TREASURY (coins); the materials still come from the player (the leader hands them in)
+export function hasResources(s, c, fromTreasury = false) { return ((fromTreasury ? s.town?.treasury || 0 : s.player.coins) >= (c.coins || 0)) && (s.player.wood >= (c.wood || 0)) && (s.player.stone >= (c.stone || 0)); }
+function pay(s, c, fromTreasury = false) { // never allow negatives: caller checks hasResources first
+  if (!hasResources(s, c, fromTreasury)) return false;
+  if (fromTreasury) s.town.treasury -= c.coins || 0; else s.player.coins -= c.coins || 0;
+  s.player.wood -= c.wood || 0; s.player.stone -= c.stone || 0; return true;
 }
 export function missingText(s, c) {
   const m = [];
@@ -171,8 +173,10 @@ export function upgradeStructure(s, ref) {
   if (!next) return { ok: false, msg: 'อัปเกรดสูงสุดแล้ว' };
   const lock = stageLock(s, next);
   if (lock) return { ok: false, msg: lock };
-  if (!hasResources(s, next)) return { ok: false, msg: `ทรัพยากรไม่พอ: ${missingText(s, next)}` };
-  pay(s, next);
+  const pub = t.kind === 'public';
+  if (pub && !(s.leadership?.isLeader || s.election?.leader === 'player')) return { ok: false, msg: 'อาคารสาธารณะใช้งบคลัง ต้องเป็นผู้นำถึงจะอนุมัติอัปเกรดได้' };
+  if (!hasResources(s, next, pub)) return { ok: false, msg: pub && (s.town?.treasury || 0) < (next.coins || 0) ? `งบคลังไม่พอ (ต้องใช้ ${next.coins} มี ${Math.floor(s.town?.treasury || 0)})` : `ทรัพยากรไม่พอ: ${missingText(s, next)}` };
+  pay(s, next, pub);
   Object.assign(t.obj, { status: 'building', upgradingTo: t.obj.level + 1, work: 0, workNeeded: next.work, startedAt: nowMinutes(s) });
   return { ok: true, msg: `เริ่มอัปเกรด${t.name}เป็นระดับ ${t.obj.level + 1}` };
 }
@@ -212,6 +216,7 @@ function finish(s, t) {
   if (t.kind === 'public' && !upgrading) completeProject(s, t.type);
   else addHistory(s, upgrading ? `อัปเกรด${t.name}เป็นระดับ ${o.level}` : `${t.name}สร้างเสร็จ`);
   gainXp(s, t.kind === 'public' ? 18 : 8);
+  if (t.kind === 'public' && s.leadership?.isLeader) s.leadership.record = (s.leadership.record || 0) + 3; // v0.26 track record: public works delivered in office
   s.lastCompleted = { id: t.id, name: t.name, at: nowMinutes(s) };
 }
 

@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.26 — economy, budget and the real road to Prime Minister (30 Oct 2026)
+- Energy is a daily budget: no passive regen; sleep refills it (own house 100, leader house 100, lodging 80, tent 65),
+  one nap +30 and up to 3 meals (+20 each) a day. Jobs cost 20–28 energy -> about 6–8 jobs a day.
+- Taxes: the leader sets income tax 0–25% (default 10%); wages of the player and villagers are taxed, houses pay
+  property tax. Everything goes to the TREASURY. The treasury pays public works (no more paying from your pocket),
+  upkeep, NPC civil-servant payroll and running policies (8 policies with a daily cost and real effects). A broke
+  treasury suspends policies and hurts popularity. New budget panel with a daily ledger.
+- Real Thai ladder. Politics: หัวหน้าค่าย → ผู้ใหญ่บ้าน → นายก อบต. → ส.ส. → นายกรัฐมนตรี (the House votes: party seats
+  + coalition partners > 250 of 500). Civil service: เจ้าหน้าที่ฝึกหัด → เจ้าหน้าที่ → ปลัดอำเภอ → นายอำเภอ → ผู้ว่าฯ
+  (days served + education + the office existing in the area). A civil servant must resign to run; an elected leader
+  cannot take civil shifts.
+- Political track record (ผลงานทางการเมือง): days in office with good popularity, elections won, public works,
+  community service (งานจิตอาสา, once a day, the way back while out of office); scandals cost 25.
+- Areas อำเภอ / จังหวัด / ประเทศ are now playable offline: plan + population + public buildings level + happiness +
+  a development fund from the treasury (2,000 / 9,000 / 26,000) + the leader's education and record. While an NPC
+  holds the office the area still grows. Rivals get stronger in bigger areas. Study costs energy, 3 a day.
+- House upgrades are long-term wealth goals (120 / 350 / 800 / 1,600 coins).
+- scripts/sim-economy.mjs plays 170 days with the real rules: an efficient player reaches PM around day 100–110
+  (~35 h of play); a normal player takes longer. Known: late-game coins and treasury keep growing (needs sinks:
+  businesses, national projects).
+- Map Maker (editor/index.html): paint ground, roads, place art, import GPT images (magenta key, auto split),
+  markers and notes; saves a readable .v2nmap.json for Claude (docs/MAP_EDITOR_TH.md).
+
 ## v0.25 — real street plan (30 Oct 2026)
 - Village redrawn as a street grid: a main street (W–E) with sidewalks crossing an avenue (N–S) at the plaza; residential
   lanes run W–E with one row of houses on their north side, every front door facing the lane over a lawn front yard with a

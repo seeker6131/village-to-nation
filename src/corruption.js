@@ -76,11 +76,11 @@ export function auditDay(s, rng = null) {
   s.player.coins -= seized; s.town.treasury += seized;
   const severe = c.voteBuy > 0 || c.taken >= 80 || c.scandals.length >= 1;
   const L = s.leadership;
-  if (L) L.popularity = Math.max(0, L.popularity - (severe ? 40 : 22));
+  if (L) { L.popularity = Math.max(0, L.popularity - (severe ? 40 : 22)); L.record = Math.max(0, (L.record || 0) - 25); }
   s.town.happiness = Math.max(0, s.town.happiness - 8);
   const ev = { day: s.day, seized, severe, voteBuy: c.voteBuy > 0, by: ['ป.ป.ช. ตรวจบัญชีหมู่บ้าน', 'นักข่าวท้องถิ่นแฉ', 'ชาวบ้านร้องเรียนพร้อมหลักฐาน'][Math.floor(roll * 1000) % 3] };
   if (severe && L) { // removed from office + banned
-    L.isLeader = false; L.consecutive = 0; L.leaderName = L.leaderName || 'ป้าแสง (รักษาการ)'; s.election.leader = 'npc';
+    L.isLeader = false; L.pm = false; L.consecutive = 0; L.leaderName = L.leaderName || 'ป้าแสง (รักษาการ)'; s.election.leader = 'npc';
     c.bannedUntil = s.day + BAN_DAYS; L.cooldownUntilDay = Math.max(L.cooldownUntilDay || 0, c.bannedUntil);
   }
   c.scandals.unshift(ev); c.scandals = c.scandals.slice(0, 5);
@@ -92,7 +92,7 @@ export function auditDay(s, rng = null) {
 /** Popularity factor: clean record +6; recent scandals cost a lot. */
 export function integrityScore(s) {
   const c = ensureCorruption(s), recent = c.scandals.filter(x => s.day - x.day < 14).length;
-  return recent ? -12 * recent : c.lifetime === 0 ? 6 : 2;
+  return recent ? -12 * recent : c.lifetime === 0 ? 4 : 1;
 }
 /** Bought votes are added on election day, then reset. */
 export function takeBoughtVotes(s) { const c = ensureCorruption(s), v = c.voteBuy; c.voteBuy = 0; return v; }

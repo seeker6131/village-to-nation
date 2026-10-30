@@ -1,19 +1,21 @@
 // Side-drawer menus. Every button maps to a real rule function; disabled buttons explain why.
-import { PROJECTS, PROJECT_ORDER, EXAM_QUESTIONS, CIVIL_EXAM_QUESTIONS, takeExam, takeCivilExam, civilShift, electionEligibility, registerCandidate, runDemoElection, rest, study, mentorObjective, timeLabel, phase, SAVE_KEY } from '../gameState.js';
-import { TOOLS, MARKET, RECIPES, QUESTS, CIVIC_ACTIONS, itemCount, marketBuyPrice, marketSellPrice, buyMarket, sellMarket, craft, eatFood, upgradeSkill, requiredXp, plant, harvest, gardenProgress, questProgress, claimQuest, refreshDaily, adoptCivicAction, getTownStats } from '../systems.js';
+import { PROJECTS, PROJECT_ORDER, EXAM_QUESTIONS, CIVIL_EXAM_QUESTIONS, takeExam, takeCivilExam, electionEligibility, registerCandidate, runDemoElection, study, mentorObjective, timeLabel, phase, SAVE_KEY } from '../gameState.js';
+import { TOOLS, MARKET, RECIPES, QUESTS, MEALS_PER_DAY, MEAL_ENERGY, itemCount, marketBuyPrice, marketSellPrice, buyMarket, sellMarket, craft, eatFood, upgradeSkill, requiredXp, plant, harvest, gardenProgress, questProgress, claimQuest, refreshDaily, getTownStats } from '../systems.js';
+import { ECON, POLICIES, ensureEconomy, nap, setTax, togglePolicy, budgetPreview, sleepQuality, taxRate } from '../economy.js';
+import { CIVIL_RANKS, SHIFT_ENERGY, ensureCivil, isCivilServant, nextPromotion, civilShift, resignCivil, rejoinCivil } from '../career.js';
 import { BUILDINGS, PUBLIC_LEVELS, PUBLIC_WORK, stageLock, startPublic, upgradeStructure, upgradeCost, helpConstruction, findStructure, progressOf, hasResources, missingText, costText, HELP_ENERGY, gardenYield } from '../construction.js';
 import { JOBS, CAREERS, CAREER_OUTFIT_JOBS, jobAvailable, acceptJob, cancelJob, chooseCareer, jobTarget } from '../jobs.js';
 import { NPC_QUESTS, questsFor, questStatus, questReady, questProgressText, rewardText, acceptQuest, turnInQuest } from '../quests.js';
 import { CATALOG, SHOP_CATEGORIES, purchase, grantMockEntitlement, owns, validateCatalog } from '../shop.js';
 import { STAGES, LEADERSHIP_LADDER } from '../progression.js';
-import { ensureLeadership, popularityFactors, termDaysLeft, canRun, roleLabel, TERM_DAYS, MAX_CONSECUTIVE } from '../leadership.js';
+import { ensureLeadership, popularityFactors, termDaysLeft, canRun, roleLabel, volunteer, VOLUNTEER_ENERGY, PARLIAMENT, TERM_DAYS, MAX_CONSECUTIVE } from '../leadership.js';
 import { plotObstacles, REGIONS, BIOMES, WORLD, TILE } from '../world.js';
-import { population, housingCapacity, npcPhrase, allNpcDefs, isDone } from '../npcs.js';
+import { population, housingCapacity, npcPhrase, allNpcDefs, isDone, officialsCount } from '../npcs.js';
 import { OUTFITS } from '../character/model.js';
 import { saveSettings } from '../performance.js';
 import { configureAudio, sfx, audioState } from '../audio.js';
 import { G, result, saveNow, enterBuild, resetNpcPlans, rebuildNpcs } from './game.js';
-import { TIERS, tierOf, tierInfo, slotState, nextTierCheck, upgradeVillage, publicUnlocked, publicTier, SLOT_KINDS, openSlots, slotObstacles } from '../villageLayout.js';
+import { TIERS, tierOf, tierInfo, officeNeeds, slotState, nextTierCheck, upgradeVillage, publicUnlocked, publicTier, SLOT_KINDS, openSlots, slotObstacles } from '../villageLayout.js';
 import { objective } from '../guide.js';
 import { clearPropTiles } from '../villageProps.js';
 import { myHome, claimPlot, houseSlots, CLAIM_FEE, HOUSE_COST } from '../housing.js';
@@ -111,7 +113,9 @@ function inventory() {
   <p class="help">ขวาน: ฟันต้นไม้ (3 ครั้งล้ม แล้วขุดตอ) · อีเต้อ: ขุดหิน (ทำได้ที่เมนูผลิต) · เครื่องมือไม่สึกหรอ ไม่ขายเงินจริง</p>
   <h3>📦 ของในกระเป๋า</h3><div class="grid2">${Object.entries(MARKET).map(([id, it]) => `<div class="item"><span class="ico">${it.icon}</span><strong>${itemCount(s, id)}</strong><small>${it.name}</small></div>`).join('')}</div>
   <h3>⚡ พลังงาน ${Math.floor(p.stamina)}/100</h3>${bar(p.stamina / 100)}
-  <div class="row-flex">${btn('🍞 กินอาหาร +25', 'eat', '', { disabled: itemCount(s, 'food') < 1 || p.stamina >= 100, cls: 'btn' })} ${btn('☕ พักผ่อน (ฟรี)', 'rest', '', { cls: 'btn ghost' })}</div>
+  ${(() => { const E = ensureEconomy(s), sl = sleepQuality(s, !!s.leadership?.isLeader), meals = E.today.day === s.day ? E.today.meals || 0 : 0, napped = E.today.day === s.day && E.today.napped;
+    return `<div class="row-flex">${btn(`🍞 กินอาหาร +${MEAL_ENERGY} (${meals}/${MEALS_PER_DAY} มื้อ)`, 'eat', '', { disabled: itemCount(s, 'food') < 1 || p.stamina >= 100 || meals >= MEALS_PER_DAY, cls: 'btn' })} ${btn(napped ? '😴 งีบแล้ววันนี้' : `😴 งีบ +${ECON.NAP} (วันละครั้ง)`, 'rest', '', { cls: 'btn ghost', disabled: napped || p.stamina >= 100 })}</div>
+  <p class="help">พลังงานเป็นงบรายวัน: ไม่ฟื้นเอง · คืนนี้นอนที่<b>${sl.where}</b> ตื่นมามี ${sl.energy} (บ้านของตัวเอง = 100) · งานหนึ่งใช้ 20–28</p>`; })()}
   <p class="help">พลังงานฟื้นเองช้า ๆ ระหว่างเล่น และ +15 ทุกเช้า ไม่มีการขายพลังงานด้วยเงินจริง</p>
   <h3>🧠 ทักษะ (แต้มคงเหลือ ${p.skillPoints})</h3>
   ${[['gather', 'งานเก็บของ', 'ใช้พลังงานเก็บไม้/หินลดลง'], ['trade', 'ค้าขาย', 'ราคาซื้อในตลาดลด 5% ต่อระดับ'], ['craft', 'งานฝีมือ', 'ได้ XP จากการผลิตเพิ่ม']].map(([id, t, d]) => `<div class="card"><div class="row"><div><b>${t} ${s.skills[id]}/3</b><small>${d}</small></div>${btn('+1', 'skill', id, { disabled: !p.skillPoints || s.skills[id] >= 3 })}</div></div>`).join('')}
@@ -235,44 +239,60 @@ function npc(d) {
   const runtime = G.npcs.find(n => n.def.id === d.id);
   const life = s.town.life?.[d.id], bar = (v, c) => `<span style="display:inline-block;width:70px;height:7px;border-radius:4px;background:#0003;vertical-align:middle"><i style="display:block;height:100%;width:${Math.round(v)}%;background:${c};border-radius:4px"></i></span> ${Math.round(v)}`;
   const act = { patrol: 'ออกตรวจรอบเมือง', office: 'ทำงานที่ที่ทำงาน', sleep: 'นอนหลับ', home: 'อยู่บ้าน', lunch: 'กินข้าวกลางวัน', relax: 'นั่งพักที่ม้านั่ง', meeting: runtime?.plan?.place === 'gov' ? 'ประชุมที่ที่ว่าการ' : 'ประชุมที่ศาลา', social: 'คุยกับเพื่อนบ้าน', build: 'ไปช่วยก่อสร้าง', craft: 'ทำงานที่โรงงาน', gather: 'หาไม้', chop: 'ถางป่าโค่นต้นไม้', farm: 'ทำสวนอาหารชุมชน', forage: 'หาของป่า', sell: 'ขายของ', work: 'ทำงาน' }[runtime?.plan?.activity] || '—';
-  return `<div class="notice">👋 <b>${esc(d.name)}</b> · ${esc(d.role)}<p>“${esc(npcPhrase(s, d))}”</p></div><div class="kv"><span>ตอนนี้</span><b>${act}</b><span>อาชีพ</span><b>${esc(runtime?.def.role || d.role)}</b>${life ? `<span>🍚 หิว</span><b>${bar(life.hunger, '#e8913a')}</b><span>⚡ แรง</span><b>${bar(life.energy, '#5cc46a')}</b><span>🪙 เงินเก็บ</span><b>${life.coins}</b>` : ''}</div>${qs ? `<h3>คำขอ</h3>${qs}` : ''}${d.id === 'mentor' ? `<div style="margin-top:8px">${btn('🎯 ดูบทนำของครูอุ่น', 'panel', 'quests')} ${btn('☕ พักผ่อนที่ศูนย์ (ฟรี)', 'rest', '', { cls: 'btn ghost small' })}</div>` : ''}`;
+  return `<div class="notice">👋 <b>${esc(d.name)}</b> · ${esc(d.role)}<p>“${esc(npcPhrase(s, d))}”</p></div><div class="kv"><span>ตอนนี้</span><b>${act}</b><span>อาชีพ</span><b>${esc(runtime?.def.role || d.role)}</b>${life ? `<span>🍚 หิว</span><b>${bar(life.hunger, '#e8913a')}</b><span>⚡ แรง</span><b>${bar(life.energy, '#5cc46a')}</b><span>🪙 เงินเก็บ</span><b>${life.coins}</b>` : ''}</div>${qs ? `<h3>คำขอ</h3>${qs}` : ''}${d.id === 'mentor' ? `<div style="margin-top:8px">${btn('🎯 ดูบทนำของครูอุ่น', 'panel', 'quests')} ${btn('😴 งีบที่ศูนย์ (วันละครั้ง)', 'rest', '', { cls: 'btn ghost small' })}</div>` : ''}`;
 }
 
 // ------------------------------------------------------------------ civil service (career track, separate from politics)
 function civil() {
-  const s = G.state, c = s.civilService;
-  const can = s.player.knowledge >= 2 && s.stats.deliveries >= 1;
+  const s = G.state, c = ensureCivil(s), np = nextPromotion(s);
+  const can = s.player.knowledge >= 2 && s.stats.deliveries >= 1, isL = !!s.leadership?.isLeader;
+  const ladder = `<div class="ladder">${CIVIL_RANKS.map((r, i) => `<div class="card ${c.examPassed && i < c.grade ? 'done' : c.examPassed && i === c.grade ? 'active' : ''}"><b>${i + 1}. ${r.th}${c.examPassed && i === c.grade ? ' (ตอนนี้)' : ''}</b><small>เงินเดือน ${r.pay}/วัน · วันทำงาน ${r.shifts} · ความรู้ ${r.knowledge}${r.tier >= 3 ? ` · พื้นที่ระดับ${r.tier >= 4 ? 'จังหวัด' : 'อำเภอ'}ขึ้นไป` : ''}</small></div>`).join('')}</div>`;
   const exam = c.examPassed
-    ? `<div class="card done"><b>✅ ข้าราชการชุมชน · ${c.rank}</b><small>ทำงานแล้ว ${c.shifts} วัน · เลื่อนขั้นที่ 3 / 8 / 15 วันทำงาน (ค่าจ้าง 18 → 24 → 31 → 42)</small>${btn('📋 เข้าเวรราชการวันนี้ (−12⚡)', 'civilShift', '', { disabled: c.lastShiftDay === s.day, cls: 'btn' })}${c.lastShiftDay === s.day ? '<small>วันนี้เข้าเวรแล้ว กลับมาใหม่วันพรุ่งนี้ (ในเกม)</small>' : ''}</div>`
+    ? `<div class="card ${c.resigned ? 'lock' : 'done'}"><b>${c.resigned ? '⏸ ลาออกจากราชการแล้ว' : '✅'} ${c.rank}</b><small>ทำงานแล้ว ${c.shifts} วัน${np ? ` · ขั้นต่อไป ${np.rank.th}: ${np.missing.length ? np.missing.join(' · ') : 'ครบแล้ว เลื่อนตอนเข้าเวรครั้งหน้า'}` : ' · ตำแหน่งสูงสุดของสายราชการ'}</small>
+      ${c.resigned ? btn('↩️ กลับเข้ารับราชการ', 'rejoin', '', { disabled: isL, cls: 'btn' }) + (isL ? '<small>ต้องพ้นจากตำแหน่งการเมืองก่อน</small>' : '')
+        : `${btn(`📋 เข้าเวรเต็มวัน (−${SHIFT_ENERGY}⚡) +${CIVIL_RANKS[c.grade].pay} ก่อนหักภาษี`, 'civilShift', '', { disabled: c.lastShiftDay === s.day || isL || s.player.stamina < SHIFT_ENERGY, cls: 'btn' })}
+        ${isL ? '<small>ดำรงตำแหน่งการเมืองอยู่ ทำงานราชการพร้อมกันไม่ได้</small>' : c.lastShiftDay === s.day ? '<small>วันนี้เข้าเวรแล้ว</small>' : ''}
+        ${btn('🚪 ลาออกเพื่อลงการเมือง', 'resign', '', { cls: 'btn ghost small' })}`}</div>`
     : !can ? `<div class="notice warn">คุณสมบัติก่อนสอบ: ความรู้ ${s.player.knowledge}/2 · ส่งพัสดุ ${s.stats.deliveries}/1</div>${btn('📖 อ่านหนังสือ +1', 'study')}`
     : `<form id="civil-form">${CIVIL_EXAM_QUESTIONS.map((q, i) => `<div class="quiz"><b>${i + 1}. ${q.q}</b>${q.choices.map((v, j) => `<label><input type="radio" name="c${i}" value="${j}" ${j === 0 ? 'checked' : ''}/> ${v}</label>`).join('')}</div>`).join('')}<button class="btn" type="submit">ส่งข้อสอบข้าราชการ</button></form>`;
-  return `<div class="notice info">สายข้าราชการคือ <b>อาชีพ</b>: สอบเข้า ทำงานรายวัน เลื่อนตำแหน่งตามวันทำงาน — <b>ไม่ทำให้เป็นผู้นำหรือนายกฯ อัตโนมัติ</b> และไม่มีการซื้อผลสอบ</div>${exam}
-  <p class="help">ผ่านการสอบแล้วจะปลดล็อก "ชุดข้าราชการ" ในห้องแต่งตัว</p>`;
+  return `<div class="notice info">สายข้าราชการแบบไทยจริง: สอบเข้า ทำงาน สะสมวัน เรียนเพิ่ม แล้วเลื่อนขั้นถึง<b>นายอำเภอ</b>และ<b>ผู้ว่าราชการจังหวัด</b> · ข้าราชการลงเลือกตั้งไม่ได้ ต้องลาออกก่อน (แยกสายกับการเมือง) · ไม่มีการซื้อผลสอบหรือตำแหน่ง</div>${exam}
+  <h3>🪜 ลำดับขั้นราชการ</h3>${ladder}<p class="help">เงินเดือนจ่ายจากรัฐส่วนกลาง หักภาษีเข้าคลังพื้นที่ · ผ่านการสอบแล้วจะปลดล็อก "ชุดข้าราชการ" ในห้องแต่งตัว</p>`;
 }
 
 // ------------------------------------------------------------------ leadership (politics, separate track)
 function leader() {
   const s = G.state, p = s.player, L = ensureLeadership(s), pf = popularityFactors(s), cr = canRun(s);
-  const FN = { happiness: '😊 ความสุขชาวบ้าน', housing: '🏠 ที่อยู่อาศัย', food: '🍱 อาหารพอ', progress: '🏗️ โครงการสาธารณะ', policies: '📜 นโยบาย', stage: '📈 ระดับพื้นที่' };
+  const FN = { happiness: '😊 ความสุขชาวบ้าน', housing: '🏠 ที่อยู่อาศัย', food: '🍱 อาหารพอ', progress: '🏗️ โครงการสาธารณะ', policies: '📜 นโยบาย', tax: '💸 อัตราภาษี', budget: '🏦 คลังจ่ายตรงเวลา', integrity: '🧼 ความซื่อสัตย์' };
   const examBlock = s.examPassed ? '<div class="card done"><b>✅ ผ่านใบรับรองผู้นำชุมชน — ลงเลือกตั้งได้</b></div>'
     : p.knowledge < 3 ? `<div class="notice warn">ต้องมีความรู้ 3 ก่อนสอบผู้นำ (ตอนนี้ ${p.knowledge}/3) — ถ้าไม่ผ่านก่อนหมดวาระ จะลงเลือกตั้งไม่ได้</div>${btn('📖 อ่านหนังสือ +1', 'study')}`
     : `<form id="exam-form">${EXAM_QUESTIONS.map((q, i) => `<div class="quiz"><b>${i + 1}. ${q.q}</b>${q.choices.map((v, j) => `<label><input type="radio" name="q${i}" value="${j}" ${j === 0 ? 'checked' : ''}/> ${v}</label>`).join('')}</div>`).join('')}<button class="btn" type="submit">ส่งข้อสอบผู้นำ</button></form>`;
   const C = ensureCorruption(s), risk = Math.round(catchChance(s) * 100);
-  const dark = L.isLeader ? `<h3>🤫 ห้องลับ (ทางเลือกสีเทา)</h3><div class="notice warn">อำนาจอยู่ในมือมึง จะซื่อหรือจะโกงก็ได้ — แต่ทุกครั้งทิ้ง<b>หลักฐาน</b> ป.ป.ช. นักข่าว และชาวบ้านจับตาอยู่ โดนจับ = ยึดเงินคืน ความนิยมร่วง คดีหนัก/ซื้อเสียง = ปลดจากตำแหน่ง + ตัดสิทธิ์ ${BAN_DAYS} วัน · ผู้นำมือสะอาดได้ความนิยม +6</div>
+  const dark = L.isLeader ? `<h3>🤫 ห้องลับ (ทางเลือกสีเทา)</h3><div class="notice warn">อำนาจอยู่ในมือมึง จะซื่อหรือจะโกงก็ได้ — แต่ทุกครั้งทิ้ง<b>หลักฐาน</b> ป.ป.ช. นักข่าว และชาวบ้านจับตาอยู่ โดนจับ = ยึดเงินคืน ความนิยมร่วง คดีหนัก/ซื้อเสียง = ปลดจากตำแหน่ง + ตัดสิทธิ์ ${BAN_DAYS} วัน · ผู้นำมือสะอาดได้ความนิยม +4</div>
     <div class="range"><span style="min-width:130px">🕵️ ความเสี่ยงโดนจับ</span><div class="progress" style="flex:1"><div style="width:${risk}%;background:${risk > 30 ? '#c8553d' : '#e0a84a'}"></div></div><b>${risk}%/วัน</b></div>
     ${Object.entries(CORRUPT_ACTS).map(([id, a]) => `<div class="card"><div class="row"><div><b>${a.icon} ${a.th}</b><small>${a.desc}</small></div>${btn('ทำ', 'corrupt', id, { cls: 'btn warn small' })}</div></div>`).join('')}
     ${C.voteBuy ? `<small>ซื้อเสียงไว้แล้ว +${C.voteBuy} คะแนน (ใช้ในการเลือกตั้งครั้งหน้า)</small>` : ''}${C.scandals.length ? `<div class="card lock"><b>📰 คดีที่ผ่านมา</b>${C.scandals.map(x => `<small>วันที่ ${x.day}: ${esc(x.by)} · ยึด ${x.seized}${x.severe ? ' · ถูกปลด' : ''}</small>`).join('')}</div>` : ''}` : '';
-  const office = L.isLeader ? `<h3>🏛️ ห้องทำงานผู้นำ</h3><div class="notice">คลังหมู่บ้าน ${s.town.treasury} เหรียญ (จากภาษีตลาด/ศาลา — ไม่ใช่เงินส่วนตัว)</div>${Object.entries(CIVIC_ACTIONS).map(([id, b]) => `<div class="card"><div class="row"><div><b>${b.icon} ${b.name}</b><small>${b.desc} · งบ ${b.cost} · ความสุข +5</small></div>${btn(s.town.policies.includes(id) ? 'อนุมัติแล้ว' : 'อนุมัติ', 'policy', id, { disabled: s.town.policies.includes(id) || s.town.treasury < b.cost })}</div></div>`).join('')}`
-    : `<div class="notice warn">ตอนนี้ <b>${esc(L.leaderName || 'NPC')}</b> เป็นผู้นำ คุณยังเป็น${L.founder ? 'ผู้ก่อตั้ง (เก็บป้ายและที่ดินไว้)' : 'ชาวบ้าน'} ช่วยพัฒนาหมู่บ้านต่อได้ แล้วลงสมัครสมัยหน้า</div>`;
+  const E = ensureEconomy(s), pv = budgetPreview(s, population(s), officialsCount(s)), led = E.last, rate = taxRate(s);
+  const ledger = led ? `<div class="card"><b>📒 บัญชีคลังเมื่อวาน (วันที่ ${led.day})</b>${Object.entries(led.in).map(([k, v]) => `<small>➕ ${esc(k)} ${v}</small>`).join('')}${Object.entries(led.out).map(([k, v]) => `<small>➖ ${esc(k)} ${v}</small>`).join('')}</div>` : '';
+  const budget = `<h3>🏦 งบประมาณพื้นที่</h3><div class="grid2">${[['🏦', 'คลังตอนนี้', fmt(Math.floor(s.town.treasury))], ['📈', 'รับ/วัน (ประมาณ)', '+' + pv.income], ['📉', 'จ่าย/วัน', '−' + pv.spend], ['⚖️', 'สุทธิ/วัน', (pv.net >= 0 ? '+' : '') + pv.net]].map(([i, n, v]) => `<div class="item"><span class="ico">${i}</span><strong>${v}</strong><small>${n}</small></div>`).join('')}</div>
+    <p class="help">คลังได้จากภาษีเงินได้ (ทั้งค่าแรงคุณและชาวบ้าน) ภาษีบ้าน เงินอุดหนุนจากรัฐ · จ่ายค่าดูแลอาคาร เงินเดือนข้าราชการ นโยบาย และ<b>ค่าก่อสร้าง/อัปเกรดอาคารสาธารณะ</b> · เงินคลังไม่ใช่เงินส่วนตัว</p>${ledger}`;
+  const office = L.isLeader ? `<h3>🏛️ ห้องทำงานผู้นำ</h3>
+    <div class="card"><b>💸 ภาษีเงินได้ ${rate}%</b><small>สูง = คลังรวยแต่คนไม่ชอบ (ความนิยม ${pf.factors.tax >= 0 ? '+' : ''}${pf.factors.tax}) · มาตรฐาน ${ECON.TAX.def}%</small><div class="row-flex">${[0, 5, 10, 15, 20, 25].map(r => btn(`${r}%`, 'setTax', String(r), { disabled: r === rate, cls: r === rate ? 'btn small' : 'btn ghost small' })).join(' ')}</div></div>
+    <h3>📜 นโยบาย (จ่ายจากคลังทุกวัน)</h3>${Object.entries(POLICIES).map(([id, P]) => { const on = s.town.policies.includes(id), lock = tierOf(s) < P.tier;
+      return `<div class="card ${on ? 'done' : lock ? 'lock' : ''}"><div class="row"><div><b>${P.icon} ${P.name}</b><small>${P.desc} · ${P.cost}/วัน · ความนิยม +${P.pop} · ความสุข +${P.happy}${lock ? ` · 🔒 พื้นที่ระดับ ${P.tier}` : ''}${E.suspended.includes(id) && !on ? ' · ⚠️ ถูกระงับเพราะคลังไม่พอ' : ''}</small></div>${btn(on ? 'ยกเลิก' : 'อนุมัติ', 'policy', id, { disabled: lock || (!on && s.town.treasury < P.cost * 3), cls: on ? 'btn ghost small' : 'btn small' })}</div></div>`; }).join('')}`
+    : `<div class="notice warn">ตอนนี้ <b>${esc(L.leaderName || 'NPC')}</b> เป็นผู้นำ คุณยังเป็น${L.founder ? 'ผู้ก่อตั้ง (เก็บป้ายและที่ดินไว้)' : 'ชาวบ้าน'} ทำงานจิตอาสาสะสมผลงาน แล้วลงสมัครสมัยหน้า</div>`;
+  const vol = `<div class="card"><div class="row"><div><b>🤝 งานจิตอาสา</b><small>วันละครั้ง −${VOLUNTEER_ENERGY}⚡ · ผลงานทางการเมือง +1 (ทางสะสมผลงานตอนไม่ได้เป็นผู้นำ)</small></div>${btn(L.volunteerDay === s.day ? 'ทำแล้ววันนี้' : 'ไปช่วย', 'volunteer', '', { disabled: L.volunteerDay === s.day || s.player.stamina < VOLUNTEER_ENERGY })}</div></div>`;
+  const pmCard = L.seats ? `<div class="card ${L.pm ? 'done' : ''}"><b>🏛️ สภาผู้แทนราษฎร (วันที่ ${L.seats.day})</b><small>พรรคของคุณ ${L.seats.seats} + พรรคร่วม ${L.seats.partners} จาก ${PARLIAMENT} ที่นั่ง → ${L.pm ? '✅ ได้เป็นนายกรัฐมนตรี' : '❌ ไม่ถึงครึ่ง เป็นฝ่ายค้าน'}</small></div>` : '';
   return `<div class="notice info"><b>${L.founder ? '🌲 ผู้ก่อตั้งหมู่บ้าน' : '🏘️ ชาวบ้าน'}</b> · ${roleLabel(s)}<br>ผู้ก่อตั้งเป็น "ผู้นำรักษาการ" วาระแรก แต่ตำแหน่ง<b>ไม่ถาวร</b>: ทุก ${TERM_DAYS} วันในเกมมีเลือกตั้ง ความนิยมมาจากความเป็นอยู่ของชาวบ้านเท่านั้น จำกัด ${MAX_CONSECUTIVE} วาระติดต่อกัน · <b>เงินจริงซื้อคะแนนหรือตำแหน่งไม่ได้</b></div>
   <div class="grid2">${[['🗓️', 'สมัยที่', L.term], ['⏳', 'วันที่เหลือในวาระ', termDaysLeft(s)], ['👍', 'ความนิยม', L.popularity], ['🔁', 'วาระติดต่อกัน', `${L.isLeader ? L.consecutive : 0}/${MAX_CONSECUTIVE}`]].map(([i, n, v]) => `<div class="item"><span class="ico">${i}</span><strong>${v}</strong><small>${n}</small></div>`).join('')}</div>
-  <h3>👍 ความนิยมคิดจากอะไร (วันนี้ ${pf.total})</h3>${Object.entries(pf.factors).map(([k, v]) => `<div class="range"><span style="min-width:130px">${FN[k]}</span><div class="progress" style="flex:1"><div style="width:${Math.min(100, v / 45 * 100)}%"></div></div><b>${v}</b></div>`).join('')}
+  <h3>👍 ความนิยมคิดจากอะไร (วันนี้ ${pf.total})</h3>${Object.entries(pf.factors).map(([k, v]) => `<div class="range"><span style="min-width:130px">${FN[k] || k}</span><div class="progress" style="flex:1"><div style="width:${Math.max(0, Math.min(100, v / 40 * 100))}%;${v < 0 ? 'background:#c8553d' : ''}"></div></div><b>${v}</b></div>`).join('')}
   <p class="help">ความนิยมจริงขยับเข้าหาค่าวันนี้ทีละวัน · ชาวบ้านหิว บ้านไม่พอ หรืองานไม่คืบ = คะแนนตก</p>
   <h3>🗳️ สถานะลงสมัครสมัยหน้า</h3>${cr.ok ? '<div class="card done"><b>✅ ลงสมัครได้</b><small>ถึงวันเลือกตั้งระบบจะนับคะแนนอัตโนมัติ (จำลอง NPC — ยังไม่ใช่ผู้เล่นจริง)</small></div>' : `<div class="notice warn"><b>ยังลงสมัครไม่ได้:</b> ${cr.why.map(esc).join(' · ')}</div>`}
   ${L.results.length ? `<div class="card"><b>ผลเลือกตั้งที่ผ่านมา</b>${L.results.map(r => `<small>สมัย ${r.term} (วัน ${r.day}): คุณ ${r.player ?? '—'} · ${esc(r.rival)} ${r.rivalScore} → ${r.won ? '✅ ชนะ' : '❌ ไม่ได้รับเลือก'}${r.note ? ' · ' + esc(r.note) : ''}</small>`).join('')}</div>` : ''}
-  <h3>📝 ข้อสอบผู้นำ</h3>${examBlock}${office}${dark}
-  <h3>🪜 เส้นทางสู่นายกรัฐมนตรี</h3><div class="ladder">${TIERS.map(x => `<div class="card ${x.tier < tierOf(s) ? 'done' : x.tier === tierOf(s) ? 'active' : x.locked ? 'lock' : ''}"><b>${x.icon} ${x.th} → ${x.title}${x.tier === tierOf(s) ? ' (ตอนนี้)' : ''}</b><small>${x.locked ? '🔒 ' + esc(x.locked) : x.tier <= tierOf(s) ? 'ปลดล็อกแล้ว' : `สร้างผังระดับก่อนให้ครบ · ประชากร ${x.minPop} · ผู้นำกดยกระดับ`}</small></div>`).join('')}</div>
-  <p class="help">ทุกขั้นได้จากผลงาน คุณสมบัติ และการเลือกตั้งเท่านั้น — ซื้อด้วยเงินไม่ได้ ${LEADERSHIP_LADDER.length ? '' : ''}</p>`;
+  <div class="grid2">${[['🏅', 'ผลงานทางการเมือง', Math.floor(L.record)], ['📚', 'ความรู้', p.knowledge]].map(([i, n, v]) => `<div class="item"><span class="ico">${i}</span><strong>${v}</strong><small>${n}</small></div>`).join('')}</div>${vol}${pmCard}
+  <h3>📝 ข้อสอบผู้นำ</h3>${examBlock}${budget}${office}${dark}
+  <h3>🪜 เส้นทางสู่นายกรัฐมนตรี (สายการเมือง)</h3><div class="ladder">${TIERS.map(x => { const need = officeNeeds(s, x.tier);
+    return `<div class="card ${x.tier < tierOf(s) ? 'done' : x.tier === tierOf(s) ? 'active' : ''}"><b>${x.icon} ${x.th} → ${x.tier === 5 ? 'ส.ส. → นายกรัฐมนตรี (สภาลงมติ)' : x.title}${x.tier === tierOf(s) ? ' (ตอนนี้)' : ''}</b><small>${x.tier <= tierOf(s) ? 'ปลดล็อกแล้ว' : `ประชากร ${x.minPop}${x.publicLv ? ` · อาคารสาธารณะระดับ ${x.publicLv}` : ''}${x.fund ? ` · งบพัฒนา ${fmt(x.fund)} จากคลัง` : ''}`}${need.length ? ` · คุณสมบัติ: ${need.map(q => `${q.ok ? '✅' : '⬜'} ${q.label}`).join(' ')}` : ''}</small></div>`; }).join('')}</div>
+  <p class="help">ทุกขั้นได้จากผลงาน คุณสมบัติ งบที่บริหารเอง และการเลือกตั้งเท่านั้น — ซื้อด้วยเงินจริงไม่ได้ · ระดับประเทศ: ชนะเลือกตั้ง ส.ส. แล้วสภาลงมติ ต้องได้เกินครึ่ง ${PARLIAMENT / 2} ที่นั่ง (ผลงานมาก + มือสะอาด = พรรคร่วมเยอะ)${STAGES.length && LEADERSHIP_LADDER.length ? '' : ''}</p>`;
 }
 
 // ------------------------------------------------------------------ OBT shop (mock)
@@ -329,7 +349,11 @@ function onClick(e) {
     case 'wardrobe': return G.openCreator('edit');
     case 'openStructure': return openPanel('structure', id);
     case 'eat': r = eatFood(s); break;
-    case 'rest': r = rest(s); break;
+    case 'rest': r = nap(s); break;
+    case 'volunteer': r = volunteer(s); break;
+    case 'resign': r = resignCivil(s); break;
+    case 'rejoin': r = rejoinCivil(s); break;
+    case 'setTax': r = setTax(s, Number(id), !!s.leadership?.isLeader); break;
     case 'skill': r = upgradeSkill(s, id); break;
     case 'acceptJob': r = acceptJob(s, id); break;
     case 'cancelJob': r = cancelJob(s); break;
@@ -359,7 +383,7 @@ function onClick(e) {
     case 'civilShift': r = civilShift(s); snd = 'coin'; break;
     case 'register': r = registerCandidate(s); break;
     case 'vote': r = runDemoElection(s); snd = 'level'; break;
-    case 'policy': r = adoptCivicAction(s, id); if (r.ok) s.town.happiness = Math.min(100, s.town.happiness + 5); break;
+    case 'policy': r = togglePolicy(s, id, !!s.leadership?.isLeader); break;
     case 'buySku': r = purchase(s, id); break;
     case 'mockGrant': r = grantMockEntitlement(s, id, G.dev); break;
     case 'tryOutfit': return G.openCreator('edit', { tryOutfit: id });

@@ -141,10 +141,10 @@ test('jobs: accept -> walk to place -> work; wrong place refused; career bonus a
   assert.equal(J.acceptJob(s, 'delivery').ok, true);
   assert.equal(J.acceptJob(s, 'delivery').ok, false, 'one job at a time');
   assert.equal(J.workAt(s, 'board').ok, false);
-  const c0 = s.player.coins; assert.equal(J.workAt(s, 'delivery').ok, true); assert.equal(s.player.coins, c0 + 12);
+  const c0 = s.player.coins, t0 = s.town.treasury; assert.equal(J.workAt(s, 'delivery').ok, true); assert.equal(s.player.coins, c0 + 11, '12 gross - 10% tax'); assert.equal(s.town.treasury, t0 + 1, 'tax goes to the treasury');
   C.startPublic(s, 'farm'); C.tickConstruction(s, 999);
   J.chooseCareer(s, 'farmer');
-  for (let i = 0; i < 3; i++) { assert.equal(J.acceptJob(s, 'farmhand').ok, true); s.player.stamina = 100; assert.equal(J.workAt(s, 'farm').pay, Math.round(14 * 1.2)); }
+  for (let i = 0; i < 3; i++) { assert.equal(J.acceptJob(s, 'farmhand').ok, true); s.player.stamina = 100; assert.equal(J.workAt(s, 'farm').gross, Math.round(14 * 1.2)); }
   assert.ok(s.unlockedOutfits.includes('farmer'));
 });
 
@@ -198,10 +198,12 @@ test('v0.10: modern building eras (Lv4-5) need the village to have grown — mon
   const s = createInitialState(); C.ensureConstruction(s);
   Object.assign(s.publicSites.home, { status: 'done', level: 3 });
   Object.assign(s.player, { coins: 9999, wood: 999, stone: 999 });
-  s.town.stage = 0;
+  s.town.stage = 0; s.town.treasury = 9999; s.election.leader = 'player';
   const r = C.upgradeStructure(s, 'home');
   assert.equal(r.ok, false); assert.match(r.msg, /หมู่บ้าน/);
-  assert.equal(s.player.coins, 9999, 'nothing paid when locked');
+  assert.equal(s.town.treasury, 9999, 'nothing paid when locked');
   s.town.stage = 1;
   assert.equal(C.upgradeStructure(s, 'home').ok, true);
+  assert.equal(s.player.coins, 9999, 'v0.26: public works are paid by the treasury, not the leader\'s pocket');
+  assert.equal(s.town.treasury, 9999 - C.PUBLIC_LEVELS.home[3].coins);
 });

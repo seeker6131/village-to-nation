@@ -7,11 +7,12 @@ import { tickConstruction, BUILDINGS, canPlace, placeBuilding, ensureConstructio
 import { allNpcDefs, planFor, economyHour, economyDay, settlerArrivals, ensureTown, structurePos, population } from '../npcs.js';
 import { jobTarget, workAt, ensureJobs } from '../jobs.js';
 import { updateStage } from '../progression.js';
-import { propBlocks, bridgeTiles, PASTURE, BUS_STOP } from '../villageProps.js';
+import { propBlocks, bridgeTiles, PASTURE, BUS_STOP, clearPropTiles } from '../villageProps.js';
 import { homesDay, ownerOf, myHome, claimPlot } from '../housing.js';
 import { SLOT_KINDS, openSlots, slotState, nearestFreeSlot, villageRadius, tierOf } from '../villageLayout.js';
 import { hitNode, nodeLabel, regrowDay } from '../resources.js';
 import { leadershipDay, ensureLeadership } from '../leadership.js';
+import { playerNewDay } from '../economy.js';
 import { tileRoute, nearestWalkable } from '../pathfinding.js';
 import { outfitOf, roleOf } from '../npcLife.js';
 import { crimeHour, activeThieves, arrestThief, policeOfficers, crimeTargets, NIGHT } from '../crime.js';
@@ -332,7 +333,9 @@ export function simulate(dtReal) {
     if (events.length) resetChoppers();
   }
   if (s.day !== dayBefore) {
-    economyDay(s); refreshDaily(s); if (regrowDay(s)) G.toast('🌱 ต้นไม้นอกเขตหมู่บ้านงอกขึ้นใหม่');
+    { const ed = economyDay(s); for (const e of ed.events) G.toast(e, e.startsWith('⚠️')); if (ed.grew) { clearPropTiles(s); resetNpcPlans(); G.onVillageUpgrade?.(ed.grew); } }
+    { const sl = playerNewDay(s, !!s.leadership?.isLeader); G.toast(`😴 นอนที่${sl.where} พลังงาน ${Math.floor(s.player.stamina)}${sl.propertyTax ? ` · ภาษีบ้าน ${sl.propertyTax}` : ''}`); }
+    refreshDaily(s); if (regrowDay(s)) G.toast('🌱 ต้นไม้นอกเขตหมู่บ้านงอกขึ้นใหม่');
     for (const e of homesDay(s)) G.toast(e);
     const el = leadershipDay(s);
     if (s.lastScandal) { const sc = s.lastScandal; s.lastScandal = null; G.toast(`🚨 ${sc.by}! ยึดเงิน ${sc.seized} เหรียญ${sc.severe ? ' · ถูกปลดและตัดสิทธิ์ลงเลือกตั้ง' : ' · ความนิยมร่วงหนัก'}`, true); sfx('error'); }

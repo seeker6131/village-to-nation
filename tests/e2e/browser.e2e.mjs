@@ -200,7 +200,7 @@ test('market + inventory buttons change state and refuse when not affordable', a
   const f0 = await G(page, G => G.state.inventory.food);
   await page.click('[data-act=eat]');
   assert.equal(await G(page, G => G.state.inventory.food), f0 - 1);
-  assert.ok(await G(page, G => G.state.player.stamina) >= 65);
+  assert.ok(await G(page, G => G.state.player.stamina) >= 60, 'a meal gives +20 (v0.26 daily energy)');
   assert.ok(await G(page, G => G.state.player.coins) >= 0);
   assert.deepEqual(errors, []); await ctx.close();
 });
@@ -223,7 +223,7 @@ test('gather resources, accept a delivery job, walk there and complete it', asyn
   await page.waitForTimeout(120);
   const c0 = await G(page, G => G.state.player.coins);
   await page.click('#action-btn');
-  assert.equal(await G(page, G => G.state.player.coins), c0 + 12);
+  assert.equal(await G(page, G => G.state.player.coins), c0 + 11, '12 wage - 10% income tax');
   assert.equal(await G(page, G => G.state.job), null);
   assert.deepEqual(errors, []); await ctx.close();
 });
@@ -283,14 +283,17 @@ test('exams: civil service and leadership are separate tracks; election uses qua
   await page.click('#civil-form button[type=submit]');
   assert.equal(await G(page, G => G.state.civilService.examPassed), true);
   assert.equal(await G(page, G => G.state.examPassed), false, 'civil exam != leadership');
-  await page.click('[data-act=civilShift]');
-  assert.equal(await G(page, G => G.state.civilService.shifts), 1);
+  assert.equal(await page.isDisabled('[data-act=civilShift]'), true, 'the acting leader cannot take civil-service shifts');
+  assert.equal(await G(page, G => G.state.civilService.shifts), 0);
   await page.keyboard.press('Escape'); await page.keyboard.press('l');
   assert.match(await page.textContent('#panel-body'), /ผู้นำรักษาการ/, 'the founder is acting leader from day 1');
   assert.match(await page.textContent('#panel-body'), /ยังลงสมัครไม่ได้/);
   await page.evaluate(() => { document.querySelectorAll('#exam-form .quiz').forEach((q, i) => q.querySelectorAll('input')[[1, 0, 1][i]].click()); });
   await page.click('#exam-form button[type=submit]');
   assert.equal(await G(page, G => G.state.examPassed), true);
+  assert.match(await page.textContent('#panel-body'), /ต้องลาออก/, 'a civil servant must resign before running');
+  await page.keyboard.press('Escape'); await page.keyboard.press('r'); await page.click('[data-act=resign]');
+  await page.keyboard.press('Escape'); await page.keyboard.press('l');
   assert.match(await page.textContent('#panel-body'), /ลงสมัครได้/);
   // a poorly run village loses the end-of-term election; popularity comes only from how villagers live
   const lost = await page.evaluate(() => import('/src/leadership.js').then(L => { const s = window.__V2N__.G.state; s.leadership.popularity = 10; return L.runTermElection(s); }));

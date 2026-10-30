@@ -8,7 +8,9 @@ import { ensureConstruction, activeSites, structureLevel, publicEffect, BUILDING
 import { ensureSystems, MARKET, STOCK_CAP } from './systems.js';
 import { addHistory } from './gameState.js';
 import { tierInfo } from './villageLayout.js';
-import { lifePlan, strollSpots, lifeHour } from './npcLife.js';
+import { lifePlan, strollSpots, lifeHour, jobOf, CIVIL_JOBS } from './npcLife.js';
+import { townDay, policyHappy, hasPolicy } from './economy.js';
+import { npcUpgradeVillage } from './villageLayout.js';
 
 // Appearance uses the same modular character system as the player (see src/character/model.js).
 export const NPC_DEFS = [
@@ -204,7 +206,7 @@ export function economyHour(s, present) {
       const per = ws ? BUILDINGS.workshop.levels[Math.max(0, ws.obj.level - 1)].planksPerHour : 1;
       if ((s.market.wood || 0) >= per) { cap('wood', -per); cap('planks', per); s.player.coins += 2; s.town.rentEarned += 2; }
     }
-    if (plan.activity === 'sell') s.town.treasury += publicEffect(s, 'market', 'shoppers') ? 1 : 0;
+    // v0.26 traders' income is taxed once a day in townDay (no extra hourly faucet here)
     if (plan.activity === 'lunch' && plan.place === 'market') {
       if ((s.market.food || 0) > 0) { cap('food', -1); s.town.treasury += 1; served++; }
       else hungry++;
@@ -214,22 +216,25 @@ export function economyHour(s, present) {
   lifeHour(s, present.filter(p => p.arrived || p.plan?.activity === 'sleep'));
   s.town.mealsServed += served; s.town.hungryMeals += hungry;
   if (served) ev.push(`NPC ซื้ออาหารกลางวัน ${served} มื้อ (ภาษีเข้าคลัง +${served})`);
-  if (hungry) { ev.push(`อาหารในตลาดไม่พอ NPC หิว ${hungry} คน`); s.town.hungryToday = (s.town.hungryToday || 0) + hungry; }
+  if (hungry) { ev.push(`อาหารในตลาดไม่พอ NPC หิว ${hungry} คน`); s.town.hungryToday = (s.town.hungryToday || 0) + (hasPolicy(s, 'lunch') ? Math.ceil(hungry / 2) : hungry); }
   // happiness drifts towards a target based on what exists in the village
-  const target = 45 + (done(s, 'farm') ? 10 : 0) + (done(s, 'market') ? 10 : 0) + (done(s, 'hall') ? 8 : 0)
+  const target = 45 - (tierInfo(s).tier - 1) * 4 + (done(s, 'farm') ? 10 : 0) + (done(s, 'market') ? 10 : 0) + (done(s, 'hall') ? 8 : 0)
     + Math.min(10, s.placed.filter(p => p.type === 'bench' && p.level >= 1).length * 4)
     + Math.min(8, s.placed.filter(p => p.type === 'lamp' && p.level >= 1).length * 2)
-    + s.town.policies.length * 4 - hungry * 3;
+    + policyHappy(s) - hungry * (hasPolicy(s, 'lunch') ? 1.5 : 3);
   s.town.happiness = Math.max(0, Math.min(100, Math.round(s.town.happiness + (target - s.town.happiness) * 0.15)));
   return ev;
 }
 
-/** Daily: hall gives the treasury a small budget (NPC taxes). */
+/** v0.26 once per game day: the town budget (taxes in; upkeep, payroll, policies out) and, while an NPC holds the
+ *  office, the NPC leader may raise the area. Returns { events, ledger, grew }. */
+export function officialsCount(s) { return allNpcDefs(s).filter(n => CIVIL_JOBS[jobOf(s, n)]).length; }
 export function economyDay(s) {
   ensureTown(s);
-  const add = publicEffect(s, 'hall', 'treasuryPerDay');
-  if (add) s.town.treasury += add;
-  return add;
+  const r = townDay(s, population(s), officialsCount(s));
+  const grew = npcUpgradeVillage(s, population(s));
+  if (grew) r.events.push(`${grew.icon} พื้นที่ยกระดับเป็น${grew.th}`);
+  return { ...r, grew };
 }
 
 export function npcPhrase(s, npc) {

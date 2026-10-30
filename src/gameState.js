@@ -57,11 +57,10 @@ export function progressTime(state, realSeconds) {
   state.gameTime = total % 86400;
   if (days > 0) {
     state.day += days;
-    state.player.stamina = clamp(state.player.stamina + 15 * days, 0, 100);
     logEvent(state, `รุ่งเช้าวันที่ ${state.day}: NPC เริ่มกิจวัตรของวันใหม่แล้ว`);
   }
-  // Slowly recover energy so no one needs to buy energy to keep playing.
-  state.player.stamina = clamp(state.player.stamina + realSeconds * 0.75, 0, 100);
+  // v0.26 energy is a daily budget: it refills when the player sleeps (economy.playerNewDay), plus a nap and meals.
+  // No passive regen (it made unlimited jobs possible). Energy is never sold for real money.
   return days;
 }
 export function gather(state, kind) {
@@ -107,10 +106,17 @@ export function rest(state) {
   state.player.stamina = 100;
   return { ok: true, msg: 'พักผ่อนแล้ว พลังงานเต็ม 100 (ไม่เสียเงิน)' };
 }
+export const KNOWLEDGE_MAX = 15, STUDY_ENERGY = 8;
+/** v0.26 education is a qualification for higher offices/ranks: +1 knowledge per study, a few times a day, costs energy. */
 export function study(state) {
-  if (state.player.knowledge >= 3) return { ok: true, msg: 'ฝึกครบแล้ว! ไปสอบที่ศูนย์บุกเบิกได้เลย' };
+  if (state.player.knowledge >= KNOWLEDGE_MAX) return { ok: true, msg: `ความรู้เต็ม ${KNOWLEDGE_MAX} แล้ว` };
+  const lim = 3 + (state.town?.policies?.includes('library') ? 1 : 0);
+  if (state.studyDay !== state.day) { state.studyDay = state.day; state.studyCount = 0; }
+  if (state.studyCount >= lim) return { ok: false, msg: `วันนี้อ่านครบ ${lim} ครั้งแล้ว พรุ่งนี้ค่อยอ่านต่อ${lim < 4 ? ' (ห้องสมุดชุมชนช่วยได้)' : ''}` };
+  if (state.player.stamina < STUDY_ENERGY) return { ok: false, msg: `อ่านหนังสือต้องใช้พลังงาน ${STUDY_ENERGY}` };
+  state.player.stamina -= STUDY_ENERGY; state.studyCount++;
   state.player.knowledge += 1;
-  return { ok: true, msg: `ฝึกความรู้ชุมชน +1 (${state.player.knowledge}/3)` };
+  return { ok: true, msg: `📖 ความรู้ +1 (${state.player.knowledge}/${KNOWLEDGE_MAX}) · ใช้สอบผู้นำ (3) เลื่อนตำแหน่งราชการ และคุณสมบัติตำแหน่งการเมืองที่สูงขึ้น` };
 }
 export function takeExam(state, answers) {
   if (state.player.knowledge < 3) return { ok: false, score: 0, msg: 'ต้องอ่านคู่มือชุมชนให้ครบ 3 ครั้งก่อน' };
