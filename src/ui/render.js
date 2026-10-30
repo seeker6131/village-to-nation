@@ -1,5 +1,6 @@
 // Canvas renderer — layers: ground chunks (terrain + decor) -> y-sorted objects (trees, rocks, buildings, people)
 // with see-through foliage when something covers the player -> night light -> screen-space labels/markers.
+import { MAPS } from '../maps/index.js';
 import { TILE, WORLD_W, WORLD_H, T, groundAt, hash, POINTS, nodeOnTile, nodeStatus, nodeState, LEADER_HOUSE, TENTS, PROPS, CENTER, VILLAGE_RADIUS, plotRect, plotObstacles } from '../world.js';
 import { PROJECTS } from '../gameState.js';
 import { BUILDINGS, progressOf, findStructure } from '../construction.js';
@@ -21,7 +22,7 @@ import { eraHouseFrame as cottageFrame } from '../artMap.js';
 import { treeSpecies, rockSprite, buildingFrame, leaderHouseFrame, decorSprites, DECOR_LIST, waterfallSpot, cropFor, cropStage, CROPS, FENCE_MATERIALS, roadTexture, allReachableSprites } from '../artMap.js';
 
 // v0.9 art still in use (props, workshop) + every v0.10 sprite the art map can ask for (assets/v10, stored at 2x)
-const ART_NAMES = ['workshop', 'log', 'bush_0', 'bush_1', 'bush_2', 'bush_3', 'bush_4', ...allReachableSprites().map(n => 'v10/' + n), ...Object.keys(ART10).filter(n => /^(c[bpd]|po|gt|bs|sh|bz)_/.test(n)).map(n => 'v10/' + n), ...TILE_NAMES];
+const ART_NAMES = ['workshop', 'log', 'bush_0', 'bush_1', 'bush_2', 'bush_3', 'bush_4', ...allReachableSprites().map(n => 'v10/' + n), ...Object.keys(ART10).filter(n => /^(c[bpd]|po|gt|bs|sh|bz)_/.test(n)).map(n => 'v10/' + n), ...MAPS.flatMap(m => [...new Set([...m.trees.flatMap(([, , sp]) => [sp.replace('stump_', 'tree_'), sp.replace('tree_', 'stump_')]), ...m.props.map(p => p.name)])]).filter(n => ART10[n]).map(n => 'v10/' + n), ...TILE_NAMES];
 const art = {};
 export function loadArt() {
   return Promise.all(ART_NAMES.map(id => new Promise(res => {

@@ -43,7 +43,7 @@ export function initShowcase() {
   // test mode only: build the current level out completely, then step the era up to review the next one
   const bar = $('#devbar'); if (!G.sandbox || !bar) return;
   bar.classList.remove('hidden');
-  const label = () => { const st = G.state.town.stage || 0, pl = G.state.world.plan || 0; $('#dev-era').textContent = `${STAGES[st].icon} ${STAGES[st].th} (${st + 1}/5)`; $('#dev-plan').textContent = `🗺 ผัง ${pl + 1}/10`; $('#dev-plan').title = PLANS[pl].th + ' — กดเพื่อเปลี่ยนผัง (Y)'; };
+  const label = () => { const st = G.state.town.stage || 0, pl = G.state.world.plan || 0; $('#dev-era').textContent = `${STAGES[st].icon} ${STAGES[st].th} (${st + 1}/5)`; $('#dev-plan').textContent = `🗺 ผัง ${pl + 1}/${PLANS.length}`; $('#dev-plan').title = PLANS[pl].th + ' — กดเพื่อเปลี่ยนผัง (Y)'; };
   G.devAction = act => {
     if (G.preview) return;
     if (G.away) return G.toast('ปุ่มทดสอบใช้ได้ที่หมู่บ้านของตัวเอง', true);

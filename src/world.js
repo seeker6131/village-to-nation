@@ -9,6 +9,7 @@
 // would only need to send seed + edits, not a painted image.
 export const TILE = 16, WORLD_W = 144, WORLD_H = 96;
 import { LAYOUTS, ZONE_SHAPES } from './worldLayouts.js';
+import { MAPS } from './maps/index.js';
 export const T = { GRASS: 0, FOREST: 1, DIRT: 2, WATER: 3, SAND: 4, ROCKY: 5, FORD: 6, MEADOW: 7 };
 export const BIOMES = {
   forest:    { th: 'ป่าทึบ', treeDensity: 0.62, rockChance: 0.02, rivers: 1, lakes: 1, rocky: 0.18, pines: 0.25, fruit: 0.05, meadow: 0.12 },
@@ -35,6 +36,20 @@ export const POINTS = {
   hall: { x: 40, y: 33, name: 'ที่ดินศาลาประชาคม', type: 'project', project: 'hall', w: 12, h: 8 },
 };
 export const SPAWN = { x: (CENTER.x + 2.5) * TILE, y: (CENTER.y + 3.5) * TILE };
+// v0.27 maps drawn in the Map Maker put the village somewhere else: ORIGIN = shift of the whole village core
+// (leader house, interaction points, plots, tents, NPC homes, plan props) from its default place around (40, 50).
+export const ORIGIN = { x: 0, y: 0 };
+const DEF = JSON.parse(JSON.stringify({ CENTER, LEADER_HOUSE, LEADER_HOUSE_GEN, TENTS, POINTS, SPAWN }));
+function setOrigin(ox, oy, custom = null) {
+  ORIGIN.x = ox; ORIGIN.y = oy;
+  Object.assign(CENTER, { x: DEF.CENTER.x + ox, y: DEF.CENTER.y + oy });
+  Object.assign(LEADER_HOUSE, { ...DEF.LEADER_HOUSE, tx: DEF.LEADER_HOUSE.tx + ox, ty: DEF.LEADER_HOUSE.ty + oy });
+  Object.assign(LEADER_HOUSE_GEN, { ...DEF.LEADER_HOUSE_GEN, tx: DEF.LEADER_HOUSE_GEN.tx + ox, ty: DEF.LEADER_HOUSE_GEN.ty + oy });
+  TENTS.length = 0; if (!custom) TENTS.push(...DEF.TENTS.map(t => ({ tx: t.tx + ox, ty: t.ty + oy })));
+  for (const [id, p] of Object.entries(DEF.POINTS)) Object.assign(POINTS[id], { x: p.x + ox, y: p.y + oy });
+  if (custom?.spawn) Object.assign(SPAWN, { x: (custom.spawn.x + .5) * TILE, y: (custom.spawn.y + .9) * TILE });
+  else Object.assign(SPAWN, { x: (CENTER.x + 2.5) * TILE, y: (CENTER.y + 3.5) * TILE });
+}
 export const REGIONS = [ // the "huge scale" roadmap: regions unlock after the village grows (online later)
   { id: 'wildwood', th: 'ป่าบุกเบิก (หมู่บ้านแรก)', status: 'playable' },
   { id: 'river', th: 'ลุ่มแม่น้ำ (หมู่บ้านอื่น / ผู้เล่นอื่น)', status: 'locked' },
@@ -47,10 +62,14 @@ export const REGIONS = [ // the "huge scale" roadmap: regions unlock after the v
 // the village. Ellipses in tiles. `tier` = the level that opens the zone (cleared + paved then).
 export const WORLD_LAYOUT = 6;
 export const ZONES = [];   // filled from the current layout (worldLayouts.js)
+// the 10 generated layouts + the maps drawn in the Map Maker (src/maps, imported with scripts/import-map.mjs)
+for (const m of MAPS) if (!LAYOUTS.some(l => l.id === m.id)) LAYOUTS.push({ id: m.id, th: m.th, map: m, zones: {}, river: null, lake: null });
 export const BRIDGES = []; // filled during generation where a path crosses the river
 export const PLANS = LAYOUTS;
 function applyLayout(plan) {
   const L = LAYOUTS[plan] || LAYOUTS[0];
+  WORLD.custom = L.map || null;
+  if (L.map) setOrigin(L.map.leader.tx - DEF.LEADER_HOUSE.tx, L.map.leader.ty - DEF.LEADER_HOUSE.ty, L.map); else setOrigin(0, 0);
   ZONES.length = 0;
   ZONES.push({ id: 'village', x: CENTER.x, y: CENTER.y, ...ZONE_SHAPES.village });
   for (const [id, [x, y]] of Object.entries(L.zones)) { const S = ZONE_SHAPES[id]; ZONES.push({ id, x, y: y + (S.cy || 0), cx: x, cy: y, rx: S.rx, ry: S.ry, tier: S.tier, th: S.th, row: S.row }); }
@@ -99,6 +118,7 @@ export function generateRegion(seed = DEFAULT_SEED, biome = 'forest', plan = 0) 
   const B = BIOMES[biome] || BIOMES.forest;
   WORLD.paths = []; WORLD.seed = seed; WORLD.biome = BIOMES[biome] ? biome : 'forest'; WORLD.plan = LAYOUTS[plan] ? plan : 0;
   const LAY = applyLayout(WORLD.plan); BRIDGES.length = 0;
+  if (LAY.map) return generateCustom(LAY.map, seed);
   const G = WORLD.ground, D = WORLD.decor, R = rng(seed);
   G.fill(T.GRASS); D.fill(0);
   // 1) base terrain from noise: forest floor, rocky ground, meadows
@@ -285,6 +305,61 @@ export function generateRegion(seed = DEFAULT_SEED, biome = 'forest', plan = 0) 
   WORLD.version++; WORLD.occKey = '';
   return WORLD;
 }
+/** v0.27 a map from the Map Maker: ground, trees (exact sprites), solid props and plots come from the file. */
+const MAP_T = { g: T.GRASS, m: T.MEADOW, r: T.ROCKY, d: T.DIRT, f: T.DIRT, s: T.SAND, w: T.WATER, S: T.WATER };
+function generateCustom(M, seed) {
+  const G = WORLD.ground, D = WORLD.decor;
+  WORLD.sea = WORLD.sea || new Uint8Array(WORLD_W * WORLD_H); WORLD.sea.fill(0);
+  for (let y = 0; y < WORLD_H; y++) for (let x = 0; x < WORLD_W; x++) {
+    const ch = M.ground[y]?.[x] || 'g', i = idx(x, y); G[i] = MAP_T[ch] ?? T.GRASS; if (ch === 'S') WORLD.sea[i] = 1;
+    const t = G[i], h = hash(x, y, seed + 77);
+    D[i] = t === T.MEADOW && h < .45 ? 1 + Math.floor(h * 8) % 4 : t === T.GRASS && h < .14 ? 5 + Math.floor(h * 30) % 2 : t === T.ROCKY && h < .25 ? 10 : 0;
+  }
+  TREES.length = 0; ROCKS.length = 0; PROPS.length = 0; nodeAt.clear();
+  const PINE = /pine/, SMALL = /small|bamboo|banana|rubber|coconut/;
+  for (const [x, y, sp] of M.trees) {
+    if (!inside(x, y) || G[idx(x, y)] === T.WATER || inRect(x, y, LEADER_HOUSE, 0)) continue;
+    const stump = /^stump_/.test(sp), name = stump ? sp.replace('stump_', 'tree_') : sp;
+    addNode(TREES, { id: 't' + TREES.length, type: 'wood', kind: PINE.test(name) ? 4 : SMALL.test(name) ? 1 : 0, x, y, sprite: name, init: stump ? 's' : undefined });
+  }
+  // early stone: a few rocks just outside the village (the map has none; the pickaxe quest needs them)
+  for (const [dx, dy] of [[-10, 5], [9, -7], [12, 3], [-6, -10], [3, 12], [-12, -3]]) { const x = CENTER.x + dx, y = CENTER.y + dy; if (inside(x, y) && !nodeAt.has(idx(x, y)) && G[idx(x, y)] !== T.WATER && !inRect(x, y, LEADER_HOUSE, 1)) addNode(ROCKS, { id: 'r' + ROCKS.length, type: 'stone', kind: 0, x, y }); }
+  placePlots(M);
+  // keep the interaction points in front of the leader house free (fire, board, study log, delivery crate)
+  for (const id of ['camp', 'board', 'study', 'delivery']) { const p = POINTS[id]; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const n = nodeAt.get(idx(p.x + dx, p.y + dy)); if (n) { nodeAt.delete(idx(n.x, n.y)); (n.type === 'wood' ? TREES : ROCKS).splice((n.type === 'wood' ? TREES : ROCKS).indexOf(n), 1); } } }
+  TREES.forEach((n, i) => { n.id = 't' + i; }); ROCKS.forEach((n, i) => { n.id = 'r' + i; });
+  WORLD.orePits = []; WORLD.paths = [];
+  NODES.length = 0; NODES.push(...TREES, ...ROCKS);
+  WORLD.version++; WORLD.occKey = '';
+  return WORLD;
+}
+/** Public plots (home, farm, market, hall): the map's "public" markers, else the nearest free land to the village
+ *  centre — not on water, roads, house plots, the leader house, the workshop, props or another plot. */
+function placePlots(M) {
+  const used = new Set(), mark = (x0, y0, w, h, pad = 0) => { for (let y = y0 - pad; y < y0 + h + pad; y++) for (let x = x0 - pad; x < x0 + w + pad; x++) used.add(x + ',' + y); };
+  for (const sl of [...M.npcSlots, ...M.lots]) mark(sl.tx, sl.ty, 4, 3, 1);
+  if (M.workshop) mark(M.workshop.tx, M.workshop.ty, 4, 3, 1);
+  for (const p of M.props) mark(p.x, p.y - 3, p.fw, p.fh + 3, 1);
+  if (M.workshop) mark(M.workshop.tx, M.workshop.ty - 3, 4, 6, 1);
+  mark(LEADER_HOUSE.tx, LEADER_HOUSE.ty - 7, LEADER_HOUSE.w, LEADER_HOUSE.h + 7, 2); // the house sprite is ~8 tiles tall: nothing right behind it
+  for (const id of ['camp', 'board', 'study', 'delivery']) mark(POINTS[id].x, POINTS[id].y, 1, 1, 1);
+  PLOT_IDS.forEach((id, k) => {
+    const P = POINTS[id], pub = M.publics?.[k];
+    if (pub) { P.x = pub.x + Math.floor(pub.w / 2); P.y = pub.y + Math.floor(pub.h / 2); mark(pub.x, pub.y, pub.w, pub.h, 1); return; }
+    let best = null;
+    for (let cy = CENTER.y - 30; cy <= CENTER.y + 30; cy++) for (let cx = CENTER.x - 34; cx <= CENTER.x + 34; cx++) {
+      const x0 = cx - Math.floor(P.w / 2), y0 = cy - Math.floor(P.h / 2); let ok = true, trees = 0;
+      for (let y = y0; y < y0 + P.h && ok; y++) for (let x = x0; x < x0 + P.w; x++) {
+        if (!inside(x, y) || x < 2 || y < 2 || used.has(x + ',' + y) || WORLD.ground[idx(x, y)] === T.WATER || (M.roads[y]?.[x] || '.') !== '.') { ok = false; break; }
+        if (nodeAt.has(idx(x, y))) trees++;
+      }
+      if (!ok) continue;
+      const score = Math.hypot(cx - CENTER.x, cy - CENTER.y) + trees * .25;
+      if (!best || score < best.score) best = { cx, cy, x0, y0, score };
+    }
+    if (best) { P.x = best.cx; P.y = best.cy; mark(best.x0, best.y0, P.w, P.h, 1); }
+  });
+}
 function addNode(list, n) { if (nodeAt.has(idx(n.x, n.y))) return; list.push(n); nodeAt.set(idx(n.x, n.y), n); }
 function trail(x0, y0, x1, y1, seed) {
   let x = x0, y = y0, guard = 0;
@@ -318,6 +393,7 @@ export function nodeStatus(s, n) {
   const v = nodeState(s, n.id);
   if (v === 'x') return 'gone';
   if (v === 's') return 'stump';
+  if (v === undefined && n.init === 's') return 'stump'; // a stump drawn in the Map Maker
   return 'standing';
 }
 export function setNode(s, id, v) { s.world.n[id] = v; s.world.ver++; WORLD.occKey = ''; }

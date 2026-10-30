@@ -126,6 +126,10 @@ async function boot() {
     if (G.state.day === 1 && !G.state.placed.length && !params.has('test')) { applyPlan(G.state, Math.floor(Math.random() * PLANS.length)); G.state.player.x = SPAWN.x; G.state.player.y = SPAWN.y; }
     G.state.world.planPicked = true; saveNow();
   }
+  { // ?map=map1 opens a map drawn in the Map Maker (test link)
+    const want = params.get('map'), i = want ? PLANS.findIndex(p => p.id === want) : -1;
+    if (i >= 0 && G.state.world.plan !== i) { applyPlan(G.state, i); G.state.player.x = SPAWN.x; G.state.player.y = SPAWN.y; saveNow(); resetNpcPlans(); }
+  }
   if (G.sandbox && ensureSandboxCharacter(G.state)) { saveNow(); resetNpcPlans(); toast('🧪 โหมดทดสอบ ∞: เงิน ไม้ หิน พลังงานไม่จำกัด · ไม่ต้องตั้งชื่อ (ปิดได้ที่หน้าเริ่มเกม)'); }
   if (!G.state.character) {
     G.openCreator('first');

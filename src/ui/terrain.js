@@ -3,7 +3,7 @@
 // variant chosen per 4x4 block). Transitions between terrains stay procedural (pixel-stepped), coloured from
 // the textures so they match. Roads near the village follow the era (dirt -> gravel -> cobble -> slab -> asphalt).
 // Chunks are drawn with an integer zoom (see camera.snapZoom) so they stay crisp at every zoom level.
-import { TILE, WORLD_W, WORLD_H, WORLD, T, hash, groundAt, zoneAt } from '../world.js';
+import { TILE, WORLD_W, WORLD_H, WORLD, T, hash, groundAt, zoneAt, CENTER } from '../world.js';
 import { decorSprites, roadTexture } from '../artMap.js';
 import { TILESETS } from '../tileManifest.js';
 
@@ -54,7 +54,7 @@ const PRIO = { [T.WATER]: 0, [T.FORD]: 1, [T.SAND]: 2, [T.DIRT]: 3, [T.ROCKY]: 4
 function texFor(tx, ty, stage) {
   if (!TEX) return null;
   const t = groundAt(tx, ty);
-  if (t === T.DIRT && Math.hypot(tx - 40, ty - 50) < 30) return roadTexture(stage);
+  if (t === T.DIRT && Math.hypot(tx - CENTER.x, ty - CENTER.y) < 30) return roadTexture(stage);
   const set = TEX_SETS[t]; if (!set) return null;
   return set[Math.floor(hash(tx >> 2, ty >> 2, WORLD.seed + 61) * set.length)];
 }
@@ -62,7 +62,7 @@ function px(g, x, y, c) { g.fillStyle = c; g.fillRect(x, y, 1, 1); }
 function tile(g, tx, ty, ox, oy, stage) {
   const t = WORLD.ground[ty * WORLD_W + tx], seed = WORLD.seed;
   let pal = PAL[t] || PAL[T.GRASS];
-  const nearVillage = Math.hypot(tx - 40, ty - 50) < 30;
+  const nearVillage = Math.hypot(tx - CENTER.x, ty - CENTER.y) < 30;
   if (t === T.DIRT && nearVillage && stage >= 3) pal = ROAD.paved; else if (t === T.DIRT && nearVillage && stage >= 2) pal = ROAD.cobble;
   const texName = texFor(tx, ty, stage);
   if (texName && TEX[texName]?.naturalWidth) {
@@ -158,7 +158,7 @@ function buildChunkOrganic(cx, cy, stage) {
   // village trails are 2-tile stair steps in the data: widen them by one tile so they render as broad curving paths
   const DR = RANK[T.DIRT], wide = ranks.slice();
   for (let y = 1; y < NT - 1; y++) for (let x = 1; x < NT - 1; x++) {
-    const i = y * NT + x; if (ranks[i] <= DR || Math.hypot(tx0 + x - 40, ty0 + y - 50) > 28) continue;
+    const i = y * NT + x; if (ranks[i] <= DR || Math.hypot(tx0 + x - CENTER.x, ty0 + y - CENTER.y) > 28) continue;
     if (ranks[i - 1] === DR || ranks[i + 1] === DR || ranks[i - NT] === DR || ranks[i + NT] === DR) wide[i] = DR;
   }
   ranks.set(wide);
@@ -198,7 +198,7 @@ function buildChunkOrganic(cx, cy, stage) {
     const dPlaza = Math.hypot(wx + .5 - villageCx, wy + .5 - villageCy) + n * 6;
     const plaza = stage >= 1 && dPlaza < plazaR;
     if (plaza) name = 'tx_road_cobble';
-    else if (t === T.DIRT && stage >= 1 && Math.hypot(tx - 40, ty - 50) < 30) name = roadTexture(stage);
+    else if (t === T.DIRT && stage >= 1 && Math.hypot(tx - CENTER.x, ty - CENTER.y) < 30) name = roadTexture(stage);
     else if (t === T.WATER) name = 'tx_water_0';
     else { // texture variants in organic blobs (not 4x4-tile squares)
       const set = TEX_SETS[t], v = smoothNoise(wx / 53, wy / 53, seed + 61 + top) * .75 + smoothNoise(wx / 17, wy / 17, seed + 62) * .25;
@@ -217,7 +217,7 @@ function buildChunkOrganic(cx, cy, stage) {
       if ((t === T.SAND || t === T.DIRT) && fields[1] && sample(fields[1], wx + .5, wy + .5) + n < .58) k *= .82; // wet bank
     }
     // modern eras: roads/plaza painted procedurally — อำเภอ concrete slabs + kerbs, จังหวัด/ประเทศ asphalt with lane lines
-    const isRoad = t === T.DIRT && Math.hypot(tx - 40, ty - 50) < 30;
+    const isRoad = t === T.DIRT && Math.hypot(tx - CENTER.x, ty - CENTER.y) < 30;
     if (stage >= 2 && (plaza || isRoad)) {
       let c;
       const grain = hash(wx, wy, seed + 51), mott = smoothNoise(wx / 9, wy / 9, seed + 52);
@@ -329,7 +329,7 @@ function cellGrid(stage) {
       if (ROADS.has(x + ',' + y)) r++; else if (isW(t)) w++; else if (road(x, y)) r++; else if (PAVED.has(x + ',' + y)) pv++; else if (YARD.has(x + ',' + y)) { if (stage >= 2) pv++; else d++; } else if (t === T.DIRT) d++;
       if (t === T.MEADOW) me++; if (t === T.ROCKY) ro++;
     }
-    const i = Y * CW + X, plaza = stage >= 1 && Math.hypot(X * CELL + 1 - 40.5, Y * CELL + 1 - 50.5) < PLAZA_R + .6;
+    const i = Y * CW + X, plaza = stage >= 1 && Math.hypot(X * CELL + 1 - CENTER.x - .5, Y * CELL + 1 - CENTER.y - .5) < PLAZA_R + .6;
     cellT[i] = mn >= 2 ? K.M : r >= 2 ? K.R : w >= 2 ? K.W : plaza || pv >= 2 ? K.P : d >= 2 ? K.D : K.G;
     cellSub[i] = me >= 2 ? K.MEADOW : ro >= 2 ? K.ROCKY : K.G;
     if (cellT[i] === K.W) { // narrow water = flowing stream frames, wide water = lake ripples
@@ -372,7 +372,7 @@ function buildChunkTiles(cx, cy, stage) {
     const rm = maskOf(X, Y, isR);
     if (rm === 15) {
       if (maskOf(X, Y, t => t === K.P) === 15) { // village plaza follows the era; paved city blocks are concrete pavers
-        const centre = Math.hypot(X * CELL + 2 - 40.5, Y * CELL + 2 - 50.5) < PLAZA_R + 2;
+        const centre = Math.hypot(X * CELL + 2 - CENTER.x - .5, Y * CELL + 2 - CENTER.y - .5) < PLAZA_R + 2;
         blit(g, 'plaza' + (centre ? Math.min(4, stage) : 2), Math.floor(h * 4), dx, dy);
       }
       else { const ex = TILESETS[laneSet].extra; blit(g, laneSet, ex && h < .1 ? 16 + Math.floor(h2 * ex) : 15, dx, dy); }

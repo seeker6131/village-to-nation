@@ -52,7 +52,21 @@ export const TIERS = [
 ];
 export const SLOT_KINDS = ['cottage', 'workshop']; // private buildings that need a slot
 
-export function tierOf(s) { return Math.max(1, Math.min(TIERS.length, (s.town?.stage || 0) + 1)); }
+// v0.27 a map from the Map Maker replaces the hand-planned village: its NPC plots become the camp's house slots, its
+// workshop the workshop slot, its lots the player lots, its roads the roads. Re-applied whenever the map changes.
+const DEF_TIERS = TIERS.map(T => ({ slots: T.slots.map(x => ({ ...x })), roads: T.roads }));
+let syncedFor = null;
+export function syncPlan() {
+  const key = WORLD.custom?.id || '';
+  if (syncedFor === key) return; syncedFor = key;
+  TIERS.forEach((T, i) => { T.slots = DEF_TIERS[i].slots.map(x => ({ ...x })); T.roads = DEF_TIERS[i].roads; });
+  const M = WORLD.custom; if (!M) return;
+  const pub = x => x.kind === 'public';
+  TIERS[0].slots = [...DEF_TIERS[0].slots.filter(pub), ...M.npcSlots.map((p, k) => ({ id: 'h' + k, kind: 'cottage', tx: p.tx, ty: p.ty, name: `บ้านชาวบ้านหลังที่ ${k + 1}` }))];
+  TIERS[1].slots = [...DEF_TIERS[1].slots.filter(pub), ...(M.workshop ? [{ id: 'w1', kind: 'workshop', tx: M.workshop.tx, ty: M.workshop.ty, name: 'โรงงานงานฝีมือ' }] : [])];
+  for (const T of TIERS) T.roads = [];
+}
+export function tierOf(s) { syncPlan(); return Math.max(1, Math.min(TIERS.length, (s.town?.stage || 0) + 1)); }
 export function tierInfo(s) { return TIERS[tierOf(s) - 1]; }
 export function villageRadius(s) { return tierInfo(s).radius; }
 /** Slots unlocked so far (all tiers up to the current one) + the house lots for online players of every map. */
@@ -69,6 +83,11 @@ let lotMemo = { key: '', all: [], lanes: [] };
 function allLots() {
   const key = `${WORLD.seed}:${WORLD.plan}:${WORLD.version}`;
   if (lotMemo.key === key) return lotMemo;
+  syncPlan();
+  if (WORLD.custom) { // the map's own lots, open from the start (online players claim them)
+    lotMemo = { key, lanes: [], all: WORLD.custom.lots.map((p, k) => ({ id: `lot1_${k}`, kind: 'cottage', tx: p.tx, ty: p.ty, tier: 1, lot: true, name: `ที่ดินผู้เล่น แปลงที่ ${k + 1}` })) };
+    return lotMemo;
+  }
   const used = new Set(), all = [], lanes = [];
   const mark = (x0, y0, x1, y1) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) used.add(x + ',' + y); };
   const wet = (x, y) => { const g = groundAt(x, y); return g === T.WATER || g === T.FORD || g === T.SAND; };
@@ -122,7 +141,7 @@ function allLots() {
   lotMemo = { key, all, lanes };
   return lotMemo;
 }
-export function playerLots(t) { return t >= 2 ? allLots().all.filter(l => l.tier <= t) : []; }
+export function playerLots(t) { return t >= 2 || WORLD.custom ? allLots().all.filter(l => l.tier <= t) : []; }
 function lotLanes(t) { const out = []; for (const l of allLots().lanes) if (l.tier <= t) out.push(...l); return out; }
 export function slotById(id) { for (const T of TIERS) { const x = T.slots.find(q => q.id === id); if (x) return { ...x, tier: T.tier }; } return null; }
 
@@ -216,6 +235,7 @@ export function roadTiles(s) {
       for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) add((x + dx) + ',' + (y + dy), isMain);
   }
   for (const k of lotLanes(t)) add(k, false);                                // lanes of the player housing streets
+  if (WORLD.custom) WORLD.custom.roads.forEach((row, y) => { for (let x = 0; x < row.length; x++) if (row[x] !== '.') add(x + ',' + y, row[x] === 'M'); }); // roads drawn in the Map Maker
   if (t >= 3) for (const k of cityPlan(t, ART10).streets) add(k, true);      // district squares
   // v0.25 the country roads to every opened district become real roads (dry tiles only; bridge decks stay planks)
   if (t >= 3) for (const p of WORLD.paths || []) if (p.tier <= t) for (let i = 0; i < p.length - 1; i++) {

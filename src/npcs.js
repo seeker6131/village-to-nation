@@ -2,7 +2,7 @@
 // Every NPC has a job, a home, a daily schedule, hunger and money. Where they go depends on what the
 // village has built: e.g. the farmer works the community farm once it exists, traders move to the
 // market, builders walk to active construction sites and speed them up, everyone eats at the market.
-import { POINTS, CENTER, TENTS, hash } from './world.js';
+import { POINTS, CENTER, TENTS, hash, ORIGIN } from './world.js';
 import { clearingTargets, npcWork } from './resources.js';
 import { ensureConstruction, activeSites, structureLevel, publicEffect, BUILDINGS, findStructure } from './construction.js';
 import { ensureSystems, MARKET, STOCK_CAP } from './systems.js';
@@ -93,7 +93,7 @@ export function settlerArrivals(s) {
   const used = new Set(s.town.settlers.map(x => x.id));
   const homes = [...s.placed.filter(p => p.type === 'cottage' && p.level >= 1).map(p => [p.tx + 1, p.ty + BUILDINGS.cottage.height]),
     ...(s.publicSites?.home?.level >= 1 ? [[POINTS.home.x, POINTS.home.y + Math.ceil(POINTS.home.h / 2) + 1]] : [])];
-  const i = s.town.settlers.length, camp = [[33, 53], [46, 54], [37, 57], [31, 50], [49, 50], [43, 57]], home = camp[i % camp.length]; void homes; // newcomers camp until they build their own house
+  const i = s.town.settlers.length, camp = [[33, 53], [46, 54], [37, 57], [31, 50], [49, 50], [43, 57]].map(([x, y]) => [x + ORIGIN.x, y + ORIGIN.y]), home = camp[i % camp.length]; void homes; // newcomers camp until they build their own house
   let settler;
   const named = NPC_DEFS.find(n => !n.start && !used.has(n.id));
   if (named) settler = { ...named, home, arrivedDay: s.day };
@@ -115,7 +115,10 @@ export function settlerArrivals(s) {
   return settler;
 }
 
-export function allNpcDefs(s) { ensureTown(s); return [...STARTERS, ...s.town.settlers]; }
+// v0.27 the starters' homes follow the village origin (maps from the Map Maker put the village elsewhere)
+const HOME0 = new Map(NPC_DEFS.map(d => [d, [...d.home]])); let homeOrigin = '0,0';
+function syncHomes() { const k = ORIGIN.x + ',' + ORIGIN.y; if (k === homeOrigin) return; homeOrigin = k; for (const [d, h] of HOME0) d.home = [h[0] + ORIGIN.x, h[1] + ORIGIN.y]; }
+export function allNpcDefs(s) { ensureTown(s); syncHomes(); return [...STARTERS, ...s.town.settlers]; }
 
 function siteFront(id) { const p = POINTS[id]; return [p.x, p.y + Math.ceil((p.h || 2) / 2) + 1]; }
 export function structurePos(s, ref) {

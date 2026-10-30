@@ -82,6 +82,6 @@ test('crime: the player can catch a thief in the act; the reward comes from the 
 test('ten town layouts: every district on dry land off the village plan, every zone reachable (scripts/check-layouts.mjs)', async () => {
   const { execFileSync } = await import('node:child_process');
   const out = execFileSync(process.execPath, [new URL('../scripts/check-layouts.mjs', import.meta.url).pathname], { encoding: 'utf8' });
-  assert.equal(out.trim().split('\n').length, 10); assert.ok(!/ISSUES/.test(out), out);
+  assert.ok(out.trim().split('\n').length >= 10, '10 generated layouts + maps from the Map Maker'); assert.ok(!/ISSUES/.test(out), out);
   W.generateRegion();
 });

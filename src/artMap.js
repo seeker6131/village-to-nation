@@ -1,7 +1,7 @@
 // Which v0.10 sprite (assets/v10/*, see src/artManifest.js) represents each world thing. Pure: no DOM,
 // so tests can check every reachable state has art and the renderer stays a thin drawing layer.
 import { ART10 } from './artManifest.js';
-import { WORLD, WORLD_W, WORLD_H, T, hash, groundAt } from './world.js';
+import { WORLD, WORLD_W, WORLD_H, T, hash, groundAt, CENTER } from './world.js';
 
 export const has = name => Object.prototype.hasOwnProperty.call(ART10, name);
 
@@ -13,7 +13,7 @@ export const TREE_SPECIES = {
   3: ['mango', 'banana', 'coconut', 'tamarind'],
   4: ['pine', 'pine', 'pinesmall'],
 };
-export function treeSpecies(n) { const l = TREE_SPECIES[n.kind] || TREE_SPECIES[0]; return l[Math.floor(hash(n.x, n.y, 913) * l.length) % l.length]; }
+export function treeSpecies(n) { if (n.sprite) return n.sprite.replace(/^tree_/, ''); const l = TREE_SPECIES[n.kind] || TREE_SPECIES[0]; return l[Math.floor(hash(n.x, n.y, 913) * l.length) % l.length]; }
 
 // ---- rocks: 3 looks per rock (intact, cracked after 1 hit, rubble after 2)
 export function rockSprite(n, hits = 0) {
@@ -108,7 +108,7 @@ export function decorSprites() {
     const nearLand = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => { const g = groundAt(x + dx, y + dy); return g !== T.WATER && g !== T.FORD; });
     // flower borders along village paths (the widened path covers the tile next to the trail -> plant one further out)
     const isDirt = (X, Y) => groundAt(X, Y) === T.DIRT;
-    const ring2 = !isDirt(x, y) && t !== T.WATER && Math.hypot(x - 40, y - 50) < 27 && Math.hypot(x - 40, y - 50) > 4.5
+    const ring2 = !isDirt(x, y) && t !== T.WATER && Math.hypot(x - CENTER.x, y - CENTER.y) < 27 && Math.hypot(x - CENTER.x, y - CENTER.y) > 4.5
       && ![[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => isDirt(x + dx, y + dy))
       && [[2, 0], [-2, 0], [0, 2], [0, -2], [1, 1], [-1, 1], [1, -1], [-1, -1]].some(([dx, dy]) => isDirt(x + dx, y + dy));
     if (ring2 && h < 0.06) decorIdx[i] = pick(h < 0.3 ? DECOR_SETS.meadow : DECOR_SETS.forest, x, y);

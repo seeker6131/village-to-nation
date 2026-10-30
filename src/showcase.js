@@ -79,6 +79,10 @@ export { TIERS };
  *  the forest is re-grown for the new map and built plots are cleared again. */
 export function applyPlan(s, plan) {
   s.world.plan = plan; ensureWorld(s); delete s.world.relaid;
+  // v0.27 maps from the Map Maker have their own plots: houses/workshops that are not on a plot of this map are taken down
+  const slots = openSlots(s);
+  s.placed = (s.placed || []).filter(p => !['cottage', 'workshop'].includes(p.type) || slots.some(x => x.kind === p.type && x.tx === p.tx && x.ty === p.ty));
+  if (s.homes) for (const k of Object.keys(s.homes)) if (!slots.some(x => x.id === k)) delete s.homes[k];
   for (const id of Object.keys(s.publicSites || {})) if (s.publicSites[id].status !== 'none') for (const n of plotObstacles(s, id)) setNode(s, n.id, 'x');
   for (const p of s.placed || []) for (const n of slotObstacles(s, { tx: p.tx - 1, ty: p.ty - 2 }, 6, 6)) setNode(s, n.id, 'x');
   openRoads(s); clearPropTiles(s); s.__structVer = (s.__structVer || 0) + 1;

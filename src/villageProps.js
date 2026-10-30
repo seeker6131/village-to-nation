@@ -2,7 +2,7 @@
 // benches, farm tools, animal pens, a bridge over the river) placed by hand like the reference village map.
 // Pure: returns a list the renderer draws and the game uses for collision. Positions are in TILES; (x, y) is the
 // bottom-centre of the sprite. `block` = tiles that become solid.
-import { CENTER, TENTS, POINTS, WORLD_W, groundAt, T, nodeOnTile, nodeStatus, setNode, TREES, ROCKS, BRIDGES } from './world.js';
+import { CENTER, TENTS, POINTS, WORLD_W, groundAt, T, nodeOnTile, nodeStatus, setNode, TREES, ROCKS, BRIDGES, WORLD, ORIGIN } from './world.js';
 import { tierOf, slotState, TIERS, roadTiles } from './villageLayout.js';
 import { cityPlan, cityKeepsTree } from './cityPlan.js';
 import { ART10 } from './artManifest.js';
@@ -43,9 +43,10 @@ let memo = { key: '', list: [] };
 /** All props visible for the village's current state. */
 export function villageProps(s) {
   const t = tierOf(s), built = (s.placed || []).filter(p => p.type === 'cottage' && p.level >= 1).map(p => p.uid).join(',');
-  const key = `${t}|${built}|${s.world?.seed}|${s.world?.ver}`;
+  const key = `${t}|${built}|${s.world?.seed}|${s.world?.ver}|${WORLD.plan}`;
   if (memo.key === key) return memo.list;
   const list = [];
+  if (WORLD.custom) { memo = { key, list: customProps(s, t) }; return memo.list; }
   for (const p of TIER1) if (!p.only || t <= p.only) list.push(p);
   if (t <= 1) for (let i = 0; i < TENTS.length; i++) list.push(P(i === 0 ? 'pc_tent' : 'pc_tent_small', TENTS[i].tx + 1, TENTS[i].ty + 2));
   if (t >= 2) list.push(...TIER2);
@@ -58,6 +59,19 @@ export function villageProps(s) {
   list.push(P(['gt_bamboo', 'gt_village', 'gt_district', 'gt_city'][era], GATE.x, GATE.y, { block: [[GATE.x - 2, GATE.y - 1], [GATE.x + 1, GATE.y - 1]].map(([x, y]) => [Math.floor(x), Math.floor(y)]) }));
   if (t >= 3) list.push(...cityPlan(t, ART10).props);
   memo = { key, list };
+  return list;
+}
+/** v0.27 a Map Maker map: its own props (solid footprints) + the camp essentials in front of the leader house. */
+function customProps(s, t) {
+  const sh = p => ({ ...p, x: p.x + ORIGIN.x, y: p.y + ORIGIN.y, block: p.block?.map(([x, y]) => [x + ORIGIN.x, y + ORIGIN.y]) });
+  const list = [];
+  for (const p of TIER1.slice(0, 4)) if (!p.only || t <= p.only) list.push(sh(p)); // fire, study log, board, delivery crates (TIER1 holds the default positions)
+  if (t >= 2) list.push(P('pp_board', POINTS.board.x + .5, POINTS.board.y + 1.1));
+  for (const p of s.placed || []) if (p.type === 'cottage' && p.level >= 1) list.push(P('pp_mailbox', p.tx + 3.6, p.ty + 3.4));
+  for (const m of WORLD.custom.props) {
+    const blk = []; for (let y = m.y; y < m.y + m.fh; y++) for (let x = m.x; x < m.x + m.fw; x++) blk.push([x, y]);
+    list.push(P(m.name, m.x + m.fw / 2, m.y + m.fh + .1, { block: blk, flip: m.flip, city: m.label }));
+  }
   return list;
 }
 /** Solid tiles from props ("x,y"). */
