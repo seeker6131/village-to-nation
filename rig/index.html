@@ -118,8 +118,9 @@ ol{padding-left:20px;margin:6px 0} li{margin:3px 0}
         <h3>V2N Rig Maker 🦴</h3>
         <p>ใส่กระดูกให้ตัวละคร ทำท่าเดิน/ยืน/ทำงาน แล้วส่งไฟล์ให้ Claude เอาเข้าเกม</p>
         <div class="btns">
-          <button class="pri" id="wDemo">🧍 ลองตัวอย่าง (มีท่าเดิน)</button>
-          <button id="wImp">🖼️ นำเข้ารูปจาก GPT</button>
+          <button class="pri" id="wAuto">⚡ รูปจาก GPT → ใส่กระดูกอัตโนมัติ</button>
+          <button id="wDemo">🧍 ลองตัวอย่าง</button>
+          <button id="wImp">🖼️ นำเข้ารูป (ทำเอง)</button>
           <button id="wOpen">📂 เปิดไฟล์ .v2nrig.json</button>
           <button id="wHelp">❔ วิธีใช้</button>
         </div>
@@ -752,7 +753,8 @@ function renderSide() {
   const el = $('#sbody'); el.innerHTML = '';
   if (ui.tab === 'parts') {
     const bt = document.createElement('div'); bt.className = 'btns';
-    bt.append(btn('🖼️ นำเข้ารูป', 'รูปจาก GPT: ตัดพื้นหลัง + แยกชิ้นอัตโนมัติ', () => $('#fImg').click(), 'pri'));
+    bt.append(btn('⚡ อัตโนมัติ', 'รูปจาก GPT → ตัดชิ้น ใส่กระดูก ทำท่าเดินให้เลย', () => { IMP.auto = true; $('#fImg').click(); }, 'pri'));
+    bt.append(btn('🖼️ นำเข้ารูป', 'รูปจาก GPT: ตัดพื้นหลัง + แยกชิ้น (ทำเอง)', () => { IMP.auto = false; $('#fImg').click(); }));
     el.append(bt);
     const used = new Set(VIEWS.flatMap(v => P.views[v].parts.map(p => p.img)));
     const ids = Object.keys(P.images);
@@ -951,7 +953,8 @@ $('#bMenu').onclick = e => {
   e.stopPropagation(); if ($('#menu')) { $('#menu').remove(); return; }
   const m = document.createElement('div'); m.id = 'menu'; const r = e.target.getBoundingClientRect(); m.style.left = r.left + 'px'; m.style.top = (r.bottom + 4) + 'px';
   const items = [
-    ['🖼️ นำเข้ารูป (GPT)', () => $('#fImg').click()],
+    ['⚡ รูป GPT → ใส่กระดูกอัตโนมัติ', () => { IMP.auto = true; $('#fImg').click(); }],
+    ['🖼️ นำเข้ารูป (ทำเอง)', () => { IMP.auto = false; $('#fImg').click(); }],
     ['📂 เปิดไฟล์ .v2nrig.json', () => $('#fJson').click()],
     ['💾 บันทึกไฟล์ส่ง Claude (.v2nrig.json)', saveRig],
     ['🎞️ ส่งออกสไปรต์ชีต (PNG)', exportDialog],
@@ -963,7 +966,8 @@ $('#bMenu').onclick = e => {
   document.body.append(m);
   setTimeout(() => document.addEventListener('click', function off() { m.remove(); document.removeEventListener('click', off); }), 0);
 };
-$('#wDemo').onclick = () => loadDemo(false); $('#wImp').onclick = () => $('#fImg').click(); $('#wOpen').onclick = () => $('#fJson').click(); $('#wHelp').onclick = () => help();
+$('#wAuto').onclick = () => { IMP.auto = true; $('#fImg').click(); };
+$('#wDemo').onclick = () => loadDemo(false); $('#wImp').onclick = () => { IMP.auto = false; $('#fImg').click(); }; $('#wOpen').onclick = () => $('#fJson').click(); $('#wHelp').onclick = () => help();
 $('#fJson').onchange = e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
   const r = new FileReader(); r.onload = () => { try { if (loadProject(JSON.parse(r.result))) toast('เปิด "' + P.name + '" แล้ว'); } catch (err) { toast('อ่านไฟล์ไม่ได้: ' + err.message); } }; r.readAsText(f);
@@ -1068,6 +1072,7 @@ function nextImport() {
     const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
     IMP.src = c; IMP.cuts = []; IMP.off = new Set(); IMP.mode = 'auto'; IMP.name = f.name.replace(/\.[^.]+$/, '').slice(0, 24);
     IMP.bg = guessBg(c); openImportUI(); rekey();
+    if (IMP.auto) { IMP.auto = false; setTimeout(autoRigDialog, 50); }
   };
   im.onerror = () => { toast('เปิดรูปไม่ได้'); nextImport(); };
   im.src = url;
@@ -1155,7 +1160,7 @@ function openImportUI() {
      <label class="muted"><input id="iPix" type="checkbox" ${IMP.pixel ? 'checked' : ''}> ย่อแบบพิกเซล</label>
    </div>
    <div id="impwrap"><canvas id="impcv"></canvas></div>
-   <div class="ctl"><span class="muted" id="iInfo" style="flex:1"></span><button id="iWhole">ทั้งรูปเป็น 1 ชิ้น</button><button id="iOk" class="pri">เพิ่มเข้าคลัง</button></div>
+   <div class="ctl"><span class="muted" id="iInfo" style="flex:1"></span><button id="iWhole">ทั้งรูปเป็น 1 ชิ้น</button><button id="iOk">เพิ่มเข้าคลัง</button><button id="iAuto" class="pri">⚡ ใส่กระดูกอัตโนมัติ</button></div>
   </div>`;
   document.body.append(m);
   $('#iName').textContent = IMP.name;
@@ -1171,6 +1176,7 @@ function openImportUI() {
   $('#iPix').onchange = e => { IMP.pixel = e.target.checked; };
   $('#iWhole').onclick = () => finishImport(true);
   $('#iOk').onclick = () => finishImport(false);
+  $('#iAuto').onclick = () => autoRigDialog();
   const c = $('#impcv'); let dr = null;
   const ip = e => { const r = c.getBoundingClientRect(); return [(e.clientX - r.left) / IMP.vk, (e.clientY - r.top) / IMP.vk]; };
   c.onpointerdown = e => {
@@ -1244,33 +1250,236 @@ function scaled(c) {
   // binary alpha (pixel-art rule)
   const id = x.getImageData(0, 0, o.width, o.height); for (let i = 3; i < id.data.length; i += 4) id.data[i] = id.data[i] > 127 ? 255 : 0; x.putImageData(id, 0, 0); return o;
 }
-function finishImport(whole) {
+/** the pieces the import dialog would add, in reading order: [{c, x0, y0}] (sheet coordinates, unscaled) */
+function extractPieces(whole) {
   const out = [];
-  if (whole) { const c = cropOpaque(IMP.keyedBase); if (c) out.push(c); }
-  else {
-    const w = IMP.keyed.width, h = IMP.keyed.height, kd = IMP.keyed.getContext('2d').getImageData(0, 0, w, h).data;
-    IMP.groups.forEach((g, gi) => {
-      if (IMP.off.has(gi)) return;
-      const cw = g.x1 - g.x0 + 1, ch = g.y1 - g.y0 + 1, c = document.createElement('canvas'); c.width = cw; c.height = ch;
-      const x = c.getContext('2d'), id = x.createImageData(cw, ch);
-      for (let y = 0; y < ch; y++) for (let xx = 0; xx < cw; xx++) {
-        const si = (g.y0 + y) * w + g.x0 + xx, l = IMP.lab[si]; if (l < 0 || IMP.compGroup[l] !== gi) continue;
-        const o = (y * cw + xx) * 4; id.data[o] = kd[si * 4]; id.data[o + 1] = kd[si * 4 + 1]; id.data[o + 2] = kd[si * 4 + 2]; id.data[o + 3] = 255;
-      }
-      x.putImageData(id, 0, 0); out.push(c);
-    });
-    for (const cu of IMP.cuts) {
-      const t = document.createElement('canvas'); t.width = w; t.height = h; const x = t.getContext('2d');
-      cutPath(x, cu); x.clip(); x.drawImage(IMP.keyedBase, 0, 0);
-      const c = cropOpaque(t); if (c) out.push(c);
+  if (whole) { const c = cropOpaque(IMP.keyedBase); if (c) out.push({ c, x0: 0, y0: 0 }); return out; }
+  const w = IMP.keyed.width, h = IMP.keyed.height, kd = IMP.keyed.getContext('2d').getImageData(0, 0, w, h).data;
+  IMP.groups.forEach((g, gi) => {
+    if (IMP.off.has(gi)) return;
+    const cw = g.x1 - g.x0 + 1, ch = g.y1 - g.y0 + 1, c = document.createElement('canvas'); c.width = cw; c.height = ch;
+    const x = c.getContext('2d'), id = x.createImageData(cw, ch);
+    for (let y = 0; y < ch; y++) for (let xx = 0; xx < cw; xx++) {
+      const si = (g.y0 + y) * w + g.x0 + xx, l = IMP.lab[si]; if (l < 0 || IMP.compGroup[l] !== gi) continue;
+      const o = (y * cw + xx) * 4; id.data[o] = kd[si * 4]; id.data[o + 1] = kd[si * 4 + 1]; id.data[o + 2] = kd[si * 4 + 2]; id.data[o + 3] = 255;
     }
+    x.putImageData(id, 0, 0); out.push({ c, x0: g.x0, y0: g.y0 });
+  });
+  for (const cu of IMP.cuts) {
+    const t = document.createElement('canvas'); t.width = w; t.height = h; const x = t.getContext('2d');
+    cutPath(x, cu); x.clip(); x.drawImage(IMP.keyedBase, 0, 0);
+    const c = cropOpaque(t); if (c) out.push({ c, x0: cutBox(cu).x, y0: cutBox(cu).y });
   }
+  return out;
+}
+function finishImport(whole) {
+  const out = extractPieces(whole).map(p => p.c);
   if (!out.length) { toast('ไม่มีชิ้นให้เพิ่ม'); return; }
   pushUndo();
   out.forEach((c, i) => { const s = scaled(c); addImage(out.length > 1 ? `${IMP.name} ${i + 1}` : IMP.name, s.toDataURL('image/png'), s.width, s.height); });
   $('#imp')?.remove(); ui.tab = 'parts'; changed(); refresh();
   toast(`เพิ่ม ${out.length} ชิ้นเข้าคลังแล้ว — แตะชิ้นเพื่อวางลงฉาก`, 3000);
   if (IMP.files.length) setTimeout(nextImport, 300);
+}
+
+// ====================================================================== ⚡ auto rig: picture -> parts + bones + walk
+const PART_BOX = { // (w, h) as a fraction of the body height, measured on the game's reference turnaround
+  front: { head: [.362, .35], torso: [.214, .262], pelvis: [.236, .205], uarm: [.066, .2], farm: [.066, .185], thigh: [.098, .235], shin: [.08, .135], foot: [.1, .075] },
+  side: { head: [.318, .35], torso: [.172, .262], pelvis: [.16, .205], uarm: [.062, .2], farm: [.066, .185], thigh: [.088, .235], shin: [.076, .135], foot: [.155, .072] } };
+function resizeTo(c, tw, th) {
+  tw = Math.max(2, Math.round(tw)); th = Math.max(2, Math.round(th));
+  const o = document.createElement('canvas'); o.width = tw; o.height = th; const x = o.getContext('2d');
+  // two-step area-ish downscale keeps pixel art readable
+  let src = c; while (src.width > tw * 2 && src.height > th * 2) { const m = document.createElement('canvas'); m.width = Math.round(src.width / 2); m.height = Math.round(src.height / 2); const mx = m.getContext('2d'); mx.imageSmoothingEnabled = true; mx.imageSmoothingQuality = 'high'; mx.drawImage(src, 0, 0, m.width, m.height); src = m; }
+  x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(src, 0, 0, tw, th);
+  const id = x.getImageData(0, 0, tw, th); for (let i = 3; i < id.data.length; i += 4) id.data[i] = id.data[i] > 127 ? 255 : 0; x.putImageData(id, 0, 0); return o;
+}
+const AUTO_ORDER = ['head', 'torso', 'pelvis', 'uarm', 'farm', 'thigh', 'shin', 'foot'];
+const PART_TH = { head: 'หัว', torso: 'ลำตัว', pelvis: 'สะโพก', uarm: 'แขนบน', farm: 'แขนล่าง', thigh: 'ต้นขา', shin: 'หน้าแข้ง', foot: 'เท้า' };
+/** which piece is which: the prompt's 4x2 order when there are 8, otherwise by shape/size */
+function classifyPieces(list) {
+  if (list.length === 8) return Object.fromEntries(AUTO_ORDER.map((k, i) => [k, list[i]]));
+  const L = [...list], A = p => p.c.width * p.c.height, asp = p => p.c.height / p.c.width;
+  const take = fn => { let bi = -1, bv = -Infinity; L.forEach((p, i) => { const v = fn(p); if (v > bv) { bv = v; bi = i; } }); return bi < 0 || bv === -1 ? null : L.splice(bi, 1)[0]; };
+  const o = {};
+  o.head = take(p => asp(p) < 1.6 ? A(p) : -1);
+  o.foot = take(p => p.c.width / p.c.height > 1.1 ? p.c.width / p.c.height : -1);
+  o.torso = take(p => asp(p) < 2.2 ? A(p) : -1);
+  o.pelvis = take(p => asp(p) < 2.2 ? A(p) : -1);
+  for (const k of ['thigh', 'uarm', 'farm', 'shin']) o[k] = take(p => A(p));
+  if (!o.foot) o.foot = take(p => A(p));
+  return o;
+}
+const SIDE_OF = (view, x) => view === 'side' ? null : (view === 'front' ? (x < 0 ? 'ขวา' : 'ซ้าย') : (x < 0 ? 'ซ้าย' : 'ขวา'));
+/** clear a view and build bones from joint positions; returns name -> bone id */
+function bonesFromJoints(view, J) {
+  P.views[view].bones = []; P.views[view].parts = [];
+  for (const A of P.anims.filter(a => a.view === view)) A.keys = {};
+  P.anims = P.anims.filter(a => a.view !== view);
+  const ids = {}, add = (n, par, a, t) => { ids[n] = addBoneWorld(view, n, par ? ids[par] : null, a, t).id; };
+  add('สะโพก', null, J.hip, J.pelvisTop); add('ลำตัว', 'สะโพก', J.pelvisTop, J.neck); add('หัว', 'ลำตัว', J.neck, J.headTop);
+  const sides = view === 'side' ? ['ไกล', 'ใกล้'] : [SIDE_OF(view, -1), SIDE_OF(view, 1)];
+  sides.forEach((s, i) => {
+    const sx = view === 'side' ? 0 : (i ? 1 : -1), L = J.leg(sx), Ar = J.arm(sx);
+    add('ต้นขา_' + s, 'สะโพก', L.hip, L.knee); add('หน้าแข้ง_' + s, 'ต้นขา_' + s, L.knee, L.ankle); add('เท้า_' + s, 'หน้าแข้ง_' + s, L.ankle, L.toe);
+    add('แขนบน_' + s, 'ลำตัว', Ar.sh, Ar.elbow); add('แขนล่าง_' + s, 'แขนบน_' + s, Ar.elbow, Ar.hand);
+  });
+  return ids;
+}
+/** put an image into the view at a world centre and attach it to a bone, keeping the spot */
+function placeWorld(view, imgId, boneId, cxw, cyw, { flip = false, bright = 1, name } = {}) {
+  const BM = boneMats(view, {}), m = BM.M[boneId], [lx, ly] = ap(inv(m), cxw, cyw);
+  P.views[view].parts.push({ id: uid('p'), name: name || P.images[imgId].name, img: imgId, bone: boneId, x: r2(lx), y: r2(ly), rot: r2(normDeg(-ang(m) * R2D)), sx: 1, sy: 1, flip, bright });
+}
+const canvasImg = (name, c) => addImage(name, c.toDataURL('image/png'), c.width, c.height);
+
+/** A) parts sheet: the skeleton is computed from the part sizes (proportions of the game's own rig) */
+function autoFromParts(view, cls) {
+  const img = {}, dim = {};
+  // GPT draws every part at its own scale -> resize each to the game's body proportions (same boxes as scripts/build-rig.py)
+  const box = PART_BOX[view === 'side' ? 'side' : 'front'];
+  const ref = cls.head ? scaled(cls.head.c).height / box.head[1] : cls.torso ? scaled(cls.torso.c).height / box.torso[1] : 248;
+  const Hb = clamp(ref, 120, 600);
+  for (const k of AUTO_ORDER) if (cls[k]) { const c = resizeTo(scaled(cls[k].c), box[k][0] * Hb, box[k][1] * Hb); img[k] = canvasImg(PART_TH[k], c); dim[k] = { w: c.width, h: c.height }; }
+  const Hh = Hb;
+  const D = (k, w, h) => dim[k] || { w: w * Hh, h: h * Hh };
+  const hd = D('head', .36, .35), to = D('torso', .21, .26), pe = D('pelvis', .23, .2), ua = D('uarm', .066, .2), fa = D('farm', .066, .185), th = D('thigh', .098, .235), sh = D('shin', .08, .135), ft = D('foot', .1, .075);
+  const ankle = -.6 * ft.h, knee = ankle - .74 * sh.h, hip = knee - .85 * th.h, pelvisTop = hip - .34 * pe.h, torsoTop = pelvisTop - .95 * to.h;
+  const shY = torsoTop + .25 * to.h, headBot = torsoTop + .065 * to.h, elbow = shY + .75 * ua.h, hand = elbow + .85 * fa.h;
+  const side = view === 'side';
+  const hx = side ? .15 * pe.w : 0, shx = side ? .12 * to.w : 0, headX = side ? .03 * hd.w : 0;
+  const legX = sx => side ? hx : sx * .23 * pe.w, armX = sx => side ? shx : sx * Math.max(to.w * .5 - ua.w * .3, ua.w * .6);
+  const J = { hip: [hx, hip], pelvisTop: [hx, pelvisTop], neck: [shx, shY], headTop: [headX, headBot - hd.h * .9],
+    leg: sx => ({ hip: [legX(sx), hip], knee: [legX(sx), knee], ankle: [legX(sx), ankle], toe: side ? [legX(sx) - .7 * ft.w, ankle] : [legX(sx), 0] }),
+    arm: sx => ({ sh: [armX(sx), shY], elbow: [armX(sx), elbow], hand: [armX(sx), hand] }) };
+  const ids = bonesFromJoints(view, J);
+  const limb = (k, bone, jx, jy, cap, o) => img[k] && placeWorld(view, img[k], ids[bone], jx, jy + dim[k].h * (.5 - cap), o);
+  const leg = (s, sx, o) => { const x = legX(sx); limb('thigh', 'ต้นขา_' + s, x, hip, .13, o); limb('shin', 'หน้าแข้ง_' + s, x, knee, .12, o); if (img.foot) placeWorld(view, img.foot, ids['เท้า_' + s], side ? x - .2 * ft.w : x, ankle + .1 * ft.h, o); };
+  const arm = (s, sx, o) => { const x = armX(sx); limb('uarm', 'แขนบน_' + s, x, shY, .12, o); limb('farm', 'แขนล่าง_' + s, x, elbow, .08, o); };
+  const body = () => { if (img.pelvis) placeWorld(view, img.pelvis, ids['สะโพก'], side ? .1 * pe.w : 0, pelvisTop + pe.h / 2); if (img.torso) placeWorld(view, img.torso, ids['ลำตัว'], 0, torsoTop + to.h / 2); };
+  const head = () => img.head && placeWorld(view, img.head, ids['หัว'], headX, headBot - hd.h / 2);
+  if (side) { arm('ไกล', 0, { bright: .78 }); leg('ไกล', 0, { bright: .8 }); body(); leg('ใกล้', 0); head(); arm('ใกล้', 0); }
+  else {
+    const a = SIDE_OF(view, -1), b = SIDE_OF(view, 1);
+    leg(a, -1, {}); leg(b, 1, { flip: true }); body(); arm(a, -1, {}); arm(b, 1, { flip: true }); head();
+  }
+  // order fix for side: head before the near arm but after the torso -> already in push order
+}
+
+/** B) one full-body picture: find head/body/arms/legs from the silhouette, cut them, bones by proportion */
+function autoFromBody(view, piece) {
+  const src = scaled(piece.c), W = src.width, H = src.height, d = src.getContext('2d').getImageData(0, 0, W, H).data;
+  const op = (x, y) => d[(y * W + x) * 4 + 3] > 127;
+  const runs = y => { const r = []; let s = -1; for (let x = 0; x <= W; x++) { const o = x < W && op(x, y); if (o && s < 0) s = x; if (!o && s >= 0) { r.push([s, x - 1]); s = -1; } } return r.filter(q => q[1] - q[0] >= 1); };
+  // body centre: middle of the widest run at chest height
+  const chest = runs(Math.round(H * .5)); const mid = chest.sort((a, b) => (b[1] - b[0]) - (a[1] - a[0]))[0] || [0, W - 1];
+  let cx = (mid[0] + mid[1]) / 2;
+  // arms: rows where there are 3+ runs (arm | body | arm)
+  const Ls = [], Rs = [];
+  if (view !== 'side') for (let y = Math.round(H * .44); y < H * .64; y += 2) {
+    const r = runs(y); if (r.length < 3) continue;
+    const bi = r.findIndex(q => q[0] <= cx && q[1] >= cx); if (bi <= 0 || bi >= r.length - 1) continue;
+    Ls.push(r[bi][0]); Rs.push(r[bi][1]);
+  }
+  const med = a => a.sort((p, q) => p - q)[a.length >> 1];
+  const armsFound = Ls.length >= 3;
+  const armL = armsFound ? med(Ls) - .5 : cx - .11 * H, armR = armsFound ? med(Rs) + .5 : cx + .11 * H;
+  if (armsFound) cx = (armL + armR) / 2;
+  // leg centres
+  const legRow = runs(Math.round(H * .8)); let lxL = cx - .055 * H, lxR = cx + .055 * H;
+  if (view !== 'side' && legRow.length >= 2) { const l = legRow.filter(q => (q[0] + q[1]) / 2 < cx), r = legRow.filter(q => (q[0] + q[1]) / 2 >= cx); if (l.length) lxL = (l[l.length - 1][0] + l[l.length - 1][1]) / 2; if (r.length) lxR = (r[0][0] + r[0][1]) / 2; }
+  // regions [name, y0, y1] in fractions of H, with a little overlap so bent joints don't open holes
+  const side = view === 'side', A = SIDE_OF(view, -1), B = SIDE_OF(view, 1);
+  const regions = side ? [
+    ['head', 0, .37, () => true], ['torso', .33, .76, () => true],
+    ['thigh', .7, .88, () => true], ['shin', .84, .975, () => true], ['foot', .94, 1.01, () => true],
+  ] : [
+    ['head', 0, .365, () => true],
+    ['torso', .335, .64, (x, y) => x >= armL && x <= armR || y < H * .4],
+    ['pelvis', .58, .77, (x, y) => (x >= armL && x <= armR) || y > H * .82],
+    ['uarm_' + A, .38, .585, x => x < armL], ['farm_' + A, .54, .84, x => x < armL],
+    ['uarm_' + B, .38, .585, x => x > armR], ['farm_' + B, .54, .84, x => x > armR],
+    ['thigh_' + A, .7, .885, (x, y) => x < cx && (x >= armL || y > H * .84)], ['shin_' + A, .84, .975, x => x < cx], ['foot_' + A, .94, 1.01, x => x < cx],
+    ['thigh_' + B, .7, .885, (x, y) => x >= cx && (x <= armR || y > H * .84)], ['shin_' + B, .84, .975, x => x >= cx], ['foot_' + B, .94, 1.01, x => x >= cx],
+  ];
+  // a pixel belongs to the first region that claims it as "core" (no overlap) plus the overlap bands of later regions
+  const cut = {};
+  for (const [n, f0, f1, ok] of regions) {
+    const y0 = Math.max(0, Math.floor(f0 * H)), y1 = Math.min(H, Math.ceil(f1 * H));
+    const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d'), id = x.createImageData(W, H); let any = 0;
+    for (let y = y0; y < y1; y++) for (let xx = 0; xx < W; xx++) {
+      if (!op(xx, y) || !ok(xx, y)) continue;
+      const i = (y * W + xx) * 4; id.data[i] = d[i]; id.data[i + 1] = d[i + 1]; id.data[i + 2] = d[i + 2]; id.data[i + 3] = 255; any++;
+    }
+    if (!any) continue; x.putImageData(id, 0, 0);
+    // crop + remember where it sat
+    let bx0 = W, by0 = H, bx1 = -1, by1 = -1; for (let y = y0; y < y1; y++) for (let xx = 0; xx < W; xx++) if (id.data[(y * W + xx) * 4 + 3]) { if (xx < bx0) bx0 = xx; if (xx > bx1) bx1 = xx; if (y < by0) by0 = y; if (y > by1) by1 = y; }
+    const cc = document.createElement('canvas'); cc.width = bx1 - bx0 + 1; cc.height = by1 - by0 + 1; cc.getContext('2d').drawImage(c, -bx0, -by0);
+    cut[n] = { c: cc, cxw: (bx0 + bx1 + 1) / 2 - cx, cyw: (by0 + by1 + 1) / 2 - H };
+  }
+  // joints by the game's proportions (y up from the feet)
+  const Y = f => (f - 1) * H, X = x => x - cx;
+  const hipY = Y(.655), sxL = X(armsFound ? armL + 1 : cx - .1 * H), sxR = X(armsFound ? armR - 1 : cx + .1 * H);
+  const J = { hip: [0, hipY], pelvisTop: [0, Y(.59)], neck: [0, Y(.4)], headTop: [0, Y(.03)],
+    leg: sx => { const x = side ? 0 : X(sx < 0 ? lxL : lxR); return { hip: [x, hipY], knee: [x, Y(.855)], ankle: [x, Y(.955)], toe: side ? [x - .1 * H, Y(.955)] : [x, 0] }; },
+    arm: sx => { const x = side ? 0 : (sx < 0 ? sxL : sxR); return { sh: [x, Y(.4)], elbow: [x, Y(.56)], hand: [x, Y(.76)] }; } };
+  const ids = bonesFromJoints(view, J);
+  const put = (key, bone, o = {}) => { const q = cut[key]; if (!q) return; const id = canvasImg(PART_TH[key.split('_')[0]] + (key.includes('_') ? '_' + key.split('_')[1] : ''), q.c); placeWorld(view, id, ids[bone], q.cxw, q.cyw, o); };
+  if (side) {
+    // one picture of a standing side view: the legs are drawn as one -> copy them for the far leg (darker, behind)
+    const legImgs = {}; for (const k of ['thigh', 'shin', 'foot']) if (cut[k]) legImgs[k] = canvasImg(PART_TH[k], cut[k].c);
+    const leg = (s, br) => { for (const [k, b] of [['thigh', 'ต้นขา_'], ['shin', 'หน้าแข้ง_'], ['foot', 'เท้า_']]) if (legImgs[k]) placeWorld(view, legImgs[k], ids[b + s], cut[k].cxw, cut[k].cyw, { bright: br }); };
+    leg('ไกล', .8); put('torso', 'ลำตัว'); leg('ใกล้', 1); put('head', 'หัว');
+  } else {
+    for (const s of [A, B]) { put('thigh_' + s, 'ต้นขา_' + s); put('shin_' + s, 'หน้าแข้ง_' + s); put('foot_' + s, 'เท้า_' + s); }
+    put('pelvis', 'สะโพก'); put('torso', 'ลำตัว');
+    for (const s of [A, B]) { put('uarm_' + s, 'แขนบน_' + s); put('farm_' + s, 'แขนล่าง_' + s); }
+    put('head', 'หัว');
+  }
+  return { armsFound };
+}
+async function autoRigDialog() {
+  const pieces = extractPieces(false);
+  if (!pieces.length) { toast('ไม่เจอตัวละครในรูป — ลองเลื่อน "ลบพื้น" หรือ 💧 เลือกสีพื้น'); return; }
+  // a turnaround (3 whole bodies side by side: front, side, back) -> all three views at once
+  const maxH = Math.max(...pieces.map(p => p.c.height));
+  const bodies = pieces.filter(p => p.c.height > maxH * .75 && p.c.height > p.c.width * 1.15).sort((a, b) => a.x0 - b.x0);
+  if (bodies.length === 3) {
+    const v = await ask({ title: '⚡ เจอตัวละคร 3 ตัวในรูป', text: 'น่าจะเป็น หน้า · ข้าง · หลัง (เรียงซ้ายไปขวา) — ใส่กระดูกให้ครบ 3 มุมเลยไหม?', buttons: ['ทำครบ 3 มุม', 'ยกเลิก'] });
+    if (!v) return;
+    pushUndo(); const notes = [];
+    ['front', 'side', 'back'].forEach((view, i) => { ui.view = view; autoFromBody(view, bodies[i]); const w = newAnim('เดิน', 8, 10); autoWalk(w, true); autoIdle(newAnim('ยืน', 8, 6)); });
+    ui.view = 'front'; return autoDone(P.anims.find(a => a.view === 'front'), 'ใส่กระดูกครบ 3 มุมแล้ว — เปลี่ยนมุมดูที่ปุ่ม "มุม" ด้านบน');
+  }
+  const v = await ask({ title: '⚡ รูปนี้เป็นมุมไหน?', text: 'แอปจะหาตำแหน่งกระดูก ตัดชิ้น และทำท่าเดินให้เอง', buttons: ['ข้าง (หันซ้าย)', 'หน้า', 'หลัง', 'ยกเลิก'] });
+  if (!v) return;
+  const view = v.btn.startsWith('ข้าง') ? 'side' : v.btn === 'หน้า' ? 'front' : 'back';
+  pushUndo(); ui.view = view;
+  const big = pieces.slice().sort((a, b) => b.c.width * b.c.height - a.c.width * a.c.height);
+  const total = pieces.reduce((t, p) => t + p.c.width * p.c.height, 0);
+  let msg;
+  if (pieces.length >= 5 && big[0].c.width * big[0].c.height < total * .5) {
+    autoFromParts(view, classifyPieces(pieces)); msg = `เจอ ${pieces.length} ชิ้นส่วน → ประกอบร่าง + ใส่กระดูกแล้ว`;
+  } else {
+    const r = autoFromBody(view, big[0]);
+    msg = view === 'side' ? 'รูปทั้งตัวมุมข้าง: แขนติดตัว (ไม่แกว่ง) — อยากได้แขนแกว่ง ใช้รูปแยกชิ้น' : r.armsFound ? 'ตัดชิ้นจากรูปทั้งตัว + ใส่กระดูกแล้ว' : 'แขนชิดตัว ตัดแยกได้ไม่เป๊ะ — ลากปรับได้ หรือใช้รูปแยกชิ้นจะดีกว่า';
+  }
+  const walk = newAnim('เดิน', 8, 10); autoWalk(walk, true);
+  autoIdle(newAnim('ยืน', 8, 6));
+  autoDone(walk, msg);
+}
+function autoDone(walk, msg) {
+  if (!P.name || P.name === 'ตัวละครใหม่') P.name = IMP.name || P.name;
+  ui.anim = walk.id; ui.mode = 'anim'; ui.frame = 0; ui.playing = true; ui.tab = 'anims'; ui.sel = null;
+  $('#imp')?.remove(); changed(); refresh(); refit();
+  toast('⚡ เสร็จ! ' + msg + ' · ไม่ชอบตรงไหนลากปรับได้ · ☰ → 💾 บันทึกส่ง Claude', 5000);
+  if (IMP.files.length) setTimeout(nextImport, 600);
+}
+function autoIdle(A) {
+  const by = n => V().bones.find(b => b.name === n)?.id; const h = charBox(ui.view).h / 248;
+  const k = (n, f, o) => { const id = by(n); if (!id) return; (A.keys[id] ||= []).push({ f, r: 0, x: 0, y: 0, s: 1, e: 's', ...o }); };
+  k('สะโพก', 0, {}); k('สะโพก', 4, { y: r2(1.5 * h) }); k('หัว', 0, {}); k('หัว', 4, { r: -1.5 });
+  for (const s of ['ใกล้', 'ไกล', 'ซ้าย', 'ขวา']) { k('แขนบน_' + s, 0, { r: 2 }); k('แขนบน_' + s, 4, { r: -1 }); }
 }
 
 // ====================================================================== humanoid template + auto walk + demo
@@ -1306,9 +1515,9 @@ function buildHumanoid(view, k) {
   for (const [n, p, o, t] of HUMAN[view]) { const b = addBoneWorld(view, n, p ? ids[p] : null, [o[0] * sc, o[1] * sc], [t[0] * sc, t[1] * sc]); ids[n] = b.id; }
   return ids;
 }
-function autoWalk(A) {
+function autoWalk(A, quiet) {
   const by = n => V().bones.find(b => b.name === n); const W = A.frames || 8;
-  pushUndo(); let n = 0; A.keys = {};
+  if (!quiet) pushUndo(); let n = 0; A.keys = {};
   const put = (name, f, v) => { const b = by(name); if (!b) return; (A.keys[b.id] ||= []).push({ f, r: r2(v.r || 0), x: r2(v.x || 0), y: r2(v.y || 0), s: r2(v.s ?? 1), e: 'l' }); n++; };
   const sc = charBox(ui.view).h / 248;
   for (let f = 0; f < W; f++) {
@@ -1318,9 +1527,10 @@ function autoWalk(A) {
       const arm = ph => { const a = 22 * D2R * S_(ph); return { up: a, fore: (10 + 16 * Math.max(0, S_(ph))) * D2R }; };
       const N = leg(p), F = leg(p + Math.PI), aN = arm(p + Math.PI), aF = arm(p);
       // body height from the lowest ankle
-      const ank = L => 50 * Math.cos(L.th) + 25 * Math.cos(L.th - L.knee);
-      const drop = 75 - Math.max(ank(N), ank(F));
-      put('สะโพก', f, { y: drop * sc }); put('ลำตัว', f, { r: -1.5 }); put('หัว', f, { r: 1.5 * S_(2 * p - .9) });
+      const Lt = by('ต้นขา_ใกล้')?.len || 50 * sc, Ls = by('หน้าแข้ง_ใกล้')?.len || 25 * sc;
+      const ank = L => Lt * Math.cos(L.th) + Ls * Math.cos(L.th - L.knee);
+      const drop = Lt + Ls - Math.max(ank(N), ank(F));
+      put('สะโพก', f, { y: drop }); put('ลำตัว', f, { r: -1.5 }); put('หัว', f, { r: 1.5 * S_(2 * p - .9) });
       for (const [s, L] of [['ใกล้', N], ['ไกล', F]]) { put('ต้นขา_' + s, f, { r: L.th * R2D }); put('หน้าแข้ง_' + s, f, { r: -L.knee * R2D }); put('เท้า_' + s, f, { r: L.foot * R2D }); }
       for (const [s, a] of [['ใกล้', aN], ['ไกล', aF]]) { put('แขนบน_' + s, f, { r: a.up * R2D }); put('แขนล่าง_' + s, f, { r: a.fore * R2D }); }
     } else {
@@ -1333,6 +1543,7 @@ function autoWalk(A) {
     }
   }
   for (const id in A.keys) A.keys[id].sort((a, b) => a.f - b.f);
+  if (quiet) return n;
   changed(); refresh();
   toast(n ? 'สร้างท่าเดินให้แล้ว — กด ▶ ดู แล้วปรับต่อได้' : 'ไม่เจอกระดูกชื่อแบบโครงคนสำเร็จรูป (กด 🧍 โครงคนสำเร็จรูปก่อน)', 3000);
 }
@@ -1396,7 +1607,7 @@ new ResizeObserver(() => { resize(); }).observe($('#stage'));
   if (ok) toast('เปิดงานล่าสุดแล้ว');
   setTimeout(fitView, 50);
   requestAnimationFrame(loop);
-  window.__w2s = w2s; window.__RIG__ = { P: () => P, ui, loadDemo, autoWalk, buildSheet, bakeFrame, locals, boneMats, rigFile, loadProject, IMP, rekey, finishImport, nextImport };
+  window.__w2s = w2s; window.__RIG__ = { autoRigDialog, extractPieces, P: () => P, ui, loadDemo, autoWalk, buildSheet, bakeFrame, locals, boneMats, rigFile, loadProject, IMP, rekey, finishImport, nextImport };
 })();
 </script>
 </body>
