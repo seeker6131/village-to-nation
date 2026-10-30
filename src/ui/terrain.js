@@ -315,7 +315,7 @@ const CELL = 2, TPX = 64, CW = Math.ceil(WORLD_W / CELL), CHH = Math.ceil(WORLD_
 const K = { G: 0, W: 1, R: 2, D: 3, P: 4, MEADOW: 5, ROCKY: 6, M: 7 }; // M = main street (asphalt + sidewalk)
 let cellKey = '', cellT = null, cellSub = null, cellStream = null;
 function cellGrid(stage) {
-  const key = `${WORLD.seed}:${WORLD.plan}:${WORLD.version}:${stage}:${ROADS.size}:${ROADS.main?.size || 0}:${PAVED.size}:${YARD.size}:${yardVer}`;
+  const key = `${WORLD.seed}:${WORLD.plan}:${WORLD.version}:${stage}:${ROADS.size}:${ROADS.main?.size || 0}:${PAVED.size}:${YARD.size}:${yardVer}:${paveVer}`;
   if (key === cellKey) return;
   cellKey = key; cellT = new Uint8Array(CW * CHH); cellSub = new Uint8Array(CW * CHH); cellStream = new Uint8Array(CW * CHH);
   const isW = t => t === T.WATER || t === T.FORD;
@@ -325,8 +325,10 @@ function cellGrid(stage) {
     let w = 0, r = 0, d = 0, me = 0, ro = 0, pv = 0, mn = 0;
     for (let j = 0; j < CELL; j++) for (let i = 0; i < CELL; i++) {
       const x = X * CELL + i, y = Y * CELL + j, t = groundAt(x, y);
-      if (ROADS.main?.has(x + ',' + y)) mn++;
-      if (ROADS.has(x + ',' + y)) r++; else if (isW(t)) w++; else if (road(x, y)) r++; else if (PAVED.has(x + ',' + y)) pv++; else if (YARD.has(x + ',' + y)) { if (stage >= 2) pv++; else d++; } else if (t === T.DIRT) d++;
+      // v0.27 road tiles look like what the leader paved them to: dirt (0), concrete (1), asphalt + sidewalks (2)
+      const k = x + ',' + y, lv = ROADS.has(k) ? (PAVE ? PAVE.get(k) ?? 0 : (ROADS.main?.has(k) ? 2 : 1)) : -1;
+      if (lv >= 2) mn++;
+      if (lv >= 1) r++; else if (lv === 0) d++; else if (isW(t)) w++; else if (road(x, y)) r++; else if (PAVED.has(x + ',' + y)) pv++; else if (YARD.has(x + ',' + y)) { if (stage >= 2) pv++; else d++; } else if (t === T.DIRT) d++;
       if (t === T.MEADOW) me++; if (t === T.ROCKY) ro++;
     }
     const i = Y * CW + X, plaza = stage >= 1 && Math.hypot(X * CELL + 1 - CENTER.x - .5, Y * CELL + 1 - CENTER.y - .5) < PLAZA_R + .6;
@@ -349,7 +351,7 @@ function buildChunkTiles(cx, cy, stage) {
   const c = document.createElement('canvas'); c.width = c.height = OUT;
   const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
   const per = CH / CELL, roadSet = ROAD_SET[Math.min(4, stage)];
-  const isW = t => t === K.W, isD = t => t === K.D || (stage === 0 && (t === K.R || t === K.P || t === K.M)), isR = t => stage > 0 && (t === K.R || t === K.P || t === K.M), isM = t => stage > 0 && t === K.M;
+  const isW = t => t === K.W, isD = t => t === K.D, isR = t => t === K.R || t === K.P || t === K.M, isM = t => t === K.M;
   const laneSet = 'road2', mainSet = stage >= 2 ? ROAD_SET[Math.min(4, stage)] : 'road3';
   for (let Y = cy * per - 1; Y < (cy + 1) * per; Y++) for (let X = cx * per - 1; X < (cx + 1) * per; X++) {
     const dx = ((X * CELL + 1) * TILE - ox) * GS, dy = ((Y * CELL + 1) * TILE - oy) * GS;
@@ -409,12 +411,13 @@ function buildChunk(cx, cy, stage) {
 }
 
 /** Draw the ground chunks visible in world rect [x0,x1]x[y0,y1]. ctx already has the world transform. */
-let ROADS = new Set(), PAVED = new Set(), YARD = new Set(), yardVer = 0;
-export function drawGround(ctx, x0, y0, x1, y1, stage = 0, roads = null, paved = null, yards = null) {
+let ROADS = new Set(), PAVED = new Set(), YARD = new Set(), yardVer = 0, PAVE = null, paveVer = 0;
+export function drawGround(ctx, x0, y0, x1, y1, stage = 0, roads = null, paved = null, yards = null, pave = null) {
+  if (pave && pave !== PAVE) { PAVE = pave; paveVer++; }
   if (roads) ROADS = roads;
   if (paved) PAVED = paved;
   if (yards && yards !== YARD) { YARD = yards; yardVer++; }
-  const key = `${WORLD.seed}:${WORLD.biome}:${WORLD.version}:${Math.min(4, stage)}:${TEX ? 1 : 0}:${TL ? 1 : 0}:${WORLD.plan}:${ROADS.size}:${PAVED.size}:${yardVer}`;
+  const key = `${WORLD.seed}:${WORLD.biome}:${WORLD.version}:${Math.min(4, stage)}:${TEX ? 1 : 0}:${TL ? 1 : 0}:${WORLD.plan}:${ROADS.size}:${PAVED.size}:${yardVer}:${paveVer}`;
   if (key !== cacheKey) { cache.clear(); cacheKey = key; }
   const S = CH * TILE;
   if (TL) { cellGrid(Math.min(4, stage)); drawWater(ctx, x0, y0, x1, y1); }

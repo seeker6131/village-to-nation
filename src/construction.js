@@ -12,9 +12,9 @@ export const BUILDINGS = {
               desc: 'ปลูกเมล็ด รอ 1 วันในเกม แล้วเก็บผักไปขาย', levels: [{ yield: 3 }, { yield: 4, wood: 3, stone: 2, coins: 20, work: 120 }, { yield: 5, wood: 5, stone: 3, coins: 40, work: 180 }] },
   bench:    { name: 'ม้านั่งชุมชน', icon: '🪑', width: 2, height: 1, wood: 2, stone: 0, coins: 4, work: 30,
               desc: 'NPC มานั่งพักช่วงเย็น เพิ่มความสุขของหมู่บ้าน', levels: [{ comfort: 1 }, { comfort: 2, wood: 3, stone: 1, coins: 12, work: 40 }] },
-  lamp:     { name: 'โคมไฟถนน', icon: '🏮', width: 1, height: 1, wood: 1, stone: 1, coins: 8, work: 20,
+  lamp:     { name: 'โคมไฟถนน', icon: '🏮', tier: 2, width: 1, height: 1, wood: 1, stone: 1, coins: 8, work: 20,
               desc: 'ให้แสงยามค่ำ NPC กลับบ้านดึกขึ้น เพิ่มความเจริญ', levels: [{ light: 1 }, { light: 2, wood: 1, stone: 2, coins: 15, work: 30 }] },
-  workshop: { name: 'โรงงานงานฝีมือ', icon: '🛠️', width: 4, height: 3, wood: 5, stone: 4, coins: 25, work: 240,
+  workshop: { name: 'โรงงานงานฝีมือ', icon: '🛠️', tier: 2, width: 4, height: 3, wood: 5, stone: 4, coins: 25, work: 240,
               desc: 'ปลดล็อกสูตรชุดเครื่องมือ งานกะโรงงาน และช่างไม้ NPC มาผลิตแผ่นไม้ส่งตลาด', levels: [{ planksPerHour: 1 }, { planksPerHour: 2, wood: 8, stone: 6, coins: 60, work: 300 }] },
   path:     { name: 'ทางเดินหิน', icon: '🟫', width: 1, height: 1, wood: 0, stone: 1, coins: 0, work: 8, walkable: true,
               desc: 'ปูทางเดินในหมู่บ้าน (เดินผ่านได้) ช่วยให้หมู่บ้านดูเป็นระเบียบ', levels: [{ road: 1 }] },
@@ -22,8 +22,8 @@ export const BUILDINGS = {
               desc: 'รองรับผู้อยู่อาศัยใหม่ 2 คน หมู่บ้านเติบโตเร็วขึ้น · อัปเกรดบ้านตามยุคของพื้นที่ (บุกเบิก → หมู่บ้าน → อำเภอ → จังหวัด → ประเทศ) · แต่ละแปลงมีขนาดต่างกัน: เล็ก กลาง ใหญ่ หรือบ้านทำร้านค้า',
               // house level = the era of the house (1 บุกเบิก … 5 ประเทศ); each era unlocks when the area reaches it
               // v0.24: house level = wealth tier, not era — whoever can pay may build a bigger house at any time (in-game money only)
-              levels: [{ residents: 2 }, { residents: 3, wood: 10, stone: 6, coins: 120, work: 360 }, { residents: 4, wood: 14, stone: 12, coins: 350, work: 400 },
-                { residents: 5, wood: 18, stone: 20, coins: 800, work: 450 }, { residents: 6, wood: 24, stone: 30, coins: 1600, work: 500 }] }, // v0.26 wealth tiers: a mansion is a long-term goal
+              levels: [{ residents: 2 }, { residents: 3, wood: 10, stone: 6, coins: 120, work: 360, stage: 1 }, { residents: 4, wood: 14, stone: 12, coins: 350, work: 400, stage: 2 },
+                { residents: 5, wood: 18, stone: 20, coins: 800, work: 450, stage: 3 }, { residents: 6, wood: 24, stone: 30, coins: 1600, work: 500, stage: 4 }] }, // v0.27 house level N opens with area level N (and still costs money)
   fence:    { name: 'รั้ว', icon: '🚧', width: 1, height: 1, wood: 1, stone: 0, coins: 1, work: 6,
               desc: 'กั้นแนวที่ดิน วางต่อกันเป็นแนวได้ · อัปเกรดวัสดุ ไม้ไผ่ → ไม้ → หิน → ปูน → เหล็ก',
               levels: [{ material: 'bamboo' }, { material: 'wood', wood: 1, coins: 2, work: 6 }, { material: 'stone', stone: 2, coins: 3, work: 8 },
@@ -96,6 +96,7 @@ export function canPlace(s, type, tx, ty, isBlocked, extraBlocked = () => false)
   ensureConstruction(s);
   const b = BUILDINGS[type];
   if (!b) return { ok: false, reason: 'ไม่มีแบบอาคารนี้', code: 'type' };
+  if (b.tier && tierOf(s) < b.tier) return { ok: false, reason: `${b.name}ปลดล็อกเมื่อพื้นที่เป็นระดับ ${b.tier} (${STAGE_NAMES[b.tier - 1]})`, code: 'tier' };
   if (!Number.isInteger(tx) || !Number.isInteger(ty)) return { ok: false, reason: 'ตำแหน่งไม่ถูกต้อง', code: 'zone' };
   // v0.12 layout: houses and workshops go on the slots of the village plan; other things must keep slots free
   const needSlot = SLOT_KINDS.includes(type);

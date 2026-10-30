@@ -13,8 +13,8 @@ export const MARKET = {
   wood: { name:'ไม้', buy:7, sell:3, icon:'🪵', stock:15, target:15 },
   stone:{ name:'หิน', buy:8, sell:4, icon:'🪨', stock:12, target:12 },
   vegetables:{ name:'ผลผลิต', buy:14, sell:8, icon:'🥕', stock:4, target:10 },
-  planks:{ name:'แผ่นไม้', buy:12, sell:6, icon:'🪚', stock:2, target:8 },
-  toolkit:{ name:'ชุดเครื่องมือ', sell:18, icon:'🔧', stock:0, target:4 },
+  planks:{ name:'แผ่นไม้', buy:12, sell:6, icon:'🪚', stock:2, target:8, tier:2 },
+  toolkit:{ name:'ชุดเครื่องมือ', sell:18, icon:'🔧', stock:0, target:4, tier:2 },
 };
 export const STOCK_CAP = 60;
 export function priceFactor(stock,target){const t=Math.max(1,target);return Math.max(0.6,Math.min(1.6,1+(t-stock)/t*0.5));}
@@ -65,7 +65,9 @@ export function marketBuyPrice(s,id){const item=MARKET[id];if(!item?.buy)return 
  const base=Math.round(item.buy*priceFactor(s.market[id],item.target));
  return Math.max(1,base-Math.floor(base*(s.skills?.trade||0)*0.05));}
 export function marketSellPrice(s,id){const item=MARKET[id];if(!item?.sell)return null;ensureSystems(s);return Math.max(1,Math.round(item.sell*Math.min(1.3,priceFactor(s.market[id],item.target))));}
-export function buyMarket(s,id){const item=MARKET[id],price=marketBuyPrice(s,id);if(!price)return no('ไม่มีสินค้านี้ขาย');
+// v0.27 goods unlock with the area level (s.town.stage = tier - 1): a camp has no sawmill planks or tool kits yet
+export function marketLocked(s,id){const t=MARKET[id]?.tier||1;return (s.town?.stage||0)+1<t?`มีขายเมื่อพื้นที่เป็นระดับ ${t}`:'';}
+export function buyMarket(s,id){const item=MARKET[id],price=marketBuyPrice(s,id);if(!price)return no('ไม่มีสินค้านี้ขาย');const lk=marketLocked(s,id);if(lk)return no(lk);
  if(s.market[id]<1)return no(`${item.name} หมดตลาด รอ NPC ผลิตเพิ่ม`);
  if(s.player.coins<price)return no(`เงินไม่พอ (ต้องใช้ ${price})`);s.player.coins-=price;s.market[id]--;giveItem(s,id,1);return ok(`ซื้อ ${item.name} ราคา ${price} เหรียญ`);}
 export function sellMarket(s,id){const item=MARKET[id];if(!item||!item.sell)return no('ขายไม่ได้');const price=marketSellPrice(s,id);

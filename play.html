@@ -7,7 +7,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="description" content="Village to Nation (บ้านเรา ประเทศเรา) — 2D top-down 16-bit pixel art life & village builder prototype" />
-  <title>บ้านเรา ประเทศเรา · Village to Nation v0.26</title>
+  <title>บ้านเรา ประเทศเรา · Village to Nation v0.27</title>
   <style>/* Village to Nation v0.8 — landscape-first UI for phone and PC. */
 :root{
   --ink:#2f2619; --paper:#f4e8cc; --paper2:#eadbb6; --wood:#8a5a34; --wood2:#6b4426; --leaf:#2f6b4f; --leaf2:#1f4a39;
@@ -370,7 +370,7 @@ body.force-land #app{inset:auto;top:0;left:0;transform-origin:0 0}
   <section id="start-screen" class="start-screen hidden" aria-label="หน้าเริ่มเกม">
     <canvas id="ss-art" width="960" height="300" aria-hidden="true"></canvas>
     <div class="ss-box">
-      <h1>บ้านเรา ประเทศเรา <small>Village to Nation · v0.26</small></h1>
+      <h1>บ้านเรา ประเทศเรา <small>Village to Nation · v0.27</small></h1>
       <p id="ss-continue">เริ่มหมู่บ้านใหม่ในป่า</p>
       <button id="ss-play" class="ss-play" type="button">▶ เล่นเกม <small>เต็มจอ · แนวนอน</small></button>
       <button id="ss-window" class="btn ghost small" type="button">เล่นแบบหน้าต่าง (ไม่เต็มจอ)</button>
@@ -1279,8 +1279,8 @@ const MARKET = {
   wood: { name:'ไม้', buy:7, sell:3, icon:'🪵', stock:15, target:15 },
   stone:{ name:'หิน', buy:8, sell:4, icon:'🪨', stock:12, target:12 },
   vegetables:{ name:'ผลผลิต', buy:14, sell:8, icon:'🥕', stock:4, target:10 },
-  planks:{ name:'แผ่นไม้', buy:12, sell:6, icon:'🪚', stock:2, target:8 },
-  toolkit:{ name:'ชุดเครื่องมือ', sell:18, icon:'🔧', stock:0, target:4 },
+  planks:{ name:'แผ่นไม้', buy:12, sell:6, icon:'🪚', stock:2, target:8, tier:2 },
+  toolkit:{ name:'ชุดเครื่องมือ', sell:18, icon:'🔧', stock:0, target:4, tier:2 },
 };
 const STOCK_CAP = 60;
 function priceFactor(stock,target){const t=Math.max(1,target);return Math.max(0.6,Math.min(1.6,1+(t-stock)/t*0.5));}
@@ -1331,7 +1331,9 @@ function marketBuyPrice(s,id){const item=MARKET[id];if(!item?.buy)return null;en
  const base=Math.round(item.buy*priceFactor(s.market[id],item.target));
  return Math.max(1,base-Math.floor(base*(s.skills?.trade||0)*0.05));}
 function marketSellPrice(s,id){const item=MARKET[id];if(!item?.sell)return null;ensureSystems(s);return Math.max(1,Math.round(item.sell*Math.min(1.3,priceFactor(s.market[id],item.target))));}
-function buyMarket(s,id){const item=MARKET[id],price=marketBuyPrice(s,id);if(!price)return no('ไม่มีสินค้านี้ขาย');
+// v0.27 goods unlock with the area level (s.town.stage = tier - 1): a camp has no sawmill planks or tool kits yet
+function marketLocked(s,id){const t=MARKET[id]?.tier||1;return (s.town?.stage||0)+1<t?`มีขายเมื่อพื้นที่เป็นระดับ ${t}`:'';}
+function buyMarket(s,id){const item=MARKET[id],price=marketBuyPrice(s,id);if(!price)return no('ไม่มีสินค้านี้ขาย');const lk=marketLocked(s,id);if(lk)return no(lk);
  if(s.market[id]<1)return no(`${item.name} หมดตลาด รอ NPC ผลิตเพิ่ม`);
  if(s.player.coins<price)return no(`เงินไม่พอ (ต้องใช้ ${price})`);s.player.coins-=price;s.market[id]--;giveItem(s,id,1);return ok(`ซื้อ ${item.name} ราคา ${price} เหรียญ`);}
 function sellMarket(s,id){const item=MARKET[id];if(!item||!item.sell)return no('ขายไม่ได้');const price=marketSellPrice(s,id);
@@ -1375,7 +1377,7 @@ function eatFood(s){if(s.player.stamina>=100)return no('พลังงานเ
  if(!spendItem(s,'food',1))return no('ไม่มีอาหาร ซื้อได้จากตลาด');if(t)t.meals=(t.meals||0)+1;s.player.stamina=Math.min(100,s.player.stamina+MEAL_ENERGY);return ok(`กินอาหาร ฟื้นพลัง ${MEAL_ENERGY}`);}
 function getTownStats(s){ensureSystems(s);return {publicBuilt:Object.values(s.projects).filter(Boolean).length,privateBuilt:s.placed.filter(b=>(b.level??1)>=1).length,farms:s.placed.filter(b=>b.type==='garden'&&(b.level??1)>=1).length,level:s.player.level,treasury:s.town.treasury};}
 
-return { MARKET, MEALS_PER_DAY, MEAL_ENERGY, QUESTS, RECIPES, STOCK_CAP, TOOLS, buyMarket, claimQuest, craft, eatFood, ensureSystems, gainXp, gardenProgress, getTownStats, giveItem, harvest, itemCount, marketBuyPrice, marketSellPrice, marketStock, plant, priceFactor, questProgress, refreshDaily, requiredXp, sellMarket, spendItem, upgradeSkill };
+return { MARKET, MEALS_PER_DAY, MEAL_ENERGY, QUESTS, RECIPES, STOCK_CAP, TOOLS, buyMarket, claimQuest, craft, eatFood, ensureSystems, gainXp, gardenProgress, getTownStats, giveItem, harvest, itemCount, marketBuyPrice, marketLocked, marketSellPrice, marketStock, plant, priceFactor, questProgress, refreshDaily, requiredXp, sellMarket, spendItem, upgradeSkill };
 })();
 // ==== src/cityPlan.js ====
 __mod["src/cityPlan.js"] = (() => {
@@ -1723,7 +1725,7 @@ function npcUpgradeVillage(s, population = 0) {
 const roadMemo = new Map();
 function roadTiles(s) {
   const t = tierOf(s), mk = t + ':' + WORLD.seed + ':' + WORLD.plan + ':' + WORLD.version; if (roadMemo.has(mk)) return roadMemo.get(mk);
-  const out = new Set(), main = new Set(); out.main = main; roadMemo.set(mk, out);
+  const out = new Set(), main = new Set(), auto = new Set(); out.main = main; out.auto = auto; roadMemo.set(mk, out);
   const add = (k, m) => { out.add(k); if (m) main.add(k); };
   for (const T of TIERS.slice(0, t)) for (const [line, isMain] of T.roads) for (let i = 0; i < line.length - 1; i++) {
     const [ax, ay] = line[i], [bx, by] = line[i + 1];
@@ -1732,15 +1734,76 @@ function roadTiles(s) {
   }
   for (const k of lotLanes(t)) add(k, false);                                // lanes of the player housing streets
   if (WORLD.custom) WORLD.custom.roads.forEach((row, y) => { for (let x = 0; x < row.length; x++) if (row[x] !== '.') add(x + ',' + y, row[x] === 'M'); }); // roads drawn in the Map Maker
-  if (t >= 3) for (const k of cityPlan(t, ART10).streets) add(k, true);      // district squares
+  if (t >= 3) for (const k of cityPlan(t, ART10).streets) { add(k, true); auto.add(k); } // district squares (built with the development fund: paved)
   // v0.25 the country roads to every opened district become real roads (dry tiles only; bridge decks stay planks)
   if (t >= 3) for (const p of WORLD.paths || []) if (p.tier <= t) for (let i = 0; i < p.length - 1; i++) {
     const [ax, ay] = p[i], [bx, by] = p[i + 1];
     for (let y = Math.min(ay, by); y <= Math.max(ay, by); y++) for (let x = Math.min(ax, bx); x <= Math.max(ax, bx); x++)
-      for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) { const g = groundAt(x + dx, y + dy); if (g !== T.WATER && g !== T.FORD) add((x + dx) + ',' + (y + dy), false); }
+      for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) { const g = groundAt(x + dx, y + dy); if (g !== T.WATER && g !== T.FORD) { add((x + dx) + ',' + (y + dy), false); auto.add((x + dx) + ',' + (y + dy)); } }
   }
   return out;
 }
+// ---- v0.27 road paving: village roads start as dirt; the leader paves them section by section from the treasury
+// (ดิน → คอนกรีต from หมู่บ้าน → ลาดยาง + ทางเท้า from อำเภอ). District streets come paved (development fund).
+const PAVE = [
+  { th: 'ทางดิน', icon: '🟫', tier: 1, cost: 0 },
+  { th: 'ถนนคอนกรีต', icon: '⬜', tier: 2, cost: 4 },
+  { th: 'ถนนลาดยาง + ทางเท้า', icon: '⬛', tier: 3, cost: 10 },
+];
+function ensurePaving(s) { s.town = s.town || {}; s.town.paved = s.town.paved && typeof s.town.paved === 'object' ? s.town.paved : {}; return s.town.paved; }
+/** Paving level of every road tile ("x,y" -> 0..2) for the renderer. */
+let paveMemo = { key: '', map: null };
+function paveLevels(s) {
+  const R = roadTiles(s), P = ensurePaving(s), key = `${R.size}:${s.town.pavedVer || 0}:${tierOf(s)}`;
+  if (paveMemo.key === key && paveMemo.R === R) return paveMemo.map;
+  const map = new Map();
+  for (const k of R) map.set(k, R.auto?.has(k) ? 2 : P[k] || 0);
+  paveMemo = { key, R, map };
+  return map;
+}
+/** Road sections the leader can pave: connected road tiles inside 12x12 blocks (a street splits at block edges). */
+const SEG = 12;
+let segMemo = { key: '', list: [] };
+function roadSegments(s) {
+  const R = roadTiles(s), key = `${R.size}:${WORLD.plan}:${WORLD.version}`;
+  if (segMemo.key === key && segMemo.R === R) return segMemo.list;
+  const seen = new Set(), list = [];
+  for (const k of R) {
+    if (seen.has(k) || R.auto?.has(k)) continue;
+    const [x0, y0] = k.split(',').map(Number), bx = Math.floor(x0 / SEG), by = Math.floor(y0 / SEG), tiles = [], st = [k]; seen.add(k);
+    while (st.length) { const q = st.pop(); tiles.push(q); const [x, y] = q.split(',').map(Number);
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const n = (x + dx) + ',' + (y + dy); if (!seen.has(n) && R.has(n) && !R.auto?.has(n) && Math.floor((x + dx) / SEG) === bx && Math.floor((y + dy) / SEG) === by) { seen.add(n); st.push(n); } } }
+    const xs = tiles.map(t => +t.split(',')[0]), ys = tiles.map(t => +t.split(',')[1]);
+    const cx = Math.round(xs.reduce((a, b) => a + b, 0) / xs.length), cy = Math.round(ys.reduce((a, b) => a + b, 0) / ys.length);
+    const dir = Math.max(...xs) - Math.min(...xs) >= Math.max(...ys) - Math.min(...ys) ? 'แนวตะวันออก-ตก' : 'แนวเหนือ-ใต้';
+    list.push({ id: `${bx},${by},${tiles[0]}`, tiles, x: cx, y: cy, name: `ถนน${dir} ช่วง ${bx + 1}-${by + 1}`, main: tiles.some(t => R.main.has(t)) });
+  }
+  list.sort((a, b) => a.y - b.y || a.x - b.x);
+  segMemo = { key, R, list };
+  return list;
+}
+function segmentLevel(s, seg) { const P = ensurePaving(s); return Math.min(...seg.tiles.map(t => P[t] || 0)); }
+function paveCost(s, seg, level) { const P = ensurePaving(s); return seg.tiles.reduce((n, t) => n + Math.max(0, PAVE[level].cost - (P[t] ? PAVE[P[t]].cost : 0)), 0); }
+/** Pave one road section to `level` (pays only the difference). Leader only, treasury only. */
+function paveSegment(s, segId, level, isLeader) {
+  const seg = roadSegments(s).find(g => g.id === segId), L = PAVE[level];
+  if (!seg || !L) return { ok: false, msg: 'ไม่พบถนนช่วงนี้' };
+  if (!isLeader) return { ok: false, msg: 'ต้องเป็นผู้นำถึงจะอนุมัติงบปูถนนได้' };
+  if (tierOf(s) < L.tier) return { ok: false, msg: `${L.th}ทำได้เมื่อพื้นที่เป็นระดับ ${L.tier} (${TIERS[L.tier - 1].th})` };
+  if (segmentLevel(s, seg) >= level) return { ok: false, msg: `ช่วงนี้เป็น${PAVE[segmentLevel(s, seg)].th}แล้ว` };
+  const cost = paveCost(s, seg, level);
+  if ((s.town.treasury || 0) < cost) return { ok: false, msg: `งบคลังไม่พอ (ต้องใช้ ${cost} มี ${Math.floor(s.town.treasury || 0)})` };
+  const P = ensurePaving(s); s.town.treasury -= cost;
+  for (const t of seg.tiles) P[t] = Math.max(P[t] || 0, level);
+  s.town.pavedVer = (s.town.pavedVer || 0) + 1;
+  if (s.leadership?.isLeader) s.leadership.record = (s.leadership.record || 0) + Math.min(3, Math.round(cost / 150)); // visible public works count for the record
+  return { ok: true, msg: `${L.icon} ปู${seg.name}เป็น${L.th} ${seg.tiles.length} ช่อง ใช้งบ ${cost}`, cost };
+}
+/** Share of the village roads that are paved (0..1) — villagers like good roads. */
+function pavedShare(s) { const segs = roadSegments(s); let n = 0, p = 0; const P = ensurePaving(s); for (const g of segs) for (const t of g.tiles) { n++; if (P[t]) p++; } return n ? p / n : 0; }
+/** Test mode / migration: pave every village road to the best level the area allows. */
+function paveAll(s, level = null) { const P = ensurePaving(s), lv = level ?? Math.min(2, tierOf(s) - 1); if (lv <= 0) return; for (const g of roadSegments(s)) for (const t of g.tiles) P[t] = Math.max(P[t] || 0, lv); s.town.pavedVer = (s.town.pavedVer || 0) + 1; }
+
 /** Paved city blocks (tile keys) of the unlocked city levels. */
 function pavedTiles(s) { const t = tierOf(s); return t >= 3 ? new Set(cityPlan(t, ART10).paved) : EMPTY; }
 const EMPTY = new Set();
@@ -1773,7 +1836,7 @@ function slotObstacles(s, slot, w, h) {
 }
 function slotCenterPx(slot, w, h) { return { x: (slot.tx + w / 2) * TILE, y: (slot.ty + h) * TILE }; }
 
-return { CENTER, LOT_TARGET, SLOT_KINDS, TIERS, nearestFreeSlot, nextTierCheck, npcUpgradeVillage, officeNeeds, openRoads, openSlots, pavedTiles, playerLots, plotObstacles, publicTier, publicUnlocked, roadTiles, slotAt, slotById, slotCenterPx, slotObstacles, slotState, syncPlan, tierInfo, tierOf, upgradeVillage, villageRadius, yardTiles };
+return { CENTER, LOT_TARGET, PAVE, SLOT_KINDS, TIERS, ensurePaving, nearestFreeSlot, nextTierCheck, npcUpgradeVillage, officeNeeds, openRoads, openSlots, paveAll, paveCost, paveLevels, paveSegment, pavedShare, pavedTiles, playerLots, plotObstacles, publicTier, publicUnlocked, roadSegments, roadTiles, segmentLevel, slotAt, slotById, slotCenterPx, slotObstacles, slotState, syncPlan, tierInfo, tierOf, upgradeVillage, villageRadius, yardTiles };
 })();
 // ==== src/construction.js ====
 __mod["src/construction.js"] = (() => {
@@ -1790,9 +1853,9 @@ const BUILDINGS = {
               desc: 'ปลูกเมล็ด รอ 1 วันในเกม แล้วเก็บผักไปขาย', levels: [{ yield: 3 }, { yield: 4, wood: 3, stone: 2, coins: 20, work: 120 }, { yield: 5, wood: 5, stone: 3, coins: 40, work: 180 }] },
   bench:    { name: 'ม้านั่งชุมชน', icon: '🪑', width: 2, height: 1, wood: 2, stone: 0, coins: 4, work: 30,
               desc: 'NPC มานั่งพักช่วงเย็น เพิ่มความสุขของหมู่บ้าน', levels: [{ comfort: 1 }, { comfort: 2, wood: 3, stone: 1, coins: 12, work: 40 }] },
-  lamp:     { name: 'โคมไฟถนน', icon: '🏮', width: 1, height: 1, wood: 1, stone: 1, coins: 8, work: 20,
+  lamp:     { name: 'โคมไฟถนน', icon: '🏮', tier: 2, width: 1, height: 1, wood: 1, stone: 1, coins: 8, work: 20,
               desc: 'ให้แสงยามค่ำ NPC กลับบ้านดึกขึ้น เพิ่มความเจริญ', levels: [{ light: 1 }, { light: 2, wood: 1, stone: 2, coins: 15, work: 30 }] },
-  workshop: { name: 'โรงงานงานฝีมือ', icon: '🛠️', width: 4, height: 3, wood: 5, stone: 4, coins: 25, work: 240,
+  workshop: { name: 'โรงงานงานฝีมือ', icon: '🛠️', tier: 2, width: 4, height: 3, wood: 5, stone: 4, coins: 25, work: 240,
               desc: 'ปลดล็อกสูตรชุดเครื่องมือ งานกะโรงงาน และช่างไม้ NPC มาผลิตแผ่นไม้ส่งตลาด', levels: [{ planksPerHour: 1 }, { planksPerHour: 2, wood: 8, stone: 6, coins: 60, work: 300 }] },
   path:     { name: 'ทางเดินหิน', icon: '🟫', width: 1, height: 1, wood: 0, stone: 1, coins: 0, work: 8, walkable: true,
               desc: 'ปูทางเดินในหมู่บ้าน (เดินผ่านได้) ช่วยให้หมู่บ้านดูเป็นระเบียบ', levels: [{ road: 1 }] },
@@ -1800,8 +1863,8 @@ const BUILDINGS = {
               desc: 'รองรับผู้อยู่อาศัยใหม่ 2 คน หมู่บ้านเติบโตเร็วขึ้น · อัปเกรดบ้านตามยุคของพื้นที่ (บุกเบิก → หมู่บ้าน → อำเภอ → จังหวัด → ประเทศ) · แต่ละแปลงมีขนาดต่างกัน: เล็ก กลาง ใหญ่ หรือบ้านทำร้านค้า',
               // house level = the era of the house (1 บุกเบิก … 5 ประเทศ); each era unlocks when the area reaches it
               // v0.24: house level = wealth tier, not era — whoever can pay may build a bigger house at any time (in-game money only)
-              levels: [{ residents: 2 }, { residents: 3, wood: 10, stone: 6, coins: 120, work: 360 }, { residents: 4, wood: 14, stone: 12, coins: 350, work: 400 },
-                { residents: 5, wood: 18, stone: 20, coins: 800, work: 450 }, { residents: 6, wood: 24, stone: 30, coins: 1600, work: 500 }] }, // v0.26 wealth tiers: a mansion is a long-term goal
+              levels: [{ residents: 2 }, { residents: 3, wood: 10, stone: 6, coins: 120, work: 360, stage: 1 }, { residents: 4, wood: 14, stone: 12, coins: 350, work: 400, stage: 2 },
+                { residents: 5, wood: 18, stone: 20, coins: 800, work: 450, stage: 3 }, { residents: 6, wood: 24, stone: 30, coins: 1600, work: 500, stage: 4 }] }, // v0.27 house level N opens with area level N (and still costs money)
   fence:    { name: 'รั้ว', icon: '🚧', width: 1, height: 1, wood: 1, stone: 0, coins: 1, work: 6,
               desc: 'กั้นแนวที่ดิน วางต่อกันเป็นแนวได้ · อัปเกรดวัสดุ ไม้ไผ่ → ไม้ → หิน → ปูน → เหล็ก',
               levels: [{ material: 'bamboo' }, { material: 'wood', wood: 1, coins: 2, work: 6 }, { material: 'stone', stone: 2, coins: 3, work: 8 },
@@ -1874,6 +1937,7 @@ function canPlace(s, type, tx, ty, isBlocked, extraBlocked = () => false) {
   ensureConstruction(s);
   const b = BUILDINGS[type];
   if (!b) return { ok: false, reason: 'ไม่มีแบบอาคารนี้', code: 'type' };
+  if (b.tier && tierOf(s) < b.tier) return { ok: false, reason: `${b.name}ปลดล็อกเมื่อพื้นที่เป็นระดับ ${b.tier} (${STAGE_NAMES[b.tier - 1]})`, code: 'tier' };
   if (!Number.isInteger(tx) || !Number.isInteger(ty)) return { ok: false, reason: 'ตำแหน่งไม่ถูกต้อง', code: 'zone' };
   // v0.12 layout: houses and workshops go on the slots of the village plan; other things must keep slots free
   const needSlot = SLOT_KINDS.includes(type);
@@ -2426,7 +2490,7 @@ const { addHistory } = __mod["src/gameState.js"];
 const { tierInfo } = __mod["src/villageLayout.js"];
 const { lifePlan, strollSpots, lifeHour, jobOf, CIVIL_JOBS } = __mod["src/npcLife.js"];
 const { townDay, policyHappy, hasPolicy } = __mod["src/economy.js"];
-const { npcUpgradeVillage } = __mod["src/villageLayout.js"];
+const { npcUpgradeVillage, roadSegments, segmentLevel, paveCost, paveSegment, PAVE, pavedShare, tierOf } = __mod["src/villageLayout.js"];
 // Appearance uses the same modular character system as the player (see src/character/model.js).
 const NPC_DEFS = [
   { id: 'mentor', start: true, name: 'ครูอุ่น', role: 'ที่ปรึกษาผู้ก่อตั้ง (NPC)', job: 'mentor', home: [40, 48], look: { hair: 'pony', hairColor: 'ash', skin: 's2', eyes: 'brown', outfit: 'leader' },
@@ -2636,7 +2700,7 @@ function economyHour(s, present) {
   if (served) ev.push(`NPC ซื้ออาหารกลางวัน ${served} มื้อ (ภาษีเข้าคลัง +${served})`);
   if (hungry) { ev.push(`อาหารในตลาดไม่พอ NPC หิว ${hungry} คน`); s.town.hungryToday = (s.town.hungryToday || 0) + (hasPolicy(s, 'lunch') ? Math.ceil(hungry / 2) : hungry); }
   // happiness drifts towards a target based on what exists in the village
-  const target = 45 - (tierInfo(s).tier - 1) * 4 + (done(s, 'farm') ? 10 : 0) + (done(s, 'market') ? 10 : 0) + (done(s, 'hall') ? 8 : 0)
+  const target = 45 - (tierInfo(s).tier - 1) * 4 + Math.round(pavedShare(s) * (tierInfo(s).tier - 1) * 3) + (done(s, 'farm') ? 10 : 0) + (done(s, 'market') ? 10 : 0) + (done(s, 'hall') ? 8 : 0)
     + Math.min(10, s.placed.filter(p => p.type === 'bench' && p.level >= 1).length * 4)
     + Math.min(8, s.placed.filter(p => p.type === 'lamp' && p.level >= 1).length * 2)
     + policyHappy(s) - hungry * (hasPolicy(s, 'lunch') ? 1.5 : 3);
@@ -2652,6 +2716,11 @@ function economyDay(s) {
   const r = townDay(s, population(s), officialsCount(s));
   const grew = npcUpgradeVillage(s, population(s));
   if (grew) r.events.push(`${grew.icon} พื้นที่ยกระดับเป็น${grew.th}`);
+  // an NPC leader also paves one road section a day when the treasury is comfortable
+  if (!s.leadership?.isLeader && (s.town.treasury || 0) > 600) {
+    const top = PAVE.reduce((m, p, i) => tierOf(s) >= p.tier ? i : m, 0), seg = roadSegments(s).find(g => segmentLevel(s, g) < top);
+    if (seg && paveCost(s, seg, top) < s.town.treasury - 400) { const pr = paveSegment(s, seg.id, top, true); if (pr.ok) r.events.push(`🛣️ ${s.leadership?.leaderName || 'ผู้นำ'}${pr.msg.slice(2)}`); }
+  }
   return { ...r, grew };
 }
 
@@ -3865,7 +3934,7 @@ const { ensureWorld, plotObstacles, setNode, SPAWN, DEFAULT_SEED, nodeOnTile } =
 const { BUILDINGS } = __mod["src/construction.js"];
 const { ensureLeadership } = __mod["src/leadership.js"];
 const { computeStage } = __mod["src/progression.js"];
-const { openRoads } = __mod["src/villageLayout.js"];
+const { openRoads, paveAll } = __mod["src/villageLayout.js"];
 const { clearPropTiles } = __mod["src/villageProps.js"];
 const { openSlots: openSlotsV } = __mod["src/villageLayout.js"];
 const SCHEMA = 4;
@@ -3915,6 +3984,7 @@ function migrate(raw) {
     (s.migrationNotes = s.migrationNotes || []).push('v0.18 แผนที่ใหม่ตามผังต้นแบบ: เก็บเงิน ของ อาคาร และความคืบหน้าไว้ทั้งหมด ป่าถูกวางใหม่');
   }
   if (s.town.roadsOpened !== 2) { openRoads(s); clearPropTiles(s); s.town.roadsOpened = 2; }
+  if (!s.town.paved && (s.town.stage || 0) >= 1) paveAll(s); // v0.27 roads are paved by the leader now; older towns keep the roads they already had
   // money/resources must never be negative (v0.5 had paths that could not enforce this)
   for (const k of ['coins', 'wood', 'stone', 'knowledge', 'civic']) s.player[k] = Math.max(0, Math.floor(Number(s.player[k]) || 0));
   s.player.stamina = Math.max(0, Math.min(100, Number(s.player.stamina) || 0));
@@ -5599,7 +5669,7 @@ const CELL = 2, TPX = 64, CW = Math.ceil(WORLD_W / CELL), CHH = Math.ceil(WORLD_
 const K = { G: 0, W: 1, R: 2, D: 3, P: 4, MEADOW: 5, ROCKY: 6, M: 7 }; // M = main street (asphalt + sidewalk)
 let cellKey = '', cellT = null, cellSub = null, cellStream = null;
 function cellGrid(stage) {
-  const key = `${WORLD.seed}:${WORLD.plan}:${WORLD.version}:${stage}:${ROADS.size}:${ROADS.main?.size || 0}:${PAVED.size}:${YARD.size}:${yardVer}`;
+  const key = `${WORLD.seed}:${WORLD.plan}:${WORLD.version}:${stage}:${ROADS.size}:${ROADS.main?.size || 0}:${PAVED.size}:${YARD.size}:${yardVer}:${paveVer}`;
   if (key === cellKey) return;
   cellKey = key; cellT = new Uint8Array(CW * CHH); cellSub = new Uint8Array(CW * CHH); cellStream = new Uint8Array(CW * CHH);
   const isW = t => t === T.WATER || t === T.FORD;
@@ -5609,8 +5679,10 @@ function cellGrid(stage) {
     let w = 0, r = 0, d = 0, me = 0, ro = 0, pv = 0, mn = 0;
     for (let j = 0; j < CELL; j++) for (let i = 0; i < CELL; i++) {
       const x = X * CELL + i, y = Y * CELL + j, t = groundAt(x, y);
-      if (ROADS.main?.has(x + ',' + y)) mn++;
-      if (ROADS.has(x + ',' + y)) r++; else if (isW(t)) w++; else if (road(x, y)) r++; else if (PAVED.has(x + ',' + y)) pv++; else if (YARD.has(x + ',' + y)) { if (stage >= 2) pv++; else d++; } else if (t === T.DIRT) d++;
+      // v0.27 road tiles look like what the leader paved them to: dirt (0), concrete (1), asphalt + sidewalks (2)
+      const k = x + ',' + y, lv = ROADS.has(k) ? (PAVE ? PAVE.get(k) ?? 0 : (ROADS.main?.has(k) ? 2 : 1)) : -1;
+      if (lv >= 2) mn++;
+      if (lv >= 1) r++; else if (lv === 0) d++; else if (isW(t)) w++; else if (road(x, y)) r++; else if (PAVED.has(x + ',' + y)) pv++; else if (YARD.has(x + ',' + y)) { if (stage >= 2) pv++; else d++; } else if (t === T.DIRT) d++;
       if (t === T.MEADOW) me++; if (t === T.ROCKY) ro++;
     }
     const i = Y * CW + X, plaza = stage >= 1 && Math.hypot(X * CELL + 1 - CENTER.x - .5, Y * CELL + 1 - CENTER.y - .5) < PLAZA_R + .6;
@@ -5633,7 +5705,7 @@ function buildChunkTiles(cx, cy, stage) {
   const c = document.createElement('canvas'); c.width = c.height = OUT;
   const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
   const per = CH / CELL, roadSet = ROAD_SET[Math.min(4, stage)];
-  const isW = t => t === K.W, isD = t => t === K.D || (stage === 0 && (t === K.R || t === K.P || t === K.M)), isR = t => stage > 0 && (t === K.R || t === K.P || t === K.M), isM = t => stage > 0 && t === K.M;
+  const isW = t => t === K.W, isD = t => t === K.D, isR = t => t === K.R || t === K.P || t === K.M, isM = t => t === K.M;
   const laneSet = 'road2', mainSet = stage >= 2 ? ROAD_SET[Math.min(4, stage)] : 'road3';
   for (let Y = cy * per - 1; Y < (cy + 1) * per; Y++) for (let X = cx * per - 1; X < (cx + 1) * per; X++) {
     const dx = ((X * CELL + 1) * TILE - ox) * GS, dy = ((Y * CELL + 1) * TILE - oy) * GS;
@@ -5693,12 +5765,13 @@ function buildChunk(cx, cy, stage) {
 }
 
 /** Draw the ground chunks visible in world rect [x0,x1]x[y0,y1]. ctx already has the world transform. */
-let ROADS = new Set(), PAVED = new Set(), YARD = new Set(), yardVer = 0;
-function drawGround(ctx, x0, y0, x1, y1, stage = 0, roads = null, paved = null, yards = null) {
+let ROADS = new Set(), PAVED = new Set(), YARD = new Set(), yardVer = 0, PAVE = null, paveVer = 0;
+function drawGround(ctx, x0, y0, x1, y1, stage = 0, roads = null, paved = null, yards = null, pave = null) {
+  if (pave && pave !== PAVE) { PAVE = pave; paveVer++; }
   if (roads) ROADS = roads;
   if (paved) PAVED = paved;
   if (yards && yards !== YARD) { YARD = yards; yardVer++; }
-  const key = `${WORLD.seed}:${WORLD.biome}:${WORLD.version}:${Math.min(4, stage)}:${TEX ? 1 : 0}:${TL ? 1 : 0}:${WORLD.plan}:${ROADS.size}:${PAVED.size}:${yardVer}`;
+  const key = `${WORLD.seed}:${WORLD.biome}:${WORLD.version}:${Math.min(4, stage)}:${TEX ? 1 : 0}:${TL ? 1 : 0}:${WORLD.plan}:${ROADS.size}:${PAVED.size}:${yardVer}:${paveVer}`;
   if (key !== cacheKey) { cache.clear(); cacheKey = key; }
   const S = CH * TILE;
   if (TL) { cellGrid(Math.min(4, stage)); drawWater(ctx, x0, y0, x1, y1); }
@@ -5735,7 +5808,7 @@ const { rigAtlasReady, rigFrameRect, rigWalkColumn, F: RIG_F, RIG_BASELINE } = _
 const { allUnlocked } = __mod["src/save.js"];
 const { villageProps, PASTURE, groundLift } = __mod["src/villageProps.js"];
 const { drawLighting, skyAt, windowLit } = __mod["src/ui/lighting.js"];
-const { TIERS, tierOf, openSlots, slotState, slotObstacles, publicUnlocked, publicTier, villageRadius, roadTiles, pavedTiles, yardTiles } = __mod["src/villageLayout.js"];
+const { TIERS, tierOf, openSlots, slotState, slotObstacles, publicUnlocked, publicTier, villageRadius, roadTiles, pavedTiles, yardTiles, paveLevels } = __mod["src/villageLayout.js"];
 const { QUALITY_PROFILES } = __mod["src/performance.js"];
 const { G, CHAR_SCALE, OLD_CHAR_SCALE, HEAD_Y, nearestInteractable, FRAME, walkColumn, walkBob, RIG_STRIDE } = __mod["src/ui/game.js"];
 const { worldToScreen } = __mod["src/ui/camera.js"];
@@ -5895,7 +5968,7 @@ function render() {
   const vx0 = cam.x - cssW / 2 / cam.zoom, vx1 = cam.x + cssW / 2 / cam.zoom;
   const vy0 = cam.y - cssH / 2 / cam.zoom, vy1 = cam.y + cssH / 2 / cam.zoom;
   const stage = s.town?.stage || 0;
-  drawGround(ctx, vx0, vy0, vx1, vy1, stage, roadTiles(s), pavedTiles(s), yardTiles(s));
+  drawGround(ctx, vx0, vy0, vx1, vy1, stage, roadTiles(s), pavedTiles(s), yardTiles(s), paveLevels(s));
   if (prof.animatedWater) { // water glints drift over the ground layer
     ctx.fillStyle = '#e4f6ffaa';
     for (let ty = Math.max(0, Math.floor(vy0 / TILE)); ty < Math.min(WORLD_H, vy1 / TILE + 1); ty++) for (let tx = Math.max(0, Math.floor(vx0 / TILE)); tx < Math.min(WORLD_W, vx1 / TILE + 1); tx++) {
@@ -6275,7 +6348,7 @@ return { applySettings };
 __mod["src/ui/panels.js"] = (() => {
 // Side-drawer menus. Every button maps to a real rule function; disabled buttons explain why.
 const { PROJECTS, PROJECT_ORDER, EXAM_QUESTIONS, CIVIL_EXAM_QUESTIONS, takeExam, takeCivilExam, electionEligibility, registerCandidate, runDemoElection, study, mentorObjective, timeLabel, phase, SAVE_KEY } = __mod["src/gameState.js"];
-const { TOOLS, MARKET, RECIPES, QUESTS, MEALS_PER_DAY, MEAL_ENERGY, itemCount, marketBuyPrice, marketSellPrice, buyMarket, sellMarket, craft, eatFood, upgradeSkill, requiredXp, plant, harvest, gardenProgress, questProgress, claimQuest, refreshDaily, getTownStats } = __mod["src/systems.js"];
+const { TOOLS, MARKET, RECIPES, QUESTS, MEALS_PER_DAY, MEAL_ENERGY, marketLocked, itemCount, marketBuyPrice, marketSellPrice, buyMarket, sellMarket, craft, eatFood, upgradeSkill, requiredXp, plant, harvest, gardenProgress, questProgress, claimQuest, refreshDaily, getTownStats } = __mod["src/systems.js"];
 const { ECON, POLICIES, ensureEconomy, nap, setTax, togglePolicy, budgetPreview, sleepQuality, taxRate } = __mod["src/economy.js"];
 const { CIVIL_RANKS, SHIFT_ENERGY, ensureCivil, isCivilServant, nextPromotion, civilShift, resignCivil, rejoinCivil } = __mod["src/career.js"];
 const { BUILDINGS, PUBLIC_LEVELS, PUBLIC_WORK, stageLock, startPublic, upgradeStructure, upgradeCost, helpConstruction, findStructure, progressOf, hasResources, missingText, costText, HELP_ENERGY, gardenYield } = __mod["src/construction.js"];
@@ -6290,7 +6363,7 @@ const { OUTFITS } = __mod["src/character/model.js"];
 const { saveSettings } = __mod["src/performance.js"];
 const { configureAudio, sfx, audioState } = __mod["src/audio.js"];
 const { G, result, saveNow, enterBuild, resetNpcPlans, rebuildNpcs } = __mod["src/ui/game.js"];
-const { TIERS, tierOf, tierInfo, officeNeeds, slotState, nextTierCheck, upgradeVillage, publicUnlocked, publicTier, SLOT_KINDS, openSlots, slotObstacles } = __mod["src/villageLayout.js"];
+const { PAVE, roadSegments, segmentLevel, paveCost, paveSegment, pavedShare, TIERS, tierOf, tierInfo, officeNeeds, slotState, nextTierCheck, upgradeVillage, publicUnlocked, publicTier, SLOT_KINDS, openSlots, slotObstacles } = __mod["src/villageLayout.js"];
 const { objective } = __mod["src/guide.js"];
 const { clearPropTiles } = __mod["src/villageProps.js"];
 const { myHome, claimPlot, houseSlots, CLAIM_FEE, HOUSE_COST } = __mod["src/housing.js"];
@@ -6483,7 +6556,7 @@ function market() {
   const s = G.state;
   const open = isDone(s, 'market');
   return `<div class="notice">🛒 ราคาเปลี่ยนตามสต็อก: ของน้อย = ซื้อแพง · ของล้น = ขายได้ถูกลง NPC ผลิต (สวน/โรงงาน) และซื้ออาหารกลางวันจริง ${open ? '' : '<br>💡 สร้าง "ตลาดหมู่บ้าน" แล้ว NPC จะมากินข้าวกลางวันที่ตลาด (ภาษีเข้าคลังเมือง)'}</div>
-  ${Object.entries(MARKET).map(([id, it]) => { const bp = marketBuyPrice(s, id), sp = marketSellPrice(s, id); return `<div class="card"><div class="row"><div><b>${it.icon} ${it.name}</b><small>ของฉัน ${itemCount(s, id)} · สต็อกตลาด ${s.market[id]}</small></div><div>${bp ? btn(`ซื้อ ${bp}🪙`, 'buy', id, { disabled: s.player.coins < bp || s.market[id] < 1 }) : ''} ${btn(`ขาย ${sp}🪙`, 'sell', id, { disabled: itemCount(s, id) < 1, cls: 'btn ghost small' })}</div></div></div>`; }).join('')}
+  ${Object.entries(MARKET).map(([id, it]) => { const bp = marketBuyPrice(s, id), sp = marketSellPrice(s, id), lk = marketLocked(s, id); return `<div class="card ${lk ? 'lock' : ''}"><div class="row"><div><b>${it.icon} ${it.name}</b><small>ของฉัน ${itemCount(s, id)} · สต็อกตลาด ${s.market[id]}${lk ? ` · 🔒 ${lk}` : ''}</small></div><div>${bp ? btn(`ซื้อ ${bp}🪙`, 'buy', id, { disabled: !!lk || s.player.coins < bp || s.market[id] < 1 }) : ''} ${btn(`ขาย ${sp}🪙`, 'sell', id, { disabled: itemCount(s, id) < 1, cls: 'btn ghost small' })}</div></div></div>`; }).join('')}
   <p class="help">เงินในเกมได้จากการทำงานเท่านั้น ไม่มีการซื้อเหรียญด้วยเงินจริง</p>`;
 }
 function crafting() {
@@ -6554,6 +6627,12 @@ function leader() {
     <h3>📜 นโยบาย (จ่ายจากคลังทุกวัน)</h3>${Object.entries(POLICIES).map(([id, P]) => { const on = s.town.policies.includes(id), lock = tierOf(s) < P.tier;
       return `<div class="card ${on ? 'done' : lock ? 'lock' : ''}"><div class="row"><div><b>${P.icon} ${P.name}</b><small>${P.desc} · ${P.cost}/วัน · ความนิยม +${P.pop} · ความสุข +${P.happy}${lock ? ` · 🔒 พื้นที่ระดับ ${P.tier}` : ''}${E.suspended.includes(id) && !on ? ' · ⚠️ ถูกระงับเพราะคลังไม่พอ' : ''}</small></div>${btn(on ? 'ยกเลิก' : 'อนุมัติ', 'policy', id, { disabled: lock || (!on && s.town.treasury < P.cost * 3), cls: on ? 'btn ghost small' : 'btn small' })}</div></div>`; }).join('')}`
     : `<div class="notice warn">ตอนนี้ <b>${esc(L.leaderName || 'NPC')}</b> เป็นผู้นำ คุณยังเป็น${L.founder ? 'ผู้ก่อตั้ง (เก็บป้ายและที่ดินไว้)' : 'ชาวบ้าน'} ทำงานจิตอาสาสะสมผลงาน แล้วลงสมัครสมัยหน้า</div>`;
+  const roads = (() => { const segs = roadSegments(s), t = tierOf(s), top = PAVE.reduce((m, p, i) => t >= p.tier ? i : m, 0), P = G.state.player;
+    if (!segs.length) return '';
+    const near = [...segs].sort((a, b) => Math.hypot(a.x - P.x / TILE, a.y - P.y / TILE) - Math.hypot(b.x - P.x / TILE, b.y - P.y / TILE)).slice(0, 10);
+    return `<h3>🛣️ ถนนในพื้นที่ (ปูแล้ว ${Math.round(pavedShare(s) * 100)}%)</h3><p class="help">ถนนเริ่มเป็นทางดิน ผู้นำเลือกปูทีละช่วงด้วยงบคลัง · ${PAVE.map(p => `${p.icon} ${p.th}${p.cost ? ` ${p.cost}/ช่อง (ระดับ ${p.tier}+)` : ''}`).join(' · ')} · ถนนดีทำให้ชาวบ้านมีความสุข · เรียงจากช่วงที่ใกล้ตัวคุณ</p>
+    ${near.map(g => { const lv = segmentLevel(s, g); return `<div class="card ${lv >= top ? 'done' : ''}"><div class="row"><div><b>${PAVE[lv].icon} ${esc(g.name)}</b><small>${g.tiles.length} ช่อง · ตอนนี้: ${PAVE[lv].th}</small></div><div>${PAVE.map((p, i) => i > lv && t >= p.tier ? btn(`${p.icon} ${p.th} ${paveCost(s, g, i)}`, 'pave', `${g.id}|${i}`, { disabled: !L.isLeader || s.town.treasury < paveCost(s, g, i) }) : '').join(' ')} ${btn('📍', 'gotoTile', `${g.x},${g.y}`, { cls: 'btn ghost small', title: 'เดินไปดู' })}</div></div></div>`; }).join('')}
+    ${segs.length > 10 ? `<small>และอีก ${segs.length - 10} ช่วง — เดินไปใกล้ถนนช่วงนั้นแล้วเปิดเมนูนี้</small>` : ''}`; })();
   const vol = `<div class="card"><div class="row"><div><b>🤝 งานจิตอาสา</b><small>วันละครั้ง −${VOLUNTEER_ENERGY}⚡ · ผลงานทางการเมือง +1 (ทางสะสมผลงานตอนไม่ได้เป็นผู้นำ)</small></div>${btn(L.volunteerDay === s.day ? 'ทำแล้ววันนี้' : 'ไปช่วย', 'volunteer', '', { disabled: L.volunteerDay === s.day || s.player.stamina < VOLUNTEER_ENERGY })}</div></div>`;
   const pmCard = L.seats ? `<div class="card ${L.pm ? 'done' : ''}"><b>🏛️ สภาผู้แทนราษฎร (วันที่ ${L.seats.day})</b><small>พรรคของคุณ ${L.seats.seats} + พรรคร่วม ${L.seats.partners} จาก ${PARLIAMENT} ที่นั่ง → ${L.pm ? '✅ ได้เป็นนายกรัฐมนตรี' : '❌ ไม่ถึงครึ่ง เป็นฝ่ายค้าน'}</small></div>` : '';
   return `<div class="notice info"><b>${L.founder ? '🌲 ผู้ก่อตั้งหมู่บ้าน' : '🏘️ ชาวบ้าน'}</b> · ${roleLabel(s)}<br>ผู้ก่อตั้งเป็น "ผู้นำรักษาการ" วาระแรก แต่ตำแหน่ง<b>ไม่ถาวร</b>: ทุก ${TERM_DAYS} วันในเกมมีเลือกตั้ง ความนิยมมาจากความเป็นอยู่ของชาวบ้านเท่านั้น จำกัด ${MAX_CONSECUTIVE} วาระติดต่อกัน · <b>เงินจริงซื้อคะแนนหรือตำแหน่งไม่ได้</b></div>
@@ -6563,7 +6642,7 @@ function leader() {
   <h3>🗳️ สถานะลงสมัครสมัยหน้า</h3>${cr.ok ? '<div class="card done"><b>✅ ลงสมัครได้</b><small>ถึงวันเลือกตั้งระบบจะนับคะแนนอัตโนมัติ (จำลอง NPC — ยังไม่ใช่ผู้เล่นจริง)</small></div>' : `<div class="notice warn"><b>ยังลงสมัครไม่ได้:</b> ${cr.why.map(esc).join(' · ')}</div>`}
   ${L.results.length ? `<div class="card"><b>ผลเลือกตั้งที่ผ่านมา</b>${L.results.map(r => `<small>สมัย ${r.term} (วัน ${r.day}): คุณ ${r.player ?? '—'} · ${esc(r.rival)} ${r.rivalScore} → ${r.won ? '✅ ชนะ' : '❌ ไม่ได้รับเลือก'}${r.note ? ' · ' + esc(r.note) : ''}</small>`).join('')}</div>` : ''}
   <div class="grid2">${[['🏅', 'ผลงานทางการเมือง', Math.floor(L.record)], ['📚', 'ความรู้', p.knowledge]].map(([i, n, v]) => `<div class="item"><span class="ico">${i}</span><strong>${v}</strong><small>${n}</small></div>`).join('')}</div>${vol}${pmCard}
-  <h3>📝 ข้อสอบผู้นำ</h3>${examBlock}${budget}${office}${dark}
+  <h3>📝 ข้อสอบผู้นำ</h3>${examBlock}${budget}${office}${roads}${dark}
   <h3>🪜 เส้นทางสู่นายกรัฐมนตรี (สายการเมือง)</h3><div class="ladder">${TIERS.map(x => { const need = officeNeeds(s, x.tier);
     return `<div class="card ${x.tier < tierOf(s) ? 'done' : x.tier === tierOf(s) ? 'active' : ''}"><b>${x.icon} ${x.th} → ${x.tier === 5 ? 'ส.ส. → นายกรัฐมนตรี (สภาลงมติ)' : x.title}${x.tier === tierOf(s) ? ' (ตอนนี้)' : ''}</b><small>${x.tier <= tierOf(s) ? 'ปลดล็อกแล้ว' : `ประชากร ${x.minPop}${x.publicLv ? ` · อาคารสาธารณะระดับ ${x.publicLv}` : ''}${x.fund ? ` · งบพัฒนา ${fmt(x.fund)} จากคลัง` : ''}`}${need.length ? ` · คุณสมบัติ: ${need.map(q => `${q.ok ? '✅' : '⬜'} ${q.label}`).join(' ')}` : ''}</small></div>`; }).join('')}</div>
   <p class="help">ทุกขั้นได้จากผลงาน คุณสมบัติ งบที่บริหารเอง และการเลือกตั้งเท่านั้น — ซื้อด้วยเงินจริงไม่ได้ · ระดับประเทศ: ชนะเลือกตั้ง ส.ส. แล้วสภาลงมติ ต้องได้เกินครึ่ง ${PARLIAMENT / 2} ที่นั่ง (ผลงานมาก + มือสะอาด = พรรคร่วมเยอะ)${STAGES.length && LEADERSHIP_LADDER.length ? '' : ''}</p>`;
@@ -6625,6 +6704,8 @@ function onClick(e) {
     case 'eat': r = eatFood(s); break;
     case 'rest': r = nap(s); break;
     case 'volunteer': r = volunteer(s); break;
+    case 'pave': { const [sid, lv] = id.split('|'); r = paveSegment(s, sid, Number(lv), !!s.leadership?.isLeader); snd = r.ok ? 'build' : 'error'; break; }
+    case 'gotoTile': { const [x, y] = id.split(',').map(Number); closePanel(); G.walkTo((x + .5) * TILE, (y + .5) * TILE); return; }
     case 'resign': r = resignCivil(s); break;
     case 'rejoin': r = rejoinCivil(s); break;
     case 'setTax': r = setTax(s, Number(id), !!s.leadership?.isLeader); break;
@@ -7100,7 +7181,7 @@ __mod["src/showcase.js"] = (() => {
 const { deepClone } = __mod["src/gameState.js"];
 const { ensureWorld, setNode, plotObstacles } = __mod["src/world.js"];
 const { ensureConstruction, PUBLIC_LEVELS, BUILDINGS, PUBLIC_WORK } = __mod["src/construction.js"];
-const { TIERS, openSlots, openRoads, slotObstacles } = __mod["src/villageLayout.js"];
+const { TIERS, openSlots, openRoads, slotObstacles, paveAll } = __mod["src/villageLayout.js"];
 const { clearPropTiles } = __mod["src/villageProps.js"];
 const { settlerArrivals, population, allNpcDefs } = __mod["src/npcs.js"];
 const { ensureLeadership } = __mod["src/leadership.js"];
@@ -7157,6 +7238,7 @@ function fillLevel(s, era = (s.town?.stage || 0) + 1) {
     const slot = openSlots(s).find(x => x.kind === 'cottage' && x.tx === p.tx && x.ty === p.ty);
     if (slot) s.homes[slot.id] = { owner: npc.id, name: npc.name, savings: 0, claimedDay: s.day };
   }
+  paveAll(s); // test mode: every road paved to the best the area allows
   s.town.happiness = 90; s.__structVer = (s.__structVer || 0) + 1;
   // the clock moved on: everyone fed and rested, the hourly economy starts from now (no backlog)
   s.town.lastEconomyHour = Math.floor(((s.day - 1) * 86400 + s.gameTime) / 3600);

@@ -12,7 +12,7 @@ import { ensureWorld, plotObstacles, setNode, SPAWN, DEFAULT_SEED, nodeOnTile } 
 import { BUILDINGS } from './construction.js';
 import { ensureLeadership } from './leadership.js';
 import { computeStage } from './progression.js';
-import { openRoads } from './villageLayout.js';
+import { openRoads, paveAll } from './villageLayout.js';
 import { clearPropTiles } from './villageProps.js';
 import { openSlots as openSlotsV } from './villageLayout.js';
 
@@ -63,6 +63,7 @@ export function migrate(raw) {
     (s.migrationNotes = s.migrationNotes || []).push('v0.18 แผนที่ใหม่ตามผังต้นแบบ: เก็บเงิน ของ อาคาร และความคืบหน้าไว้ทั้งหมด ป่าถูกวางใหม่');
   }
   if (s.town.roadsOpened !== 2) { openRoads(s); clearPropTiles(s); s.town.roadsOpened = 2; }
+  if (!s.town.paved && (s.town.stage || 0) >= 1) paveAll(s); // v0.27 roads are paved by the leader now; older towns keep the roads they already had
   // money/resources must never be negative (v0.5 had paths that could not enforce this)
   for (const k of ['coins', 'wood', 'stone', 'knowledge', 'civic']) s.player[k] = Math.max(0, Math.floor(Number(s.player[k]) || 0));
   s.player.stamina = Math.max(0, Math.min(100, Number(s.player.stamina) || 0));

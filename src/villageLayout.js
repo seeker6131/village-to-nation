@@ -227,7 +227,7 @@ export function npcUpgradeVillage(s, population = 0) {
 const roadMemo = new Map();
 export function roadTiles(s) {
   const t = tierOf(s), mk = t + ':' + WORLD.seed + ':' + WORLD.plan + ':' + WORLD.version; if (roadMemo.has(mk)) return roadMemo.get(mk);
-  const out = new Set(), main = new Set(); out.main = main; roadMemo.set(mk, out);
+  const out = new Set(), main = new Set(), auto = new Set(); out.main = main; out.auto = auto; roadMemo.set(mk, out);
   const add = (k, m) => { out.add(k); if (m) main.add(k); };
   for (const T of TIERS.slice(0, t)) for (const [line, isMain] of T.roads) for (let i = 0; i < line.length - 1; i++) {
     const [ax, ay] = line[i], [bx, by] = line[i + 1];
@@ -236,15 +236,76 @@ export function roadTiles(s) {
   }
   for (const k of lotLanes(t)) add(k, false);                                // lanes of the player housing streets
   if (WORLD.custom) WORLD.custom.roads.forEach((row, y) => { for (let x = 0; x < row.length; x++) if (row[x] !== '.') add(x + ',' + y, row[x] === 'M'); }); // roads drawn in the Map Maker
-  if (t >= 3) for (const k of cityPlan(t, ART10).streets) add(k, true);      // district squares
+  if (t >= 3) for (const k of cityPlan(t, ART10).streets) { add(k, true); auto.add(k); } // district squares (built with the development fund: paved)
   // v0.25 the country roads to every opened district become real roads (dry tiles only; bridge decks stay planks)
   if (t >= 3) for (const p of WORLD.paths || []) if (p.tier <= t) for (let i = 0; i < p.length - 1; i++) {
     const [ax, ay] = p[i], [bx, by] = p[i + 1];
     for (let y = Math.min(ay, by); y <= Math.max(ay, by); y++) for (let x = Math.min(ax, bx); x <= Math.max(ax, bx); x++)
-      for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) { const g = groundAt(x + dx, y + dy); if (g !== T.WATER && g !== T.FORD) add((x + dx) + ',' + (y + dy), false); }
+      for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) { const g = groundAt(x + dx, y + dy); if (g !== T.WATER && g !== T.FORD) { add((x + dx) + ',' + (y + dy), false); auto.add((x + dx) + ',' + (y + dy)); } }
   }
   return out;
 }
+// ---- v0.27 road paving: village roads start as dirt; the leader paves them section by section from the treasury
+// (ดิน → คอนกรีต from หมู่บ้าน → ลาดยาง + ทางเท้า from อำเภอ). District streets come paved (development fund).
+export const PAVE = [
+  { th: 'ทางดิน', icon: '🟫', tier: 1, cost: 0 },
+  { th: 'ถนนคอนกรีต', icon: '⬜', tier: 2, cost: 4 },
+  { th: 'ถนนลาดยาง + ทางเท้า', icon: '⬛', tier: 3, cost: 10 },
+];
+export function ensurePaving(s) { s.town = s.town || {}; s.town.paved = s.town.paved && typeof s.town.paved === 'object' ? s.town.paved : {}; return s.town.paved; }
+/** Paving level of every road tile ("x,y" -> 0..2) for the renderer. */
+let paveMemo = { key: '', map: null };
+export function paveLevels(s) {
+  const R = roadTiles(s), P = ensurePaving(s), key = `${R.size}:${s.town.pavedVer || 0}:${tierOf(s)}`;
+  if (paveMemo.key === key && paveMemo.R === R) return paveMemo.map;
+  const map = new Map();
+  for (const k of R) map.set(k, R.auto?.has(k) ? 2 : P[k] || 0);
+  paveMemo = { key, R, map };
+  return map;
+}
+/** Road sections the leader can pave: connected road tiles inside 12x12 blocks (a street splits at block edges). */
+const SEG = 12;
+let segMemo = { key: '', list: [] };
+export function roadSegments(s) {
+  const R = roadTiles(s), key = `${R.size}:${WORLD.plan}:${WORLD.version}`;
+  if (segMemo.key === key && segMemo.R === R) return segMemo.list;
+  const seen = new Set(), list = [];
+  for (const k of R) {
+    if (seen.has(k) || R.auto?.has(k)) continue;
+    const [x0, y0] = k.split(',').map(Number), bx = Math.floor(x0 / SEG), by = Math.floor(y0 / SEG), tiles = [], st = [k]; seen.add(k);
+    while (st.length) { const q = st.pop(); tiles.push(q); const [x, y] = q.split(',').map(Number);
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const n = (x + dx) + ',' + (y + dy); if (!seen.has(n) && R.has(n) && !R.auto?.has(n) && Math.floor((x + dx) / SEG) === bx && Math.floor((y + dy) / SEG) === by) { seen.add(n); st.push(n); } } }
+    const xs = tiles.map(t => +t.split(',')[0]), ys = tiles.map(t => +t.split(',')[1]);
+    const cx = Math.round(xs.reduce((a, b) => a + b, 0) / xs.length), cy = Math.round(ys.reduce((a, b) => a + b, 0) / ys.length);
+    const dir = Math.max(...xs) - Math.min(...xs) >= Math.max(...ys) - Math.min(...ys) ? 'แนวตะวันออก-ตก' : 'แนวเหนือ-ใต้';
+    list.push({ id: `${bx},${by},${tiles[0]}`, tiles, x: cx, y: cy, name: `ถนน${dir} ช่วง ${bx + 1}-${by + 1}`, main: tiles.some(t => R.main.has(t)) });
+  }
+  list.sort((a, b) => a.y - b.y || a.x - b.x);
+  segMemo = { key, R, list };
+  return list;
+}
+export function segmentLevel(s, seg) { const P = ensurePaving(s); return Math.min(...seg.tiles.map(t => P[t] || 0)); }
+export function paveCost(s, seg, level) { const P = ensurePaving(s); return seg.tiles.reduce((n, t) => n + Math.max(0, PAVE[level].cost - (P[t] ? PAVE[P[t]].cost : 0)), 0); }
+/** Pave one road section to `level` (pays only the difference). Leader only, treasury only. */
+export function paveSegment(s, segId, level, isLeader) {
+  const seg = roadSegments(s).find(g => g.id === segId), L = PAVE[level];
+  if (!seg || !L) return { ok: false, msg: 'ไม่พบถนนช่วงนี้' };
+  if (!isLeader) return { ok: false, msg: 'ต้องเป็นผู้นำถึงจะอนุมัติงบปูถนนได้' };
+  if (tierOf(s) < L.tier) return { ok: false, msg: `${L.th}ทำได้เมื่อพื้นที่เป็นระดับ ${L.tier} (${TIERS[L.tier - 1].th})` };
+  if (segmentLevel(s, seg) >= level) return { ok: false, msg: `ช่วงนี้เป็น${PAVE[segmentLevel(s, seg)].th}แล้ว` };
+  const cost = paveCost(s, seg, level);
+  if ((s.town.treasury || 0) < cost) return { ok: false, msg: `งบคลังไม่พอ (ต้องใช้ ${cost} มี ${Math.floor(s.town.treasury || 0)})` };
+  const P = ensurePaving(s); s.town.treasury -= cost;
+  for (const t of seg.tiles) P[t] = Math.max(P[t] || 0, level);
+  s.town.pavedVer = (s.town.pavedVer || 0) + 1;
+  if (s.leadership?.isLeader) s.leadership.record = (s.leadership.record || 0) + Math.min(3, Math.round(cost / 150)); // visible public works count for the record
+  return { ok: true, msg: `${L.icon} ปู${seg.name}เป็น${L.th} ${seg.tiles.length} ช่อง ใช้งบ ${cost}`, cost };
+}
+/** Share of the village roads that are paved (0..1) — villagers like good roads. */
+export function pavedShare(s) { const segs = roadSegments(s); let n = 0, p = 0; const P = ensurePaving(s); for (const g of segs) for (const t of g.tiles) { n++; if (P[t]) p++; } return n ? p / n : 0; }
+/** Test mode / migration: pave every village road to the best level the area allows. */
+export function paveAll(s, level = null) { const P = ensurePaving(s), lv = level ?? Math.min(2, tierOf(s) - 1); if (lv <= 0) return; for (const g of roadSegments(s)) for (const t of g.tiles) P[t] = Math.max(P[t] || 0, lv); s.town.pavedVer = (s.town.pavedVer || 0) + 1; }
+
 /** Paved city blocks (tile keys) of the unlocked city levels. */
 export function pavedTiles(s) { const t = tierOf(s); return t >= 3 ? new Set(cityPlan(t, ART10).paved) : EMPTY; }
 const EMPTY = new Set();

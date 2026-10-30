@@ -91,3 +91,26 @@ test('while an NPC holds office the area still grows (NPC leader pays the fund);
   let r; for (let i = 0; i < 30 && !(r && r.grew); i++) { s.day++; s.town.happiness = 80; s.town.treasury = Math.max(s.town.treasury, 5000); r = economyDay(s); }
   assert.ok(r.grew, 'NPC leader raised the area (within a few days)'); assert.equal(V.tierOf(s), 3); assert.ok(s.town.treasury < 5000 + 500, 'fund paid');
 });
+
+test('v0.27 roads start as dirt; the leader paves sections from the treasury, levels open with the area', () => {
+  const s = fresh(); s.town.stage = 1; s.town.treasury = 5000; s.leadership.isLeader = true;
+  const segs = V.roadSegments(s); assert.ok(segs.length > 3, 'village roads split into sections');
+  const g = segs[0]; assert.equal(V.segmentLevel(s, g), 0, 'dirt at first');
+  assert.equal(V.paveSegment(s, g.id, 2, true).ok, false, 'asphalt needs อำเภอ');
+  assert.equal(V.paveSegment(s, g.id, 1, false).ok, false, 'leader only');
+  const t0 = s.town.treasury, c = V.paveCost(s, g, 1), r = V.paveSegment(s, g.id, 1, true);
+  assert.equal(r.ok, true); assert.equal(s.town.treasury, t0 - c); assert.equal(V.segmentLevel(s, g), 1);
+  assert.ok(V.paveLevels(s).get(g.tiles[0]) === 1);
+  s.town.stage = 2; const c2 = V.paveCost(s, g, 2); assert.equal(c2, g.tiles.length * (V.PAVE[2].cost - V.PAVE[1].cost), 'pays only the difference');
+  s.town.treasury = 0; assert.equal(V.paveSegment(s, g.id, 2, true).ok, false, 'no money, no road');
+});
+
+test('v0.27 house levels and goods open with the area level (money alone is not enough)', async () => {
+  const C = await import('../src/construction.js'), S = await import('../src/systems.js');
+  const s = fresh(); s.town.stage = 0; Object.assign(s.player, { coins: 99999, wood: 999, stone: 999 });
+  s.placed.push({ uid: 'mine', type: 'cottage', owner: 'player', tx: 10, ty: 10, status: 'done', level: 1, work: 1, workNeeded: 1 });
+  assert.match(C.upgradeStructure(s, 'mine').msg, /หมู่บ้าน/, 'a cabin only in the camp');
+  s.town.stage = 1; assert.equal(C.upgradeStructure(s, 'mine').ok, true);
+  s.town.stage = 0; assert.ok(S.marketLocked(s, 'planks')); assert.equal(S.buyMarket(s, 'planks').ok, false);
+  s.town.stage = 1; assert.equal(S.marketLocked(s, 'planks'), '');
+});

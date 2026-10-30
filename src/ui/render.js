@@ -12,7 +12,7 @@ import { rigAtlasReady, rigFrameRect, rigWalkColumn, F as RIG_F, RIG_BASELINE } 
 import { allUnlocked } from '../save.js';
 import { villageProps, PASTURE, groundLift } from '../villageProps.js';
 import { drawLighting, skyAt, windowLit } from './lighting.js';
-import { TIERS, tierOf, openSlots, slotState, slotObstacles, publicUnlocked, publicTier, villageRadius, roadTiles, pavedTiles, yardTiles } from '../villageLayout.js';
+import { TIERS, tierOf, openSlots, slotState, slotObstacles, publicUnlocked, publicTier, villageRadius, roadTiles, pavedTiles, yardTiles, paveLevels } from '../villageLayout.js';
 import { QUALITY_PROFILES } from '../performance.js';
 import { G, CHAR_SCALE, OLD_CHAR_SCALE, HEAD_Y, nearestInteractable, FRAME, walkColumn, walkBob, RIG_STRIDE } from './game.js';
 import { worldToScreen } from './camera.js';
@@ -173,7 +173,7 @@ export function render() {
   const vx0 = cam.x - cssW / 2 / cam.zoom, vx1 = cam.x + cssW / 2 / cam.zoom;
   const vy0 = cam.y - cssH / 2 / cam.zoom, vy1 = cam.y + cssH / 2 / cam.zoom;
   const stage = s.town?.stage || 0;
-  drawGround(ctx, vx0, vy0, vx1, vy1, stage, roadTiles(s), pavedTiles(s), yardTiles(s));
+  drawGround(ctx, vx0, vy0, vx1, vy1, stage, roadTiles(s), pavedTiles(s), yardTiles(s), paveLevels(s));
   if (prof.animatedWater) { // water glints drift over the ground layer
     ctx.fillStyle = '#e4f6ffaa';
     for (let ty = Math.max(0, Math.floor(vy0 / TILE)); ty < Math.min(WORLD_H, vy1 / TILE + 1); ty++) for (let tx = Math.max(0, Math.floor(vx0 / TILE)); tx < Math.min(WORLD_W, vx1 / TILE + 1); tx++) {

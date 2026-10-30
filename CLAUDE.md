@@ -1,4 +1,4 @@
-# CLAUDE — Village to Nation v0.26 handoff
+# CLAUDE — Village to Nation v0.27 handoff
 
 > Playable **single-player offline prototype**. Not OBT, no multiplayer, no payments.
 > Read `README.md`, `docs/STATUS_V08_TH.md` (what is real / mock / missing) and `docs/CHARACTER_SYSTEM_TH.md` first.
@@ -29,7 +29,8 @@ Serve `index.html` over HTTP for development (ES modules). `?test=1` exposes `wi
 - Pixel rule: art is 2x; canvas px per world px must stay even (`camera.snapZoom`). Character rig frames 80 px, feet y=76, drawn at 0.5.
 - Economy runs per game hour (`economyHour`) and per day (`economyDay` -> `economy.townDay`: taxes, upkeep, payroll, policies; NPC leader may raise the area).
 - Money (v0.26): `economy.js` (energy budget, tax, treasury, POLICIES), `career.js` (civil ladder), `leadership.js` (record, parliament). Public works are paid from the treasury. Tune with `node scripts/sim-economy.mjs 170` (PM ~day 100-110 for an efficient player = ~35 h).
-- Map Maker: `editor/index.html` (standalone page). Users send `.v2nmap.json` (format in docs/MAP_EDITOR_TH.md) to convert into game layouts.
+- Map Maker: `editor/index.html` (standalone page). Users send `.v2nmap.json` (format in docs/MAP_EDITOR_TH.md); import with `node scripts/import-map.mjs maps/x.v2nmap.json mapN "name"` -> `src/maps/` (appended to LAYOUTS). Custom maps shift the village core by `world.ORIGIN` (CENTER, LEADER_HOUSE, POINTS, TENTS, SPAWN are mutated in place — never cache their numbers at import time); `villageLayout.syncPlan()` swaps the tier slots/roads/lots.
+- Roads (v0.27): `villageLayout` PAVE levels per tile in `s.town.paved`, sections from `roadSegments`; terrain draws dirt/concrete/asphalt from `paveLevels(s)`.
 
 ## Non-negotiables
 - Keep save key `v2n-prototype-v1`; add migrations in `save.js` instead of wiping data. Never let money/resources go negative (tests enforce).

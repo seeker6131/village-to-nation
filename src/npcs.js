@@ -10,7 +10,7 @@ import { addHistory } from './gameState.js';
 import { tierInfo } from './villageLayout.js';
 import { lifePlan, strollSpots, lifeHour, jobOf, CIVIL_JOBS } from './npcLife.js';
 import { townDay, policyHappy, hasPolicy } from './economy.js';
-import { npcUpgradeVillage } from './villageLayout.js';
+import { npcUpgradeVillage, roadSegments, segmentLevel, paveCost, paveSegment, PAVE, pavedShare, tierOf } from './villageLayout.js';
 
 // Appearance uses the same modular character system as the player (see src/character/model.js).
 export const NPC_DEFS = [
@@ -221,7 +221,7 @@ export function economyHour(s, present) {
   if (served) ev.push(`NPC ซื้ออาหารกลางวัน ${served} มื้อ (ภาษีเข้าคลัง +${served})`);
   if (hungry) { ev.push(`อาหารในตลาดไม่พอ NPC หิว ${hungry} คน`); s.town.hungryToday = (s.town.hungryToday || 0) + (hasPolicy(s, 'lunch') ? Math.ceil(hungry / 2) : hungry); }
   // happiness drifts towards a target based on what exists in the village
-  const target = 45 - (tierInfo(s).tier - 1) * 4 + (done(s, 'farm') ? 10 : 0) + (done(s, 'market') ? 10 : 0) + (done(s, 'hall') ? 8 : 0)
+  const target = 45 - (tierInfo(s).tier - 1) * 4 + Math.round(pavedShare(s) * (tierInfo(s).tier - 1) * 3) + (done(s, 'farm') ? 10 : 0) + (done(s, 'market') ? 10 : 0) + (done(s, 'hall') ? 8 : 0)
     + Math.min(10, s.placed.filter(p => p.type === 'bench' && p.level >= 1).length * 4)
     + Math.min(8, s.placed.filter(p => p.type === 'lamp' && p.level >= 1).length * 2)
     + policyHappy(s) - hungry * (hasPolicy(s, 'lunch') ? 1.5 : 3);
@@ -237,6 +237,11 @@ export function economyDay(s) {
   const r = townDay(s, population(s), officialsCount(s));
   const grew = npcUpgradeVillage(s, population(s));
   if (grew) r.events.push(`${grew.icon} พื้นที่ยกระดับเป็น${grew.th}`);
+  // an NPC leader also paves one road section a day when the treasury is comfortable
+  if (!s.leadership?.isLeader && (s.town.treasury || 0) > 600) {
+    const top = PAVE.reduce((m, p, i) => tierOf(s) >= p.tier ? i : m, 0), seg = roadSegments(s).find(g => segmentLevel(s, g) < top);
+    if (seg && paveCost(s, seg, top) < s.town.treasury - 400) { const pr = paveSegment(s, seg.id, top, true); if (pr.ok) r.events.push(`🛣️ ${s.leadership?.leaderName || 'ผู้นำ'}${pr.msg.slice(2)}`); }
+  }
   return { ...r, grew };
 }
 

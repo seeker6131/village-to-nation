@@ -1,6 +1,6 @@
 // Side-drawer menus. Every button maps to a real rule function; disabled buttons explain why.
 import { PROJECTS, PROJECT_ORDER, EXAM_QUESTIONS, CIVIL_EXAM_QUESTIONS, takeExam, takeCivilExam, electionEligibility, registerCandidate, runDemoElection, study, mentorObjective, timeLabel, phase, SAVE_KEY } from '../gameState.js';
-import { TOOLS, MARKET, RECIPES, QUESTS, MEALS_PER_DAY, MEAL_ENERGY, itemCount, marketBuyPrice, marketSellPrice, buyMarket, sellMarket, craft, eatFood, upgradeSkill, requiredXp, plant, harvest, gardenProgress, questProgress, claimQuest, refreshDaily, getTownStats } from '../systems.js';
+import { TOOLS, MARKET, RECIPES, QUESTS, MEALS_PER_DAY, MEAL_ENERGY, marketLocked, itemCount, marketBuyPrice, marketSellPrice, buyMarket, sellMarket, craft, eatFood, upgradeSkill, requiredXp, plant, harvest, gardenProgress, questProgress, claimQuest, refreshDaily, getTownStats } from '../systems.js';
 import { ECON, POLICIES, ensureEconomy, nap, setTax, togglePolicy, budgetPreview, sleepQuality, taxRate } from '../economy.js';
 import { CIVIL_RANKS, SHIFT_ENERGY, ensureCivil, isCivilServant, nextPromotion, civilShift, resignCivil, rejoinCivil } from '../career.js';
 import { BUILDINGS, PUBLIC_LEVELS, PUBLIC_WORK, stageLock, startPublic, upgradeStructure, upgradeCost, helpConstruction, findStructure, progressOf, hasResources, missingText, costText, HELP_ENERGY, gardenYield } from '../construction.js';
@@ -15,7 +15,7 @@ import { OUTFITS } from '../character/model.js';
 import { saveSettings } from '../performance.js';
 import { configureAudio, sfx, audioState } from '../audio.js';
 import { G, result, saveNow, enterBuild, resetNpcPlans, rebuildNpcs } from './game.js';
-import { TIERS, tierOf, tierInfo, officeNeeds, slotState, nextTierCheck, upgradeVillage, publicUnlocked, publicTier, SLOT_KINDS, openSlots, slotObstacles } from '../villageLayout.js';
+import { PAVE, roadSegments, segmentLevel, paveCost, paveSegment, pavedShare, TIERS, tierOf, tierInfo, officeNeeds, slotState, nextTierCheck, upgradeVillage, publicUnlocked, publicTier, SLOT_KINDS, openSlots, slotObstacles } from '../villageLayout.js';
 import { objective } from '../guide.js';
 import { clearPropTiles } from '../villageProps.js';
 import { myHome, claimPlot, houseSlots, CLAIM_FEE, HOUSE_COST } from '../housing.js';
@@ -209,7 +209,7 @@ function market() {
   const s = G.state;
   const open = isDone(s, 'market');
   return `<div class="notice">🛒 ราคาเปลี่ยนตามสต็อก: ของน้อย = ซื้อแพง · ของล้น = ขายได้ถูกลง NPC ผลิต (สวน/โรงงาน) และซื้ออาหารกลางวันจริง ${open ? '' : '<br>💡 สร้าง "ตลาดหมู่บ้าน" แล้ว NPC จะมากินข้าวกลางวันที่ตลาด (ภาษีเข้าคลังเมือง)'}</div>
-  ${Object.entries(MARKET).map(([id, it]) => { const bp = marketBuyPrice(s, id), sp = marketSellPrice(s, id); return `<div class="card"><div class="row"><div><b>${it.icon} ${it.name}</b><small>ของฉัน ${itemCount(s, id)} · สต็อกตลาด ${s.market[id]}</small></div><div>${bp ? btn(`ซื้อ ${bp}🪙`, 'buy', id, { disabled: s.player.coins < bp || s.market[id] < 1 }) : ''} ${btn(`ขาย ${sp}🪙`, 'sell', id, { disabled: itemCount(s, id) < 1, cls: 'btn ghost small' })}</div></div></div>`; }).join('')}
+  ${Object.entries(MARKET).map(([id, it]) => { const bp = marketBuyPrice(s, id), sp = marketSellPrice(s, id), lk = marketLocked(s, id); return `<div class="card ${lk ? 'lock' : ''}"><div class="row"><div><b>${it.icon} ${it.name}</b><small>ของฉัน ${itemCount(s, id)} · สต็อกตลาด ${s.market[id]}${lk ? ` · 🔒 ${lk}` : ''}</small></div><div>${bp ? btn(`ซื้อ ${bp}🪙`, 'buy', id, { disabled: !!lk || s.player.coins < bp || s.market[id] < 1 }) : ''} ${btn(`ขาย ${sp}🪙`, 'sell', id, { disabled: itemCount(s, id) < 1, cls: 'btn ghost small' })}</div></div></div>`; }).join('')}
   <p class="help">เงินในเกมได้จากการทำงานเท่านั้น ไม่มีการซื้อเหรียญด้วยเงินจริง</p>`;
 }
 function crafting() {
@@ -280,6 +280,12 @@ function leader() {
     <h3>📜 นโยบาย (จ่ายจากคลังทุกวัน)</h3>${Object.entries(POLICIES).map(([id, P]) => { const on = s.town.policies.includes(id), lock = tierOf(s) < P.tier;
       return `<div class="card ${on ? 'done' : lock ? 'lock' : ''}"><div class="row"><div><b>${P.icon} ${P.name}</b><small>${P.desc} · ${P.cost}/วัน · ความนิยม +${P.pop} · ความสุข +${P.happy}${lock ? ` · 🔒 พื้นที่ระดับ ${P.tier}` : ''}${E.suspended.includes(id) && !on ? ' · ⚠️ ถูกระงับเพราะคลังไม่พอ' : ''}</small></div>${btn(on ? 'ยกเลิก' : 'อนุมัติ', 'policy', id, { disabled: lock || (!on && s.town.treasury < P.cost * 3), cls: on ? 'btn ghost small' : 'btn small' })}</div></div>`; }).join('')}`
     : `<div class="notice warn">ตอนนี้ <b>${esc(L.leaderName || 'NPC')}</b> เป็นผู้นำ คุณยังเป็น${L.founder ? 'ผู้ก่อตั้ง (เก็บป้ายและที่ดินไว้)' : 'ชาวบ้าน'} ทำงานจิตอาสาสะสมผลงาน แล้วลงสมัครสมัยหน้า</div>`;
+  const roads = (() => { const segs = roadSegments(s), t = tierOf(s), top = PAVE.reduce((m, p, i) => t >= p.tier ? i : m, 0), P = G.state.player;
+    if (!segs.length) return '';
+    const near = [...segs].sort((a, b) => Math.hypot(a.x - P.x / TILE, a.y - P.y / TILE) - Math.hypot(b.x - P.x / TILE, b.y - P.y / TILE)).slice(0, 10);
+    return `<h3>🛣️ ถนนในพื้นที่ (ปูแล้ว ${Math.round(pavedShare(s) * 100)}%)</h3><p class="help">ถนนเริ่มเป็นทางดิน ผู้นำเลือกปูทีละช่วงด้วยงบคลัง · ${PAVE.map(p => `${p.icon} ${p.th}${p.cost ? ` ${p.cost}/ช่อง (ระดับ ${p.tier}+)` : ''}`).join(' · ')} · ถนนดีทำให้ชาวบ้านมีความสุข · เรียงจากช่วงที่ใกล้ตัวคุณ</p>
+    ${near.map(g => { const lv = segmentLevel(s, g); return `<div class="card ${lv >= top ? 'done' : ''}"><div class="row"><div><b>${PAVE[lv].icon} ${esc(g.name)}</b><small>${g.tiles.length} ช่อง · ตอนนี้: ${PAVE[lv].th}</small></div><div>${PAVE.map((p, i) => i > lv && t >= p.tier ? btn(`${p.icon} ${p.th} ${paveCost(s, g, i)}`, 'pave', `${g.id}|${i}`, { disabled: !L.isLeader || s.town.treasury < paveCost(s, g, i) }) : '').join(' ')} ${btn('📍', 'gotoTile', `${g.x},${g.y}`, { cls: 'btn ghost small', title: 'เดินไปดู' })}</div></div></div>`; }).join('')}
+    ${segs.length > 10 ? `<small>และอีก ${segs.length - 10} ช่วง — เดินไปใกล้ถนนช่วงนั้นแล้วเปิดเมนูนี้</small>` : ''}`; })();
   const vol = `<div class="card"><div class="row"><div><b>🤝 งานจิตอาสา</b><small>วันละครั้ง −${VOLUNTEER_ENERGY}⚡ · ผลงานทางการเมือง +1 (ทางสะสมผลงานตอนไม่ได้เป็นผู้นำ)</small></div>${btn(L.volunteerDay === s.day ? 'ทำแล้ววันนี้' : 'ไปช่วย', 'volunteer', '', { disabled: L.volunteerDay === s.day || s.player.stamina < VOLUNTEER_ENERGY })}</div></div>`;
   const pmCard = L.seats ? `<div class="card ${L.pm ? 'done' : ''}"><b>🏛️ สภาผู้แทนราษฎร (วันที่ ${L.seats.day})</b><small>พรรคของคุณ ${L.seats.seats} + พรรคร่วม ${L.seats.partners} จาก ${PARLIAMENT} ที่นั่ง → ${L.pm ? '✅ ได้เป็นนายกรัฐมนตรี' : '❌ ไม่ถึงครึ่ง เป็นฝ่ายค้าน'}</small></div>` : '';
   return `<div class="notice info"><b>${L.founder ? '🌲 ผู้ก่อตั้งหมู่บ้าน' : '🏘️ ชาวบ้าน'}</b> · ${roleLabel(s)}<br>ผู้ก่อตั้งเป็น "ผู้นำรักษาการ" วาระแรก แต่ตำแหน่ง<b>ไม่ถาวร</b>: ทุก ${TERM_DAYS} วันในเกมมีเลือกตั้ง ความนิยมมาจากความเป็นอยู่ของชาวบ้านเท่านั้น จำกัด ${MAX_CONSECUTIVE} วาระติดต่อกัน · <b>เงินจริงซื้อคะแนนหรือตำแหน่งไม่ได้</b></div>
@@ -289,7 +295,7 @@ function leader() {
   <h3>🗳️ สถานะลงสมัครสมัยหน้า</h3>${cr.ok ? '<div class="card done"><b>✅ ลงสมัครได้</b><small>ถึงวันเลือกตั้งระบบจะนับคะแนนอัตโนมัติ (จำลอง NPC — ยังไม่ใช่ผู้เล่นจริง)</small></div>' : `<div class="notice warn"><b>ยังลงสมัครไม่ได้:</b> ${cr.why.map(esc).join(' · ')}</div>`}
   ${L.results.length ? `<div class="card"><b>ผลเลือกตั้งที่ผ่านมา</b>${L.results.map(r => `<small>สมัย ${r.term} (วัน ${r.day}): คุณ ${r.player ?? '—'} · ${esc(r.rival)} ${r.rivalScore} → ${r.won ? '✅ ชนะ' : '❌ ไม่ได้รับเลือก'}${r.note ? ' · ' + esc(r.note) : ''}</small>`).join('')}</div>` : ''}
   <div class="grid2">${[['🏅', 'ผลงานทางการเมือง', Math.floor(L.record)], ['📚', 'ความรู้', p.knowledge]].map(([i, n, v]) => `<div class="item"><span class="ico">${i}</span><strong>${v}</strong><small>${n}</small></div>`).join('')}</div>${vol}${pmCard}
-  <h3>📝 ข้อสอบผู้นำ</h3>${examBlock}${budget}${office}${dark}
+  <h3>📝 ข้อสอบผู้นำ</h3>${examBlock}${budget}${office}${roads}${dark}
   <h3>🪜 เส้นทางสู่นายกรัฐมนตรี (สายการเมือง)</h3><div class="ladder">${TIERS.map(x => { const need = officeNeeds(s, x.tier);
     return `<div class="card ${x.tier < tierOf(s) ? 'done' : x.tier === tierOf(s) ? 'active' : ''}"><b>${x.icon} ${x.th} → ${x.tier === 5 ? 'ส.ส. → นายกรัฐมนตรี (สภาลงมติ)' : x.title}${x.tier === tierOf(s) ? ' (ตอนนี้)' : ''}</b><small>${x.tier <= tierOf(s) ? 'ปลดล็อกแล้ว' : `ประชากร ${x.minPop}${x.publicLv ? ` · อาคารสาธารณะระดับ ${x.publicLv}` : ''}${x.fund ? ` · งบพัฒนา ${fmt(x.fund)} จากคลัง` : ''}`}${need.length ? ` · คุณสมบัติ: ${need.map(q => `${q.ok ? '✅' : '⬜'} ${q.label}`).join(' ')}` : ''}</small></div>`; }).join('')}</div>
   <p class="help">ทุกขั้นได้จากผลงาน คุณสมบัติ งบที่บริหารเอง และการเลือกตั้งเท่านั้น — ซื้อด้วยเงินจริงไม่ได้ · ระดับประเทศ: ชนะเลือกตั้ง ส.ส. แล้วสภาลงมติ ต้องได้เกินครึ่ง ${PARLIAMENT / 2} ที่นั่ง (ผลงานมาก + มือสะอาด = พรรคร่วมเยอะ)${STAGES.length && LEADERSHIP_LADDER.length ? '' : ''}</p>`;
@@ -351,6 +357,8 @@ function onClick(e) {
     case 'eat': r = eatFood(s); break;
     case 'rest': r = nap(s); break;
     case 'volunteer': r = volunteer(s); break;
+    case 'pave': { const [sid, lv] = id.split('|'); r = paveSegment(s, sid, Number(lv), !!s.leadership?.isLeader); snd = r.ok ? 'build' : 'error'; break; }
+    case 'gotoTile': { const [x, y] = id.split(',').map(Number); closePanel(); G.walkTo((x + .5) * TILE, (y + .5) * TILE); return; }
     case 'resign': r = resignCivil(s); break;
     case 'rejoin': r = rejoinCivil(s); break;
     case 'setTax': r = setTax(s, Number(id), !!s.leadership?.isLeader); break;

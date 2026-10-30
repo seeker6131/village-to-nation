@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.27 — maps from the Map Maker, road paving, unlocks by area level (30 Oct 2026)
+- Maps drawn in the Map Maker play in the game: `node scripts/import-map.mjs maps/<file>.v2nmap.json map<N> "<name>"`
+  -> src/maps/. The village moves to the map's leader house (ORIGIN shift); NPC markers = NPC house plots, lot markers
+  = player lots, the workshop = workshop slot, other buildings = solid props, trees keep their exact sprite (stumps
+  stay stumps), public plots go to "public" markers or the nearest free land. Test link: play.html?map=map1.
+  Map 1 (ป่าริมน้ำ) is in; new towns can also get it at random.
+- Roads start as dirt. The leader paves them section by section from the treasury: concrete (หมู่บ้าน+, 4/tile),
+  asphalt + sidewalks (อำเภอ+, 10/tile); pays only the difference; counts for the political record; NPC leaders
+  pave too. Paved roads make villagers happier. District streets come paved. Old saves keep their roads.
+- House level N opens with area level N (camp = cabin ... nation = mansion), money still needed — for the player
+  and NPC households. Market goods and some buildables open with the area level (planks, tool kits, lamps, workshop).
+
 ## v0.26 — economy, budget and the real road to Prime Minister (30 Oct 2026)
 - Energy is a daily budget: no passive regen; sleep refills it (own house 100, leader house 100, lodging 80, tent 65),
   one nap +30 and up to 3 meals (+20 each) a day. Jobs cost 20–28 energy -> about 6–8 jobs a day.

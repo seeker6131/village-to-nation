@@ -3,7 +3,7 @@
 import { deepClone } from './gameState.js';
 import { ensureWorld, setNode, plotObstacles } from './world.js';
 import { ensureConstruction, PUBLIC_LEVELS, BUILDINGS, PUBLIC_WORK } from './construction.js';
-import { TIERS, openSlots, openRoads, slotObstacles } from './villageLayout.js';
+import { TIERS, openSlots, openRoads, slotObstacles, paveAll } from './villageLayout.js';
 import { clearPropTiles } from './villageProps.js';
 import { settlerArrivals, population, allNpcDefs } from './npcs.js';
 import { ensureLeadership } from './leadership.js';
@@ -61,6 +61,7 @@ export function fillLevel(s, era = (s.town?.stage || 0) + 1) {
     const slot = openSlots(s).find(x => x.kind === 'cottage' && x.tx === p.tx && x.ty === p.ty);
     if (slot) s.homes[slot.id] = { owner: npc.id, name: npc.name, savings: 0, claimedDay: s.day };
   }
+  paveAll(s); // test mode: every road paved to the best the area allows
   s.town.happiness = 90; s.__structVer = (s.__structVer || 0) + 1;
   // the clock moved on: everyone fed and rested, the hourly economy starts from now (no backlog)
   s.town.lastEconomyHour = Math.floor(((s.day - 1) * 86400 + s.gameTime) / 3600);
