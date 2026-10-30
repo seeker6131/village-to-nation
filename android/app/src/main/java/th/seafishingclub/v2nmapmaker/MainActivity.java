@@ -54,14 +54,14 @@ public class MainActivity extends Activity {
                 boolean images = Arrays.toString(p.getAcceptTypes()).contains("image");
                 i.setType(images ? "image/*" : "*/*");
                 if (p.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE) i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-                try { startActivityForResult(Intent.createChooser(i, images ? "เลือกรูป" : "เลือกไฟล์แมพ"), PICK); }
+                try { startActivityForResult(Intent.createChooser(i, images ? "เลือกรูป" : "เลือกไฟล์"), PICK); }
                 catch (Exception e) { fileCb = null; return false; }
                 return true;
             }
         });
         web.addJavascriptInterface(new Bridge(), "AndroidBridge");
         if (b != null) web.restoreState(b);
-        else web.loadUrl("https://appassets.androidplatform.net/assets/www/editor/index.html");
+        else web.loadUrl("https://appassets.androidplatform.net/assets/www/" + BuildConfig.START);
     }
 
     @Override protected void onSaveInstanceState(Bundle out) { super.onSaveInstanceState(out); web.saveState(out); }

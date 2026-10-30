@@ -25,9 +25,9 @@ jobs:
       - name: Build APK
         run: |
           set -o pipefail
-          gradle -p android assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log || { grep -E 'error:|What went wrong|FAILURE|Exception|>' build.log | head -40 | sed 's/^/::error::/'; exit 1; }
+          gradle -p android assembleMapmakerRelease --no-daemon --stacktrace 2>&1 | tee build.log || { grep -E 'error:|What went wrong|FAILURE|Exception|>' build.log | head -40 | sed 's/^/::error::/'; exit 1; }
       - name: Rename
-        run: cp android/app/build/outputs/apk/release/app-release.apk V2N-MapMaker.apk
+        run: cp android/app/build/outputs/apk/mapmaker/release/app-mapmaker-release.apk V2N-MapMaker.apk
       - uses: actions/upload-artifact@v4
         with: { name: V2N-MapMaker, path: V2N-MapMaker.apk }
       - name: Publish release

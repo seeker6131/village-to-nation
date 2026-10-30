@@ -1,5 +1,8 @@
 # Changelog
 
+## Rig Maker 1 (tool)
+- New `rig/index.html`: import GPT part sheets (auto background key + auto split, rect/lasso cut), place parts, humanoid bone templates for front/side/back, snap part to bone, keyframe timeline (auto-key, IK, onion skin, mirror L/R, half-cycle offset, copy/paste pose, bone length scale), auto walk, game-size live preview, export `.v2nrig.json` + sprite sheet PNG/JSON. Android APK via the `rig` flavor.
+
 ## v0.28 — Map Maker v2 + Android app, levels on maps (31 Oct 2026)
 - Map Maker v2 (editor/index.html): mobile-first (tools at the bottom, one options sheet), one finger = tool, two
   fingers always zoom/pan and cancel a stroke in progress, "place" = tap to place / drag to pan. Every object can be

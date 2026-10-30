@@ -4,7 +4,6 @@ android {
     namespace 'th.seafishingclub.v2nmapmaker'
     compileSdk 34
     defaultConfig {
-        applicationId 'th.seafishingclub.v2nmapmaker'
         minSdk 24
         targetSdk 34
         versionCode runNo
@@ -12,6 +11,12 @@ android {
     }
     // fixed key so a new APK installs over the old one (personal tool; the key is not a secret)
     signingConfigs { v2n { storeFile file('../v2n.keystore'); storePassword 'v2nmapmaker'; keyAlias 'v2n'; keyPassword 'v2nmapmaker' } }
+    buildFeatures { buildConfig true }
+    flavorDimensions 'app'
+    productFlavors {
+        mapmaker { dimension 'app'; applicationId 'th.seafishingclub.v2nmapmaker'; resValue 'string', 'app_name', 'V2N Map Maker'; buildConfigField 'String', 'START', '"editor/index.html"' }
+        rig { dimension 'app'; applicationId 'th.seafishingclub.v2nrig'; resValue 'string', 'app_name', 'V2N Rig Maker'; buildConfigField 'String', 'START', '"rig/index.html"' }
+    }
     buildTypes { release { minifyEnabled false; signingConfig signingConfigs.v2n } }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     androidResources { noCompress += ['webp', 'png', 'json'] }
