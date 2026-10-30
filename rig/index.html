@@ -1099,6 +1099,16 @@ function rekey() {
       const i = y * w + x; if (!a0[i]) continue;
       if ((!a0[i - 1] || !a0[i + 1] || !a0[i - w] || !a0[i + w]) && dist(i * 4) < f2) d[i * 4 + 3] = 0;
     }
+    // JPEG / screenshot halo: peel pinkish (background-tinted) pixels off the edges, 3 rings deep
+    const bgMag = br > 150 && bb > 150 && bg < 120;
+    if (bgMag) for (let pass = 0; pass < 3; pass++) {
+      const a1 = new Uint8Array(w * h); for (let i = 0; i < w * h; i++) a1[i] = d[i * 4 + 3];
+      for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+        const i = y * w + x; if (!a1[i] || (a1[i - 1] && a1[i + 1] && a1[i - w] && a1[i + w])) continue;
+        const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2];
+        if (r > 120 && b > 90 && g < r - 45 && b > g + 30) d[i * 4 + 3] = 0;
+      }
+    }
   } else if (IMP.bg?.transparent) { for (let i = 3; i < d.length; i += 4) d[i] = d[i] < 128 ? 0 : 255; }
   const k = document.createElement('canvas'); k.width = w; k.height = h; const kx = k.getContext('2d'); kx.putImageData(id, 0, 0);
   IMP.keyedBase = k;
