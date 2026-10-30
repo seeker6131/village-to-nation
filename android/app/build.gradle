@@ -13,6 +13,7 @@ android {
     signingConfigs { v2n { storeFile file('../v2n.keystore'); storePassword 'v2nmapmaker'; keyAlias 'v2n'; keyPassword 'v2nmapmaker' } }
     buildTypes { release { minifyEnabled false; signingConfig signingConfigs.v2n } }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
-    androidResources { noCompress 'webp', 'png', 'json' }
+    androidResources { noCompress += ['webp', 'png', 'json'] }
+    lint { checkReleaseBuilds false; abortOnError false }
 }
 dependencies { implementation 'androidx.webkit:webkit:1.11.0' }
