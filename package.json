@@ -1,6 +1,6 @@
 {
   "name": "village-to-nation-starter",
-  "version": "0.27.0",
+  "version": "0.28.0",
   "private": true,
   "type": "module",
   "description": "Village to Nation — 2D top-down 16-bit pixel art life sim & village builder (offline prototype)",

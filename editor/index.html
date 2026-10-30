@@ -22,8 +22,8 @@ button.on{background:var(--acc);color:#1d2321;border-color:var(--acc);font-weigh
 #stage{position:relative;overflow:hidden;background:#111614;touch-action:none;min-height:0}
 #view{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
 #status{position:absolute;left:6px;bottom:6px;background:#000a;color:var(--mute);font-size:11px;padding:2px 8px;border-radius:8px;pointer-events:none;max-width:70%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#selbar[hidden]{display:none}#selbar{position:absolute;display:flex;gap:4px;background:#1d2321ee;border:1px solid var(--acc);border-radius:12px;padding:4px;z-index:5}
-#selbar button{min-width:38px;min-height:38px;padding:4px 7px}
+#selbar[hidden]{display:none}#selbar{position:absolute;display:flex;flex-wrap:wrap;justify-content:center;max-width:calc(100% - 8px);gap:4px;background:#1d2321ee;border:1px solid var(--acc);border-radius:12px;padding:4px;z-index:5}
+#selbar button{min-width:36px;min-height:36px;padding:3px 6px}
 #selRot{align-self:center;font-size:12px;color:var(--acc);min-width:32px;text-align:center}
 #sheet{min-width:0;background:var(--panel);border-top:1px solid var(--line);display:flex;flex-direction:column;max-height:42vh}
 #sheet.closed #sheetBody{display:none}
@@ -45,6 +45,7 @@ button.on{background:var(--acc);color:#1d2321;border-color:var(--acc);font-weigh
 .card img{width:100%;height:58px;object-fit:contain;image-rendering:pixelated;display:block;background:repeating-conic-gradient(#2a332f 0 25%,#232b28 0 50%) 0 0/12px 12px;border-radius:6px}
 .card span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
 .help{color:var(--mute);font-size:12px;margin:6px 0}
+.ck{border:1px solid var(--line);border-radius:10px;padding:6px 8px;margin:4px 0;font-size:12px;line-height:1.7}.ck .ok{color:#8bd17c}.ck .no{color:#e0a07a}
 #tools{display:flex;background:var(--panel);border-top:1px solid var(--line)}
 #tools button{flex:1;border:0;border-radius:0;background:none;padding:6px 2px;font-size:21px;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:56px}
 #tools button small{font-size:10px;color:var(--mute)}#tools button.on{background:#e7b04a22;color:var(--ink)}#tools button.on small{color:var(--acc)}
@@ -76,7 +77,7 @@ kbd{background:#111;border:1px solid var(--line);border-radius:4px;padding:0 4px
     <button id="bSave" title="บันทึกไฟล์">💾</button>
   </header>
   <main id="stage"><canvas id="view"></canvas><div id="status"></div>
-    <div id="selbar" hidden><button data-sa="l">⟲</button><span id="selRot">0°</span><button data-sa="r">⟳</button><button data-sa="r90">↻90</button><button data-sa="flip">↔</button><button data-sa="dup">⧉</button><button data-sa="del">🗑</button><button data-sa="done">✓</button></div>
+    <div id="selbar" hidden><button data-sa="l">⟲</button><span id="selRot">0°</span><button data-sa="r">⟳</button><button data-sa="r90">↻90</button><button data-sa="small">−</button><span id="selSize" style="align-self:center;font-size:12px;min-width:30px;text-align:center">1×1</span><button data-sa="big">＋</button><button data-sa="flip">↔</button><button data-sa="dup">⧉</button><button data-sa="del">🗑</button><button data-sa="done">✓</button></div>
   </main>
   <aside id="sheet"><div id="sheetHead"><span id="sheetTitle"></span></div><div id="sheetBody"></div></aside>
   <nav id="tools"></nav>
@@ -114,6 +115,8 @@ kbd{background:#111;border:1px solid var(--line);border-radius:4px;padding:0 4px
   <p>👆 <b>นิ้วเดียว</b> = ใช้เครื่องมือที่เลือก · ✌️ <b>สองนิ้ว</b> = ซูม/เลื่อนแมพเสมอ (ไม่วาด ไม่วางของ)</p>
   <p>🖐 <b>เลื่อน/เลือก</b>: ลากเลื่อนแมพ แตะของเพื่อเลือก → แถบเหนือของ: ⟲⟳ หมุนทีละ 15° · ↻90 · ↔ กลับด้าน · ⧉ ทำซ้ำ · 🗑 ลบ · แตะของที่เลือกแล้วลาก = ย้าย</p>
   <p>🏠 <b>วางของ</b>: เลือกรูปด้านล่าง แตะแมพ = วาง · ลาก = เลื่อนแมพ · หมุนก่อนวางได้</p>
+  <p>◢ <b>ย่อ/ขยาย</b>: เลือกของหรือที่ดิน แล้วลากสามเหลี่ยมมุมขวาล่าง หรือกด −/＋ บนแถบ · ก่อนวางตั้งขนาดได้ในแผงวางของ</p>
+  <p>🗺️ <b>ระดับ</b>: ระบายว่าส่วนไหนเปิดตอน ค่าย/หมู่บ้าน/อำเภอ/จังหวัด/ประเทศ · ดูแมพตอนแต่ละระดับได้ · มีเช็กลิสต์บอกว่าขาดที่ดินหรืออาคารอะไร</p>
   <p>📍 <b>ที่ดิน/หมุด</b>: แตะ = ที่ดินขนาดมาตรฐาน (บ้าน 6×5 ช่อง) มีรูปบ้านจางๆ บอกขนาดจริง · ลาก = กำหนดขนาดเอง · ที่ดินอาคารเลือกชนิดได้ (ตลาด รพ. ฯลฯ)</p>
   <p>💾 บันทึกแล้วส่งไฟล์ <code>.v2nmap.json</code> ให้ Claude · งานบันทึกในเครื่องอัตโนมัติ</p>
   <p class="help">คอม: <kbd>V</kbd> <kbd>B</kbd> <kbd>L</kbd> <kbd>P</kbd> <kbd>T</kbd> <kbd>M</kbd> <kbd>E</kbd> เครื่องมือ · <kbd>R</kbd> หมุน · <kbd>X</kbd> กลับด้าน · ล้อเมาส์ซูม · Space/คลิกขวา ลากเลื่อน · <kbd>Ctrl+Z</kbd></p>
@@ -178,17 +181,52 @@ const gameImg = new Map();
 function gameSprite(name) { if (!name) return null; if (!gameImg.has(name)) { const im = new Image(); im.onload = draw; im.src = GAME_BASE + name + '.webp'; gameImg.set(name, im); } return gameImg.get(name); }
 function markerSize(m) { const M = MARKERS[m.type] || MARKERS.note, T = PLOT_TYPES[m.plot] || PLOT_TYPES.home; return [m.w || (m.type === 'public' ? T.w : M.w) || 1, m.h || (m.type === 'public' ? T.h : M.h) || 1]; }
 
+// ------------------------------------------------------------------ v2.1 levels: paint which area opens at which level
+// Draw the FINAL town (nation level), then paint each part with the level that opens it. In the game, parts above the
+// current level are forest (trees are added automatically) with their roads/lots hidden; raising the area clears them.
+const TIER = [null, { th: 'ค่ายบุกเบิก', c: '#ffd84a' }, { th: 'หมู่บ้าน', c: '#8bc34a' }, { th: 'อำเภอ', c: '#4fc3f7' }, { th: 'จังหวัด', c: '#ba68c8' }, { th: 'ประเทศ', c: '#f06292' }];
+const NEED = { // what each level should have (cumulative lots; buildings that open at that level)
+  1: { lots: 0, npc: 7, plots: ['home', 'farm'] }, 2: { lots: 14, npc: 0, plots: ['market', 'hall', 'workshop'] },
+  3: { lots: 34, npc: 0, plots: ['district', 'police', 'school', 'post', 'temple'] }, 4: { lots: 60, npc: 0, plots: ['hospital', 'mall', 'fire', 'province'] },
+  5: { lots: 90, npc: 0, plots: ['bank', 'office', 'hotel', 'parliament'] },
+};
+const tierAt = (x, y) => inside(Math.floor(x), Math.floor(y)) ? P.tier[idx(Math.floor(x), Math.floor(y))] || 1 : 1;
+const objTier = o => tierAt(o.x + o.fw / 2, o.y + o.fh - 1);
+const mkTier = m => { const [w, h] = markerSize(m); return tierAt(m.x + w / 2, m.y + h - 1); };
+let tierCv = null, tierDirty = true;
+function tierOverlay() { // 1 px per tile, scaled up when drawn
+  if (!tierCv || tierCv.width !== P.w || tierCv.height !== P.h) { tierCv = document.createElement('canvas'); tierCv.width = P.w; tierCv.height = P.h; tierDirty = true; }
+  if (!tierDirty) return tierCv; tierDirty = false;
+  const g = tierCv.getContext('2d'), im = g.createImageData(P.w, P.h), show = ui.showTier || ui.tool === 'tier';
+  for (let i = 0; i < P.w * P.h; i++) { const t = P.tier[i] || 1; let r = 0, gg = 0, b = 0, a = 0;
+    if (t > ui.viewTier) { r = 24; gg = 70; b = 34; a = 200; } // still forest at this level
+    else if (show) { const c = TIER[t].c; r = parseInt(c.slice(1, 3), 16); gg = parseInt(c.slice(3, 5), 16); b = parseInt(c.slice(5, 7), 16); a = 70; }
+    im.data.set([r, gg, b, a], i * 4); }
+  g.putImageData(im, 0, 0); return tierCv;
+}
+function setTier(x, y, v) { if (!inside(x, y)) return; const i = idx(x, y); if (P.tier[i] === v) return; P.tier[i] = v; tierDirty = true; if (P.road[i]) markDirty(x, y); }
+/** Per level: how many player lots / NPC plots / which building plots the map has vs what the game needs. */
+function checklist() {
+  const out = [];
+  for (let t = 1; t <= 5; t++) {
+    const lots = P.markers.filter(m => m.type === 'lot' && mkTier(m) <= t).length, npc = P.markers.filter(m => m.type === 'npc' && mkTier(m) <= t).length;
+    const plots = NEED[t].plots.map(p => ({ p, ok: P.markers.some(m => m.type === 'public' && m.plot === p && mkTier(m) <= t) }));
+    out.push({ t, lots, npc, plots, lotsOk: lots >= NEED[t].lots, npcOk: npc >= (t === 1 ? NEED[1].npc : 0) });
+  }
+  return out;
+}
+
 // ------------------------------------------------------------------ state
 let P = null;
 const img = new Map();
 let undoStack = [], redoStack = [];
 const ui = { tool: 'pan', terrain: 0, road: 1, asset: null, marker: 'lot', plot: 'home', brush: 1, groundMode: 'brush', roadMode: 'brush', zoom: 1, ox: 0, oy: 0,
   grid: true, foot: false, sel: null, selMarker: null, kindFilter: 'house', q: '', density: 35, overlap: false, flip: false, rot: 0, hover: null, scatterSet: [],
-  housePreview: 1, sheet: true, lineStart: null, recent: [] };
+  housePreview: 1, sheet: true, lineStart: null, recent: [], placeScale: 1, tierPaint: 2, viewTier: 5, showTier: false };
 
 function newProject(w = 144, h = 96, fill = 0, keepAssets = null) {
   return { format: FORMAT, name: 'แมพใหม่', tile: TILE, w, h, terrains: DEF_TERRAIN.map(t => ({ ...t })), roads: DEF_ROADS.map(r => ({ ...r })),
-    ground: new Uint8Array(w * h).fill(fill), road: new Uint8Array(w * h), objects: [], markers: [], assets: keepAssets || [], nextId: 1 };
+    ground: new Uint8Array(w * h).fill(fill), road: new Uint8Array(w * h), tier: new Uint8Array(w * h).fill(1), objects: [], markers: [], assets: keepAssets || [], nextId: 1 };
 }
 const idx = (x, y) => y * P.w + x, inside = (x, y) => x >= 0 && y >= 0 && x < P.w && y < P.h;
 const assetById = id => P.assets.find(a => a.id === id);
@@ -201,12 +239,13 @@ function toFile() {
   const rows = (arr, none) => Array.from({ length: P.h }, (_, y) => Array.from({ length: P.w }, (_, x) => { const v = arr[idx(x, y)]; return none && !v ? '.' : ROWCH[none ? v - 1 : v]; }).join(''));
   return {
     format: FORMAT, app: 'V2N Map Maker', saved: new Date().toISOString(), name: P.name, tile: TILE, width: P.w, height: P.h,
-    readme: 'Tiles are 16 px. Coordinates are tiles, x to the right, y down, (0,0) top-left. groundRows[y][x] is a key of groundKey; roadRows uses roadKey ("." = no road). Objects: x,y = top-left tile of the footprint (fw x fh tiles, the solid base, already turned for rot ~90/270); the sprite is drawn centred on the footprint and stands on its bottom edge, sprite width = tw tiles, then rotated by rot degrees (clockwise) around the footprint centre and mirrored if flip. Markers: lot / npc = house plots (house 4x3 at the bottom-centre of the box), public = building plot of type plot. asset = id in assets; game art has src "game:<sprite name>" (assets/v10/<name>.webp), imported art has a data URL.',
+    readme: 'Tiles are 16 px. Coordinates are tiles, x to the right, y down, (0,0) top-left. groundRows[y][x] is a key of groundKey; roadRows uses roadKey ("." = no road). Objects: x,y = top-left tile of the footprint (fw x fh tiles, the solid base, already turned for rot ~90/270); the sprite is drawn centred on the footprint and stands on its bottom edge, sprite width = tw tiles, then rotated by rot degrees (clockwise) around the footprint centre and mirrored if flip. Markers: lot / npc = house plots (house 4x3 at the bottom-centre of the box), public = building plot of type plot. tierRows[y][x] = level 1-5 that opens the tile (above the current level the game shows forest). asset = id in assets; game art has src "game:<sprite name>" (assets/v10/<name>.webp), imported art has a data URL.',
     groundKey: gk, terrains: P.terrains.map(t => ({ id: t.id, name: t.name, color: t.color, asset: t.asset || null })),
     roadKey: rk, roadTypes: P.roads.map(r => ({ id: r.id, name: r.name, color: r.color, asset: r.asset || null })),
     groundRows: rows(P.ground, false), roadRows: rows(P.road, true),
-    objects: P.objects.map(o => { const a = assetById(o.asset); return { id: o.id, asset: o.asset, assetName: a?.name, kind: a?.kind, x: o.x, y: o.y, fw: o.fw, fh: o.fh, tw: o.tw, flip: !!o.flip, rot: o.rot || 0, label: o.label || '' }; }),
-    markers: P.markers.map(m => ({ ...m, typeName: MARKERS[m.type]?.name })),
+    tierRows: Array.from({ length: P.h }, (_, y) => Array.from({ length: P.w }, (_, x) => String(P.tier[idx(x, y)] || 1)).join('')),
+    objects: P.objects.map(o => { const a = assetById(o.asset); return { id: o.id, asset: o.asset, assetName: a?.name, kind: a?.kind, x: o.x, y: o.y, fw: o.fw, fh: o.fh, tw: o.tw, flip: !!o.flip, rot: o.rot || 0, tier: objTier(o), label: o.label || '' }; }),
+    markers: P.markers.map(m => ({ ...m, w: markerSize(m)[0], h: markerSize(m)[1], tier: mkTier(m), typeName: MARKERS[m.type]?.name })),
     assets: P.assets.filter(a => !a.game || P.objects.some(o => o.asset === a.id) || [...P.terrains, ...P.roads].some(t => t.asset === a.id)).map(a => ({ id: a.id, game: !!a.game, name: a.name, kind: a.kind, kindName: KINDS[a.kind], tw: a.tw, fw: a.fw, fh: a.fh, pw: a.pw, ph: a.ph, src: a.src })),
     summary: summary(),
   };
@@ -228,9 +267,10 @@ function fromFile(f) {
   const ri = {}; Object.entries(f.roadKey).forEach(([ch, id]) => ri[ch] = id === 'none' ? 0 : p.roads.findIndex(r => r.id === id) + 1);
   f.groundRows.forEach((row, y) => { for (let x = 0; x < p.w; x++) p.ground[y * p.w + x] = Math.max(0, gi[row[x]] ?? 0); });
   f.roadRows.forEach((row, y) => { for (let x = 0; x < p.w; x++) p.road[y * p.w + x] = ri[row[x]] ?? 0; });
+  (f.tierRows || []).forEach((row, y) => { for (let x = 0; x < p.w; x++) p.tier[y * p.w + x] = Math.max(1, Math.min(5, +row[x] || 1)); });
   p.assets = f.assets.map(a => ({ ...a }));
   p.objects = f.objects.map(o => ({ id: o.id, asset: o.asset, x: o.x, y: o.y, fw: o.fw, fh: o.fh, tw: o.tw, flip: o.flip, rot: o.rot || 0, label: o.label }));
-  p.markers = (f.markers || []).map(m => { const { typeName, ...rest } = m; void typeName; return rest; });
+  p.markers = (f.markers || []).map(m => { const { typeName, tier, ...rest } = m; void typeName; void tier; return rest; });
   p.nextId = 1 + Math.max(0, ...p.objects.map(o => o.id), ...p.markers.map(m => m.id || 0));
   return p;
 }
@@ -311,7 +351,7 @@ function buildCells() {
   const cw = CWn(), ch = CHn(); cellG = new Int16Array(cw * ch); cellR = new Int16Array(cw * ch);
   for (let Y = 0; Y < ch; Y++) for (let X = 0; X < cw; X++) {
     const cg = {}, cr = {};
-    for (let j = 0; j < CELL; j++) for (let i = 0; i < CELL; i++) { const x = X * CELL + i, y = Y * CELL + j; if (!inside(x, y)) continue; const k = idx(x, y); cg[P.ground[k]] = (cg[P.ground[k]] || 0) + 1; cr[P.road[k]] = (cr[P.road[k]] || 0) + 1; }
+    for (let j = 0; j < CELL; j++) for (let i = 0; i < CELL; i++) { const x = X * CELL + i, y = Y * CELL + j; if (!inside(x, y)) continue; const k = idx(x, y); cg[P.ground[k]] = (cg[P.ground[k]] || 0) + 1; const rv = ui.viewTier >= 5 || (P.tier?.[k] || 1) <= ui.viewTier ? P.road[k] : 0; cr[rv] = (cr[rv] || 0) + 1; }
     const best = o => +Object.entries(o).sort((a, b) => b[1] - a[1])[0][0];
     cellG[Y * cw + X] = best(cg); const r = Object.entries(cr).sort((a, b) => b[1] - a[1])[0]; cellR[Y * cw + X] = r && +r[0] && r[1] >= 2 ? +r[0] : 0;
   }
@@ -384,16 +424,19 @@ function render() {
   ctx.imageSmoothingEnabled = false;
   ctx.setTransform(s, 0, 0, s, ui.ox, ui.oy);
   ctx.drawImage(wbase, 0, 0); ctx.drawImage(base, 0, 0);
-  for (const m of P.markers) drawMarkerBox(m, m === ui.selMarker);
+  { const tc = tierOverlay(); ctx.drawImage(tc, 0, 0, P.w * TILE, P.h * TILE); }
+  const visO = o => ui.viewTier >= 5 || objTier(o) <= ui.viewTier, visM = m => ui.viewTier >= 5 || mkTier(m) <= ui.viewTier;
+  for (const m of P.markers) if (visM(m)) drawMarkerBox(m, m === ui.selMarker);
   // objects + building previews of the plots, y-sorted like the game
-  const list = P.objects.map(o => ({ y: o.y + o.fh, f: () => drawObject(o, 1) }));
-  for (const m of P.markers) { const pv = markerPreview(m); if (pv) list.push({ y: pv.by / TILE, f: () => drawPreview(pv) }); }
+  const list = P.objects.filter(visO).map(o => ({ y: o.y + o.fh, f: () => drawObject(o, 1) }));
+  for (const m of P.markers) { if (!visM(m)) continue; const pv = markerPreview(m); if (pv) list.push({ y: pv.by / TILE, f: () => drawPreview(pv) }); }
   list.sort((a, b) => a.y - b.y).forEach(e => e.f());
   const h = ui.hover;
   if (h && ui.tool === 'place' && ui.asset && !ui.touching) { const g = ghostAt(h.x, h.y); if (g) { drawObject(g, .55); footRect(g, canPlace(g) ? '#6fbf73' : '#d9634c'); } }
   if (h && ui.tool === 'marker' && !ui.drag && !ui.touching) { const g = markerGhost(h.x, h.y); drawMarkerBox(g, false, .6); const pv = markerPreview(g); if (pv) drawPreview(pv); }
   if (ui.foot || ui.tool === 'pan') for (const o of P.objects) footRect(o, o === ui.sel ? '#e7b04a' : '#ffffff40');
-  if (ui.sel) { const b = spriteBox(ui.sel, assetById(ui.sel.asset)); ctx.strokeStyle = '#e7b04a'; ctx.lineWidth = 2 / s; ctx.strokeRect(b.x, b.y, b.w, b.h); }
+  if (ui.sel) { const b = spriteBox(ui.sel, assetById(ui.sel.asset)); ctx.strokeStyle = '#e7b04a'; ctx.lineWidth = 2 / s; ctx.strokeRect(b.x, b.y, b.w, b.h); drawHandle(handleOf()); }
+  if (ui.selMarker && ui.tool === 'pan') drawHandle(handleOf());
   if (ui.grid && s >= 1.1) {
     const vw = cv.width / s, vh = cv.height / s, x0 = Math.max(0, Math.floor(-ui.ox / s / TILE)), y0 = Math.max(0, Math.floor(-ui.oy / s / TILE));
     const x1 = Math.min(P.w, Math.ceil((vw - ui.ox / s) / TILE) + 1), y1 = Math.min(P.h, Math.ceil((vh - ui.oy / s) / TILE) + 1);
@@ -402,8 +445,8 @@ function render() {
     ctx.strokeStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); for (let x = x0 - x0 % 2; x <= x1; x += 2) { ctx.moveTo(x * TILE, y0 * TILE); ctx.lineTo(x * TILE, y1 * TILE); } for (let y = y0 - y0 % 2; y <= y1; y += 2) { ctx.moveTo(x0 * TILE, y * TILE); ctx.lineTo(x1 * TILE, y * TILE); } ctx.stroke();
   }
   ctx.font = `${Math.max(5, 10 / z)}px system-ui`; ctx.textBaseline = 'top';
-  for (const m of P.markers) { const M = MARKERS[m.type] || MARKERS.note, [w, hh] = markerSize(m); const t = `${M.icon} ${m.label || (m.type === 'public' ? PLOT_TYPES[m.plot]?.name : M.name)} ${w}×${hh}`; ctx.fillStyle = '#000b'; const tw = ctx.measureText(t).width; ctx.fillRect(m.x * TILE, m.y * TILE - 12 / z, tw + 4 / z, 12 / z); ctx.fillStyle = '#fff'; ctx.fillText(t, m.x * TILE + 2 / z, m.y * TILE - 11 / z); }
-  if (h && ['ground', 'erase', 'road', 'scatter'].includes(ui.tool) && !ui.touching && (ui.tool !== 'ground' || ui.groundMode === 'brush')) { const r = ui.brush, CX = Math.floor(h.x / CELL), CY = Math.floor(h.y / CELL); ctx.strokeStyle = ui.tool === 'erase' ? '#d9634c' : '#fff'; ctx.lineWidth = 1.5 / s; ctx.strokeRect((CX - r + 1) * CELL * TILE, (CY - r + 1) * CELL * TILE, (2 * r - 1) * CELL * TILE, (2 * r - 1) * CELL * TILE); }
+  for (const m of P.markers) { if (!visM(m)) continue; const M = MARKERS[m.type] || MARKERS.note, [w, hh] = markerSize(m); const t = `${M.icon} ${m.label || (m.type === 'public' ? PLOT_TYPES[m.plot]?.name : M.name)} ${w}×${hh}`; ctx.fillStyle = '#000b'; const tw = ctx.measureText(t).width; ctx.fillRect(m.x * TILE, m.y * TILE - 12 / z, tw + 4 / z, 12 / z); ctx.fillStyle = '#fff'; ctx.fillText(t, m.x * TILE + 2 / z, m.y * TILE - 11 / z); }
+  if (h && ['ground', 'erase', 'road', 'scatter', 'tier'].includes(ui.tool) && !ui.touching && (ui.tool !== 'ground' || ui.groundMode === 'brush')) { const r = ui.brush, CX = Math.floor(h.x / CELL), CY = Math.floor(h.y / CELL); ctx.strokeStyle = ui.tool === 'erase' ? '#d9634c' : '#fff'; ctx.lineWidth = 1.5 / s; ctx.strokeRect((CX - r + 1) * CELL * TILE, (CY - r + 1) * CELL * TILE, (2 * r - 1) * CELL * TILE, (2 * r - 1) * CELL * TILE); }
   if (ui.drag?.rect) { const q = normRect(ui.drag.rect); ctx.strokeStyle = '#fff'; ctx.setLineDash([4 / s, 3 / s]); ctx.lineWidth = 1.5 / s; ctx.strokeRect(q.x * TILE, q.y * TILE, q.w * TILE, q.h * TILE); ctx.setLineDash([]); ctx.fillStyle = '#000b'; ctx.fillRect(q.x * TILE, (q.y + q.h) * TILE + 1, 46 / z, 12 / z); ctx.fillStyle = '#fff'; ctx.fillText(`${q.w}×${q.h} ช่อง`, q.x * TILE + 2 / z, (q.y + q.h) * TILE + 2 / z); }
   if (ui.lineStart) { ctx.fillStyle = '#e7b04a'; ctx.fillRect(ui.lineStart.x * TILE, ui.lineStart.y * TILE, TILE, TILE); }
   $('#zoomLbl').textContent = Math.round(z * 100) + '%';
@@ -442,14 +485,29 @@ function drawObject(o, alpha) {
   if (im?.complete && im.naturalWidth) ctx.drawImage(im, b.x, b.y, b.w, b.h); else { ctx.fillStyle = '#e7b04a88'; ctx.fillRect(b.x, b.y, b.w, b.h); }
   ctx.restore(); ctx.globalAlpha = 1;
 }
+// v2.1 free resize: drag the ◢ handle (or −/＋) — sprite width and base grow together, the base stays on the ground
+const HANDLE = 22; // screen px
+function handleOf() {
+  if (ui.sel) { const b = spriteBox(ui.sel, assetById(ui.sel.asset)); return { x: b.x + b.w, y: b.y + b.h }; }
+  if (ui.selMarker) { const [w, h] = markerSize(ui.selMarker); return { x: (ui.selMarker.x + w) * TILE, y: (ui.selMarker.y + h) * TILE }; }
+  return null;
+}
+function drawHandle(hp) { if (!hp) return; const r = HANDLE / 2 / scale() * (devicePixelRatio || 1); ctx.fillStyle = '#e7b04a'; ctx.strokeStyle = '#1d2321'; ctx.lineWidth = 2 / scale(); ctx.beginPath(); ctx.moveTo(hp.x, hp.y - r * 2); ctx.lineTo(hp.x, hp.y); ctx.lineTo(hp.x - r * 2, hp.y); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+function onHandle(t) { const hp = handleOf(); if (!hp) return false; const tol = HANDLE / scale() * (devicePixelRatio || 1) * 1.2; return Math.abs(t.x * TILE - hp.x + tol / 3) < tol && Math.abs(t.y * TILE - hp.y + tol / 3) < tol; }
+/** Set the sprite width of an object (tiles, 0.5 steps); the base scales with it (min 1x1) and stays centred on the ground. */
+function resizeObj(o, tw) {
+  const a = assetById(o.asset); tw = Math.max(.5, Math.min(40, Math.round(tw * 2) / 2)); if (tw === o.tw) return;
+  const k = tw / (a?.tw || o.tw || 1), sw = sideways(o.rot || 0), bw = Math.max(1, Math.round((sw ? a?.fh : a?.fw || 1) * k)), bh = Math.max(1, Math.round((sw ? a?.fw : a?.fh || 1) * k));
+  const cx = o.x + o.fw / 2, by = o.y + o.fh; o.tw = tw; o.fw = bw; o.fh = bh; o.x = Math.round(cx - bw / 2); o.y = by - bh;
+}
 function footRect(o, col) { ctx.strokeStyle = col; ctx.lineWidth = 1.5 / scale(); ctx.strokeRect(o.x * TILE + .5 / ui.zoom, o.y * TILE + .5 / ui.zoom, o.fw * TILE - 1 / ui.zoom, o.fh * TILE - 1 / ui.zoom); }
 function normRect([x0, y0, x1, y1]) { const x = Math.min(x0, x1), y = Math.min(y0, y1); return { x, y, w: Math.abs(x1 - x0) + 1, h: Math.abs(y1 - y0) + 1 }; }
 
 // ------------------------------------------------------------------ editing ops
-function snapshot() { return { g: P.ground.slice(), r: P.road.slice(), o: JSON.stringify(P.objects), m: JSON.stringify(P.markers) }; }
-function restore(sn) { P.ground = sn.g.slice(); P.road = sn.r.slice(); P.objects = JSON.parse(sn.o); P.markers = JSON.parse(sn.m); ui.sel = ui.selMarker = null; dirtyAll(); save(); draw(); renderSheet(); }
+function snapshot() { return { g: P.ground.slice(), r: P.road.slice(), t: P.tier.slice(), o: JSON.stringify(P.objects), m: JSON.stringify(P.markers) }; }
+function restore(sn) { P.ground = sn.g.slice(); P.road = sn.r.slice(); P.tier = sn.t.slice(); tierDirty = true; P.objects = JSON.parse(sn.o); P.markers = JSON.parse(sn.m); ui.sel = ui.selMarker = null; dirtyAll(); save(); draw(); renderSheet(); }
 function begin() { undoStack.push(snapshot()); if (undoStack.length > 80) undoStack.shift(); redoStack = []; }
-function cancelStroke() { if (undoStack.length) { const sn = undoStack.pop(); P.ground = sn.g.slice(); P.road = sn.r.slice(); P.objects = JSON.parse(sn.o); P.markers = JSON.parse(sn.m); dirtyAll(); draw(); } }
+function cancelStroke() { if (undoStack.length) { const sn = undoStack.pop(); P.ground = sn.g.slice(); P.road = sn.r.slice(); P.tier = sn.t.slice(); tierDirty = true; P.objects = JSON.parse(sn.o); P.markers = JSON.parse(sn.m); dirtyAll(); draw(); } }
 function undo() { if (!undoStack.length) return toast('ไม่มีอะไรให้ย้อน'); redoStack.push(snapshot()); restore(undoStack.pop()); }
 function redo() { if (!redoStack.length) return; undoStack.push(snapshot()); restore(redoStack.pop()); }
 function setGround(x, y, v) { if (!inside(x, y)) return; const i = idx(x, y); if (P.ground[i] === v) return; P.ground[i] = v; markDirty(x, y); }
@@ -465,7 +523,9 @@ const sideways = rot => Math.round(((rot % 360) + 360) % 360 / 90) % 2 === 1; //
 function ghostAt(tx, ty) {
   const a = assetById(ui.asset); if (!a) return null;
   const sw = sideways(ui.rot), fw = sw ? a.fh || 1 : a.fw || 1, fh = sw ? a.fw || 1 : a.fh || 1;
-  return { id: 0, asset: a.id, x: Math.floor(tx) - Math.floor((fw - 1) / 2), y: Math.floor(ty) - fh + 1, fw, fh, tw: a.tw, flip: ui.flip, rot: ui.rot };
+  const g = { id: 0, asset: a.id, x: Math.floor(tx) - Math.floor((fw - 1) / 2), y: Math.floor(ty) - fh + 1, fw, fh, tw: a.tw, flip: ui.flip, rot: ui.rot };
+  if (ui.placeScale !== 1) resizeObj(g, a.tw * ui.placeScale);
+  return g;
 }
 function overlaps(o, q) { return o.x < q.x + q.fw && o.x + o.fw > q.x && o.y < q.y + q.fh && o.y + o.fh > q.y; }
 function canPlace(o) { if (o.x < 0 || o.y < 0 || o.x + o.fw > P.w || o.y + o.fh > P.h) return false; return ui.overlap || !P.objects.some(p => p !== o && overlaps(o, p)); }
@@ -526,12 +586,15 @@ cv.addEventListener('pointerdown', e => {
   const t = toTile(e.clientX, e.clientY);
   if (e.button === 2 || e.button === 1 || spaceDown) { gesture = { pan: true, sx: e.clientX, sy: e.clientY, ox: ui.ox, oy: ui.oy }; return; }
   gesture = { pending: true, sx: e.clientX, sy: e.clientY, t, mouse: e.pointerType === 'mouse', shift: e.shiftKey };
-  if (ui.tool === 'pan') { const o = objectAt(t.x, t.y); if (o && o === ui.sel) gesture.grab = o; }
+  if (ui.tool === 'pan') { if (onHandle(t)) gesture.resize = ui.sel || ui.selMarker; else { const o = objectAt(t.x, t.y); if (o && o === ui.sel) gesture.grab = o; else { const m = markerAt(Math.floor(t.x), Math.floor(t.y)); if (m && m === ui.selMarker) gesture.grabM = m; } } }
 });
 function startDrag(g, t) {
   const T = ui.tool, tx = Math.floor(g.t.x), ty = Math.floor(g.t.y);
   g.pending = false;
+  if (g.resize) { begin(); g.sizing = g.resize; return; }
   if (g.grab) { begin(); g.move = g.grab; g.dx = tx - g.grab.x; g.dy = ty - g.grab.y; return; }
+  if (g.grabM) { begin(); g.moveM = g.grabM; g.dx = tx - g.grabM.x; g.dy = ty - g.grabM.y; return; }
+  if (T === 'tier') { begin(); g.stroke = true; g.last = { x: tx, y: ty }; strokeAt(tx, ty); return; }
   if (PANNING_TOOLS.has(T)) { g.pan = true; g.ox = ui.ox; g.oy = ui.oy; return; }
   if (T === 'marker' || (T === 'ground' && ui.groundMode === 'rect')) { begin(); g.rect = true; ui.drag = { rect: [tx, ty, tx, ty] }; return; }
   if (T === 'ground' && ui.groundMode === 'fill') { g.pan = true; g.ox = ui.ox; g.oy = ui.oy; return; }
@@ -543,6 +606,7 @@ function strokeAt(x, y) {
   else if (T === 'road') stamp(x, y, (a, b) => setRoad(a, b, ui.road));
   else if (T === 'erase') stamp(x, y, (a, b) => { setRoad(a, b, 0); P.objects = P.objects.filter(o => !(a >= o.x && a < o.x + o.fw && b >= o.y && b < o.y + o.fh)); });
   else if (T === 'scatter') scatter(x, y);
+  else if (T === 'tier') stamp(x, y, (a, b) => setTier(a, b, ui.tierPaint));
 }
 cv.addEventListener('pointermove', e => {
   if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -558,6 +622,13 @@ cv.addEventListener('pointermove', e => {
   if (g.pending) { if (Math.hypot(e.clientX - g.sx, e.clientY - g.sy) < (g.mouse ? 3 : 9)) return; startDrag(g, t); }
   if (g.pan) { ui.ox = g.ox + (e.clientX - g.sx) * d; ui.oy = g.oy + (e.clientY - g.sy) * d; }
   else if (g.move) { g.move.x = tx - g.dx; g.move.y = ty - g.dy; }
+  else if (g.moveM) { g.moveM.x = tx - g.dx; g.moveM.y = ty - g.dy; }
+  else if (g.sizing) {
+    const o = g.sizing;
+    if (o.asset) { const cx = (o.x + o.fw / 2) * TILE; resizeObj(o, Math.abs(t.x * TILE - cx) * 2 / TILE); }
+    else { o.w = Math.max(1, Math.round(t.x - o.x)); o.h = Math.max(1, Math.round(t.y - o.y)); }
+    renderSelInfo();
+  }
   else if (g.rect) { ui.drag.rect[2] = tx; ui.drag.rect[3] = ty; }
   else if (g.stroke && (tx !== g.last.x || ty !== g.last.y)) { line(g.last.x, g.last.y, tx, ty, strokeAt); g.last = { x: tx, y: ty }; }
   if (!g.pan) { ui.hover = t; status(tx, ty); }
@@ -589,7 +660,7 @@ function endPointer(e) {
     const q = normRect(ui.drag.rect); ui.drag = null;
     if (ui.tool === 'marker') { cancelStroke(); placeMarker(q.x, q.y, q.w, q.h); }
     else { const x0 = Math.floor(q.x / CELL) * CELL, y0 = Math.floor(q.y / CELL) * CELL, x1 = Math.ceil((q.x + q.w) / CELL) * CELL, y1 = Math.ceil((q.y + q.h) / CELL) * CELL; for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) setGround(x, y, ui.terrain); save(); }
-  } else if (g.stroke || g.move) { if (ui.tool === 'road' && g.last) ui.lastRoad = g.last; save(); renderSheet(); }
+  } else if (g.stroke || g.move || g.moveM || g.sizing) { if (ui.tool === 'road' && g.last) ui.lastRoad = g.last; save(); renderSheet(); }
   draw();
 }
 cv.addEventListener('pointerup', endPointer); cv.addEventListener('pointercancel', endPointer);
@@ -608,10 +679,11 @@ addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); return redo(); }
   if ((e.ctrlKey || e.metaKey) && k === 's') { e.preventDefault(); return download(); }
   if (k === ' ') { spaceDown = true; cv.style.cursor = 'grab'; e.preventDefault(); return; }
-  const tk = { v: 'pan', b: 'ground', l: 'road', p: 'place', t: 'scatter', m: 'marker', e: 'erase' }[k];
+  const tk = { v: 'pan', b: 'ground', l: 'road', p: 'place', t: 'scatter', m: 'marker', e: 'erase', y: 'tier' }[k];
   if (tk) return setTool(tk);
   if (k === 'r') return rotAction(e.shiftKey ? -15 : 15);
   if (k === 'x') return flipAction();
+  if ((k === '=' || k === '+' || k === '-') && ui.sel) { begin(); resizeObj(ui.sel, ui.sel.tw + (k === '-' ? -1 : 1)); save(); draw(); return; }
   if (k === 'g') { ui.grid = !ui.grid; draw(); }
   if (k === 'h') { ui.foot = !ui.foot; draw(); }
   if (k === '[') { ui.brush = Math.max(1, ui.brush - 1); renderSheet(); draw(); }
@@ -635,6 +707,7 @@ function rotAction(d) {
 }
 function flipAction() { if (ui.sel) { begin(); ui.sel.flip = !ui.sel.flip; save(); } else { ui.flip = !ui.flip; renderSheet(); } draw(); }
 function delAction() { if (!ui.sel && !ui.selMarker) return; begin(); if (ui.sel) P.objects = P.objects.filter(o => o !== ui.sel); if (ui.selMarker) P.markers = P.markers.filter(m => m !== ui.selMarker); ui.sel = ui.selMarker = null; save(); renderSheet(); draw(); }
+function renderSelInfo() { const o = ui.sel; if (o) $('#selSize').textContent = `${o.fw}×${o.fh}`; }
 function placeSelbar() {
   const bar = $('#selbar'), o = ui.sel;
   if (!o) { bar.hidden = true; return; }
@@ -643,19 +716,20 @@ function placeSelbar() {
   const x = (b.x + b.w / 2) * s / d + ui.ox / d, y = b.y * s / d + ui.oy / d - 8;
   bar.style.left = Math.max(4, Math.min(r.width - bar.offsetWidth - 4, x - bar.offsetWidth / 2)) + 'px';
   bar.style.top = Math.max(4, Math.min(r.height - bar.offsetHeight - 4, y - bar.offsetHeight)) + 'px';
-  $('#selRot').textContent = `${o.rot || 0}°`;
+  $('#selRot').textContent = `${o.rot || 0}°`; renderSelInfo();
 }
 $('#selbar').addEventListener('click', e => {
   const a = e.target.closest('[data-sa]')?.dataset.sa; if (!a) return;
   if (a === 'l') rotAction(-15); if (a === 'r') rotAction(15); if (a === 'r90') rotAction(90); if (a === 'flip') flipAction(); if (a === 'del') delAction();
   if (a === 'dup' && ui.sel) { begin(); const c = { ...ui.sel, id: P.nextId++, x: ui.sel.x + ui.sel.fw }; P.objects.push(c); ui.sel = c; save(); draw(); }
   if (a === 'done') { ui.sel = null; renderSheet(); draw(); }
+  if ((a === 'big' || a === 'small') && ui.sel) { begin(); resizeObj(ui.sel, ui.sel.tw + (a === 'big' ? 1 : -1)); save(); renderSelInfo(); renderSheet(); draw(); }
 });
 
 // ------------------------------------------------------------------ tools + sheet (only the options of the tool in hand)
-const TOOLS = [['pan', '🖐️', 'เลื่อน/เลือก'], ['ground', '🖌️', 'พื้น'], ['road', '🛣️', 'ถนน'], ['place', '🏠', 'วางของ'], ['scatter', '🌳', 'ต้นไม้'], ['marker', '📍', 'ที่ดิน/หมุด'], ['erase', '🧽', 'ลบ']];
+const TOOLS = [['pan', '🖐️', 'เลื่อน/เลือก'], ['ground', '🖌️', 'พื้น'], ['road', '🛣️', 'ถนน'], ['place', '🏠', 'วางของ'], ['scatter', '🌳', 'ต้นไม้'], ['marker', '📍', 'ที่ดิน'], ['tier', '🗺️', 'ระดับ'], ['erase', '🧽', 'ลบ']];
 function renderTools() { $('#tools').innerHTML = TOOLS.map(([id, ic, n]) => `<button data-tool="${id}" class="${ui.tool === id ? 'on' : ''}">${ic}<small>${n}</small></button>`).join(''); }
-function setTool(t) { if (t === 'scatter' && !['tree', 'bush', 'rock'].includes(ui.kindFilter)) ui.kindFilter = 'tree'; if (t === 'place' && ui.kindFilter === 'tree' && ui.tool === 'scatter') ui.kindFilter = 'house'; ui.tool = t; ui.lineStart = null; if (t !== 'pan') ui.sel = null; ui.sheet = true; renderTools(); renderSheet(); draw(); }
+function setTool(t) { if (t === 'tier' || ui.tool === 'tier') tierDirty = true; if (t === 'scatter' && !['tree', 'bush', 'rock'].includes(ui.kindFilter)) ui.kindFilter = 'tree'; if (t === 'place' && ui.kindFilter === 'tree' && ui.tool === 'scatter') ui.kindFilter = 'house'; ui.tool = t; ui.lineStart = null; if (t !== 'pan') ui.sel = null; ui.sheet = true; renderTools(); renderSheet(); draw(); }
 $('#tools').addEventListener('click', e => { const b = e.target.closest('[data-tool]'); if (b) setTool(b.dataset.tool); });
 function swatch(t) { const a = t.asset && assetById(t.asset); if (a) return `background-image:url('${srcUrl(a)}')`; const set = t.set || t.plain || (t.water ? 'water' : t.base ? 'grass' : null); if (set && TL[set]?.src) { const i = t.set ? 15 : 0; return `background-image:url('${TL[set].src}');background-size:auto 100%;background-position:${-i * 26}px 0`; } return `background:${t.color}`; }
 const seg = (key, opts) => `<div class="seg">${opts.map(([v, n]) => `<button data-set="${key}" data-v="${v}" class="${String(ui[key]) === String(v) ? 'on' : ''}">${n}</button>`).join('')}</div>`;
@@ -666,7 +740,8 @@ function renderSheet() {
   if (T === 'pan') {
     h += `<p class="help">ลาก = เลื่อนแมพ · สองนิ้ว = ซูม · แตะของ = เลือก (หมุน กลับด้าน ลบ ได้ที่แถบเหนือของ) · แตะของที่เลือกอยู่แล้วลาก = ย้าย</p>`;
     if (ui.selMarker) { const m = ui.selMarker, M = MARKERS[m.type], [w, hh] = markerSize(m); h += `<div class="row"><b>${M.icon} ${m.type === 'public' ? PLOT_TYPES[m.plot]?.name : M.name}</b> ${w}×${hh} ช่อง</div><div class="row"><input value="${esc(m.label || '')}" data-m="label" placeholder="ชื่อ/โน้ต" style="flex:1"/><button data-act="delMarker">🗑 ลบ</button></div>`; }
-    if (ui.sel) { const o = ui.sel, a = assetById(o.asset); h += `<div class="row"><b>${esc(a?.name)}</b> · ฐาน ${o.fw}×${o.fh} · หมุน ${o.rot || 0}°</div><div class="row">ฐาน <input type="number" min="1" value="${o.fw}" data-o="fw"/> × <input type="number" min="1" value="${o.fh}" data-o="fh"/> รูปกว้าง <input type="number" min=".5" step=".5" value="${o.tw}" data-o="tw"/> ช่อง</div><div class="row"><input value="${esc(o.label || '')}" data-o="label" placeholder="ป้ายชื่อ เช่น บ้านลุงมี" style="flex:1"/></div>`; }
+    if (ui.sel || ui.selMarker) h += `<p class="help">◢ ลากมุมขวาล่างเพื่อย่อ/ขยาย · หรือกด −/＋ บนแถบ</p>`;
+    if (ui.sel) { const o = ui.sel, a = assetById(o.asset); h += `<div class="row"><b>${esc(a?.name)}</b> · ฐาน ${o.fw}×${o.fh} · หมุน ${o.rot || 0}° · ระดับ ${objTier(o)}</div><div class="row">ฐาน <input type="number" min="1" value="${o.fw}" data-o="fw"/> × <input type="number" min="1" value="${o.fh}" data-o="fh"/> รูปกว้าง <input type="number" min=".5" step=".5" value="${o.tw}" data-o="tw"/> ช่อง</div><div class="row"><input value="${esc(o.label || '')}" data-o="label" placeholder="ป้ายชื่อ เช่น บ้านลุงมี" style="flex:1"/></div>`; }
   } else if (T === 'ground') {
     h += seg('groundMode', [['brush', '🖌 แปรง'], ['rect', '▭ สี่เหลี่ยม'], ['fill', '🪣 เท']]) + (ui.groundMode === 'brush' ? brushRow() : '');
     h += `<div class="pal">${P.terrains.map((t, i) => `<div class="sw ${ui.terrain === i ? 'on' : ''}" data-terrain="${i}"><i style="${swatch(t)}"></i>${esc(t.name)}</div>`).join('')}</div>`;
@@ -674,7 +749,7 @@ function renderSheet() {
     h += seg('roadMode', [['brush', '🖌 ลากวาด'], ['line', '📏 เส้นตรง (แตะต้น-ปลาย)']]) + brushRow();
     h += `<div class="pal">${P.roads.map((r, i) => `<div class="sw ${ui.road === i + 1 ? 'on' : ''}" data-road="${i + 1}"><i style="${swatch(r)}"></i>${esc(r.name)}</div>`).join('')}</div><p class="help">ขนาดเล็กสุด = ถนนกว้าง 2 ช่องแบบในเกม · ถนนหลักควรกว้าง 4 ช่อง (ขนาด 2)</p>`;
   } else if (T === 'place' || T === 'scatter') {
-    if (T === 'place') h += `<div class="row"><button data-act="rotL">⟲ 15°</button><button data-act="rotR">⟳ 15°</button><button data-act="rot90">↻ 90°</button><b>${ui.rot}°</b><button data-act="flip" class="${ui.flip ? 'on' : ''}">↔ กลับด้าน</button><label><input type="checkbox" data-k="overlap" ${ui.overlap ? 'checked' : ''}/> วางซ้อน</label></div><p class="help">แตะ = วาง · ลาก = เลื่อนแมพ (ไม่วางให้เอง)</p>`;
+    if (T === 'place') h += `<div class="row">ขนาด <button data-act="psmall">−</button><b>${Math.round(ui.placeScale * 100)}%</b><button data-act="pbig">＋</button><button data-act="preset">100%</button></div><div class="row"><button data-act="rotL">⟲ 15°</button><button data-act="rotR">⟳ 15°</button><button data-act="rot90">↻ 90°</button><b>${ui.rot}°</b><button data-act="flip" class="${ui.flip ? 'on' : ''}">↔ กลับด้าน</button><label><input type="checkbox" data-k="overlap" ${ui.overlap ? 'checked' : ''}/> วางซ้อน</label></div><p class="help">แตะ = วาง · ลาก = เลื่อนแมพ (ไม่วางให้เอง)</p>`;
     else h += brushRow() + `<div class="row">หนาแน่น <input type="range" min="5" max="100" value="${ui.density}" data-k="density"/> ${ui.density}%</div><p class="help">ลากเพื่อโปรย · แตะรูปได้หลายแบบเพื่อผสม</p>`;
     const kinds = Object.keys(KINDS).filter(k => k !== 'ground' && k !== 'road' && P.assets.some(a => a.kind === k)).filter(k => T !== 'scatter' || ['tree', 'bush', 'rock'].includes(k));
     h += `<div class="chips">${kinds.map(k => `<button class="${ui.kindFilter === k ? 'on' : ''}" data-kind="${k}">${KINDS[k]}</button>`).join('')}<input placeholder="🔎 ค้นหา" data-k="q" value="${esc(ui.q)}" style="width:110px"/></div>`;
@@ -687,6 +762,11 @@ function renderSheet() {
     if (ui.marker === 'public') h += `<div class="chips">${Object.entries(PLOT_TYPES).map(([k, p]) => `<button class="${ui.plot === k ? 'on' : ''}" data-plot="${k}">${p.name}<small> ${p.w}×${p.h}</small></button>`).join('')}</div>`;
     if (MARKERS[ui.marker].house) h += `<div class="row">ดูขนาดบ้าน ${seg('housePreview', [[0, 'กระท่อม'], [1, 'บ้านกลาง'], [2, 'บ้านหรู']])}</div>`;
     h += `<p class="help">แตะ = วางขนาดมาตรฐาน${MARKERS[ui.marker].house ? ` (${LOT_W}×${LOT_H} ช่อง: บ้าน 4×3 + สนามหน้าบ้าน — กรอบประคือฐานบ้าน)` : ''} · ลาก = กำหนดขนาดเอง · รูปจางๆ คือขนาดจริงของบ้าน/อาคารในเกม</p>`;
+  } else if (T === 'tier') {
+    h += `<p class="help">วาดเมืองตอนจบ (ประเทศ) ให้ครบ แล้วระบายว่าส่วนไหนเปิดตอนระดับไหน · ในเกม ส่วนที่ยังไม่ถึงระดับจะเป็นป่า (เกมใส่ต้นไม้ให้เอง) ถนนและที่ดินตรงนั้นซ่อนไว้ · ผู้นำยกระดับแล้วป่าส่วนนั้นถูกถาง</p>`;
+    h += `<div class="seg">${[1, 2, 3, 4, 5].map(t => `<button data-set="tierPaint" data-v="${t}" class="${ui.tierPaint === t ? 'on' : ''}" style="border-color:${TIER[t].c}">${t} ${TIER[t].th}</button>`).join('')}</div>` + brushRow();
+    h += `<div class="row">👁 ดูแมพตอนระดับ ${seg('viewTier', [[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, 'ทั้งหมด']])}</div>`;
+    h += `<h4 style="margin:8px 0 4px">📋 เช็กลิสต์ (สะสมถึงระดับนั้น)</h4>` + checklist().map(c => `<div class="ck"><b style="color:${TIER[c.t].c}">${c.t}. ${TIER[c.t].th}</b> <span class="${c.lotsOk ? 'ok' : 'no'}">🏠 ที่ดินผู้เล่น ${c.lots}/${NEED[c.t].lots}</span>${c.t === 1 ? ` <span class="${c.npcOk ? 'ok' : 'no'}">🧑 บ้าน NPC ${c.npc}/${NEED[1].npc}</span>` : ''}<br>${c.plots.map(p => `<span class="${p.ok ? 'ok' : 'no'}">${p.ok ? '✅' : '⬜'} ${PLOT_TYPES[p.p].name}</span>`).join(' ')}</div>`).join('');
   } else if (T === 'erase') h += brushRow() + '<p class="help">ลบถนนและของที่อยู่ใต้แปรง (พื้นไม่ลบ ให้ปูพื้นทับแทน) · ลบที่ดิน/หมุด: ใช้ 🖐 แตะเลือกแล้วกด 🗑</p>';
   $('#sheetBody').innerHTML = h;
   $('#sheet').classList.toggle('closed', !ui.sheet);
@@ -702,10 +782,12 @@ $('#sheetBody').addEventListener('click', e => {
   if (D.marker) ui.marker = D.marker;
   if (D.plot) ui.plot = D.plot;
   if (D.set) { ui[D.set] = isNaN(+D.v) ? D.v : +D.v; ui.lineStart = null; }
-  if (D.asset) { if (ui.tool === 'scatter') ui.scatterSet = ui.scatterSet.includes(D.asset) ? ui.scatterSet.filter(x => x !== D.asset) : [...ui.scatterSet, D.asset]; else { ui.asset = D.asset; if (innerWidth < 900) toast('แตะบนแมพเพื่อวาง'); } }
+  if (D.asset) { if (ui.tool !== 'scatter' && ui.asset !== D.asset) ui.placeScale = 1; if (ui.tool === 'scatter') ui.scatterSet = ui.scatterSet.includes(D.asset) ? ui.scatterSet.filter(x => x !== D.asset) : [...ui.scatterSet, D.asset]; else { ui.asset = D.asset; if (innerWidth < 900) toast('แตะบนแมพเพื่อวาง'); } }
   const a = D.act;
   if (a === 'rotL') rotAction(-15); if (a === 'rotR') rotAction(15); if (a === 'rot90') rotAction(90); if (a === 'flip') flipAction();
   if (a === 'delMarker') delAction();
+  if (a === 'pbig') ui.placeScale = Math.min(4, Math.round((ui.placeScale + .25) * 100) / 100); if (a === 'psmall') ui.placeScale = Math.max(.25, Math.round((ui.placeScale - .25) * 100) / 100); if (a === 'preset') ui.placeScale = 1;
+  if (D.set === 'viewTier' || D.set === 'tierPaint') { tierDirty = true; dirtyAll(); }
   renderSheet(); draw();
 });
 $('#sheetBody').addEventListener('input', e => {
@@ -718,7 +800,7 @@ $('#sheetBody').addEventListener('input', e => {
 });
 
 // ------------------------------------------------------------------ menu
-const MENU = [['new', '🆕 แมพใหม่'], ['open', '📂 เปิดไฟล์แมพ'], ['save', '💾 บันทึก / ส่งออกไฟล์ (ส่งให้ Claude)'], ['png', '🖼️ บันทึกเป็นรูป PNG'], ['import', '📥 นำเข้ารูปจาก GPT'], ['grid', '# เส้นตาราง เปิด/ปิด'], ['foot', '▢ แสดงฐานของทุกชิ้น'], ['help', '❓ วิธีใช้']];
+const MENU = [['tiers', '🗺️ แสดงสีระดับ เปิด/ปิด'], ['new', '🆕 แมพใหม่'], ['open', '📂 เปิดไฟล์แมพ'], ['save', '💾 บันทึก / ส่งออกไฟล์ (ส่งให้ Claude)'], ['png', '🖼️ บันทึกเป็นรูป PNG'], ['import', '📥 นำเข้ารูปจาก GPT'], ['grid', '# เส้นตาราง เปิด/ปิด'], ['foot', '▢ แสดงฐานของทุกชิ้น'], ['help', '❓ วิธีใช้']];
 $('#bMenu').onclick = () => { $('#menuList').innerHTML = MENU.map(([k, n]) => `<button data-menu="${k}">${n}</button>`).join(''); $('#mMenu').classList.add('open'); };
 $('#mMenu').addEventListener('click', e => {
   if (e.target === $('#mMenu')) return $('#mMenu').classList.remove('open');
@@ -729,6 +811,7 @@ $('#mMenu').addEventListener('click', e => {
   if (k === 'png') exportPng();
   if (k === 'import') { $('#mImport').classList.add('open'); if (!imp.files.length) pickImages(); }
   if (k === 'grid') { ui.grid = !ui.grid; draw(); }
+  if (k === 'tiers') { ui.showTier = !ui.showTier; tierDirty = true; draw(); }
   if (k === 'foot') { ui.foot = !ui.foot; draw(); }
   if (k === 'help') $('#mHelp').classList.add('open');
 });
@@ -861,7 +944,7 @@ function toast(t) { const el = $('#toast'); el.textContent = t; el.style.display
 function afterLoad() {
   img.clear(); for (const a of P.assets) loadImg(a);
   loadGameArt(true);
-  base = null; ui.sel = ui.selMarker = null; ui.asset = null; $('#pname').value = P.name;
+  base = null; tierDirty = true; ui.sel = ui.selMarker = null; ui.asset = null; $('#pname').value = P.name;
   renderTools(); renderSheet(); save(); fit(); fitView();
 }
 // ------------------------------------------------------------------ boot
@@ -870,7 +953,7 @@ if (!P) P = newProject();
 addEventListener('resize', fit); new ResizeObserver(fit).observe($('#stage'));
 loadTiles(); fit(); afterLoad();
 if (!localStorage.getItem('v2n-mapmaker-helped')) { try { localStorage.setItem('v2n-mapmaker-helped', '1'); } catch { } $('#mHelp').classList.add('open'); }
-window.__MAPMAKER__ = { get P() { return P; }, toFile, fromFile, ui, setTool, addAsset, render, rotate };
+window.__MAPMAKER__ = { get P() { return P; }, toFile, fromFile, ui, setTool, addAsset, render, rotate, resizeObj, checklist };
 
 </script>
 </body>

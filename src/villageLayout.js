@@ -4,7 +4,7 @@
 // "ยกระดับ" and the plan expands (new slots + roads, a bigger village area, a new title on the road to PM).
 // Requirements are things that exist in the world — never money. s.town.stage = tier - 1.
 import { addHistory } from './gameState.js';
-import { CENTER, TILE, nodeOnTile, nodeStatus, setNode, plotObstacles, plotRect, WORLD, WORLD_W, WORLD_H, groundAt, T, zoneAt, zoneById } from './world.js';
+import { TREES, CENTER, TILE, nodeOnTile, nodeStatus, setNode, plotObstacles, plotRect, WORLD, WORLD_W, WORLD_H, groundAt, T, zoneAt, zoneById } from './world.js';
 import { cityPlan } from './cityPlan.js';
 import { ART10 } from './artManifest.js';
 
@@ -62,8 +62,10 @@ export function syncPlan() {
   TIERS.forEach((T, i) => { T.slots = DEF_TIERS[i].slots.map(x => ({ ...x })); T.roads = DEF_TIERS[i].roads; });
   const M = WORLD.custom; if (!M) return;
   const pub = x => x.kind === 'public';
-  TIERS[0].slots = [...DEF_TIERS[0].slots.filter(pub), ...M.npcSlots.map((p, k) => ({ id: 'h' + k, kind: 'cottage', tx: p.tx, ty: p.ty, name: `บ้านชาวบ้านหลังที่ ${k + 1}` }))];
-  TIERS[1].slots = [...DEF_TIERS[1].slots.filter(pub), ...(M.workshop ? [{ id: 'w1', kind: 'workshop', tx: M.workshop.tx, ty: M.workshop.ty, name: 'โรงงานงานฝีมือ' }] : [])];
+  for (const T of TIERS) T.slots = [];
+  TIERS[0].slots = DEF_TIERS[0].slots.filter(pub);
+  M.npcSlots.forEach((p, k) => TIERS[Math.max(1, Math.min(5, p.tier || 1)) - 1].slots.push({ id: 'h' + k, kind: 'cottage', tx: p.tx, ty: p.ty, name: `บ้านชาวบ้านหลังที่ ${k + 1}` })); // NPC plots open with their area level
+  TIERS[1].slots.push(...DEF_TIERS[1].slots.filter(pub), ...(M.workshop ? [{ id: 'w1', kind: 'workshop', tx: M.workshop.tx, ty: M.workshop.ty, name: 'โรงงานงานฝีมือ' }] : []));
   for (const T of TIERS) T.roads = [];
 }
 export function tierOf(s) { syncPlan(); return Math.max(1, Math.min(TIERS.length, (s.town?.stage || 0) + 1)); }
@@ -85,7 +87,7 @@ function allLots() {
   if (lotMemo.key === key) return lotMemo;
   syncPlan();
   if (WORLD.custom) { // the map's own lots, open from the start (online players claim them)
-    lotMemo = { key, lanes: [], all: WORLD.custom.lots.map((p, k) => ({ id: `lot1_${k}`, kind: 'cottage', tx: p.tx, ty: p.ty, tier: 1, lot: true, name: `ที่ดินผู้เล่น แปลงที่ ${k + 1}` })) };
+    lotMemo = { key, lanes: [], all: WORLD.custom.lots.map((p, k) => ({ id: `lot1_${k}`, kind: 'cottage', tx: p.tx, ty: p.ty, tier: p.tier || 1, lot: true, name: `ที่ดินผู้เล่น แปลงที่ ${k + 1}` })) };
     return lotMemo;
   }
   const used = new Set(), all = [], lanes = [];
@@ -235,7 +237,7 @@ export function roadTiles(s) {
       for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) add((x + dx) + ',' + (y + dy), isMain);
   }
   for (const k of lotLanes(t)) add(k, false);                                // lanes of the player housing streets
-  if (WORLD.custom) WORLD.custom.roads.forEach((row, y) => { for (let x = 0; x < row.length; x++) if (row[x] !== '.') add(x + ',' + y, row[x] === 'M'); }); // roads drawn in the Map Maker
+  if (WORLD.custom) WORLD.custom.roads.forEach((row, y) => { for (let x = 0; x < row.length; x++) if (row[x] !== '.' && +(WORLD.custom.tiers?.[y]?.[x] || 1) <= t) add(x + ',' + y, row[x] === 'M'); }); // roads drawn in the Map Maker, open with their area level
   if (t >= 3) for (const k of cityPlan(t, ART10).streets) { add(k, true); auto.add(k); } // district squares (built with the development fund: paved)
   // v0.25 the country roads to every opened district become real roads (dry tiles only; bridge decks stay planks)
   if (t >= 3) for (const p of WORLD.paths || []) if (p.tier <= t) for (let i = 0; i < p.length - 1; i++) {
@@ -324,6 +326,8 @@ export function yardTiles(s) {
 /** Villagers clear trees/rocks standing on the roads of unlocked tiers. Returns how many were removed. */
 export function openRoads(s) {
   let n = 0;
+  // v0.28 maps with levels: the forest of every area that is now open is cleared (villagers and the development fund)
+  if (WORLD.custom?.tiers) { const t = tierOf(s); for (const node of TREES) if (node.lockTier && node.lockTier <= t && nodeStatus(s, node) !== 'gone') { setNode(s, node.id, 'x'); n++; } }
   for (const k of roadTiles(s)) {
     const [x, y] = k.split(',').map(Number), node = nodeOnTile(x, y);
     if (node && nodeStatus(s, node) !== 'gone') { setNode(s, node.id, 'x'); n++; }

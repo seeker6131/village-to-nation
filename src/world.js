@@ -322,6 +322,12 @@ function generateCustom(M, seed) {
     const stump = /^stump_/.test(sp), name = stump ? sp.replace('stump_', 'tree_') : sp;
     addNode(TREES, { id: 't' + TREES.length, type: 'wood', kind: PINE.test(name) ? 4 : SMALL.test(name) ? 1 : 0, x, y, sprite: name, init: stump ? 's' : undefined });
   }
+  // v0.28 areas that open at a later level are forest until then (cleared by villageLayout.openRoads when the area grows)
+  if (M.tiers) for (let cy = 0; cy < WORLD_H; cy += 2) for (let cx = 0; cx < WORLD_W; cx += 2) {
+    const x = cx + (hash(cx, cy, seed + 1) < .5 ? 0 : 1), y = cy + (hash(cx, cy, seed + 2) < .5 ? 0 : 1), lt = +(M.tiers[y]?.[x] || 1);
+    if (lt < 2 || !inside(x, y) || G[idx(x, y)] === T.WATER || nodeAt.has(idx(x, y)) || inRect(x, y, LEADER_HOUSE, 1) || hash(x, y, seed + 4) > .62) continue;
+    addNode(TREES, { id: 't' + TREES.length, type: 'wood', kind: hash(x, y, seed + 6) < .2 ? 4 : Math.floor(hash(x, y, seed + 8) * 3), x, y, lockTier: lt });
+  }
   // early stone: a few rocks just outside the village (the map has none; the pickaxe quest needs them)
   for (const [dx, dy] of [[-10, 5], [9, -7], [12, 3], [-6, -10], [3, 12], [-12, -3]]) { const x = CENTER.x + dx, y = CENTER.y + dy; if (inside(x, y) && !nodeAt.has(idx(x, y)) && G[idx(x, y)] !== T.WATER && !inRect(x, y, LEADER_HOUSE, 1)) addNode(ROCKS, { id: 'r' + ROCKS.length, type: 'stone', kind: 0, x, y }); }
   placePlots(M);

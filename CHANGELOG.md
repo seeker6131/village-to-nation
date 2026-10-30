@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.28 — Map Maker v2 + Android app, levels on maps (31 Oct 2026)
+- Map Maker v2 (editor/index.html): mobile-first (tools at the bottom, one options sheet), one finger = tool, two
+  fingers always zoom/pan and cancel a stroke in progress, "place" = tap to place / drag to pan. Every object can be
+  rotated (15°/90°), mirrored, duplicated and FREELY RESIZED (drag the ◢ handle or −/＋; the base grows with it),
+  also before placing. Lots show the real house sprite (cabin / medium / mansion) at 6×5; building plots have 21
+  types (market, school, hospital, port, government house …) with their real sprite and a good size.
+- Levels on maps (🗺️ ระดับ tool): paint which area opens at which level, preview the map at each level, checklist of
+  lots / NPC houses / required buildings per level. File: tierRows + tier on objects/markers.
+- Game: map areas above the current level are forest (trees added automatically, lockTier), their roads, lots and
+  NPC plots are hidden; raising the area clears that forest. Props from the map keep rotation, mirror and size.
+- Android app: android/ (WebView + WebViewAssetLoader, saves to Download/V2N and opens the share sheet).
+  GitHub Actions builds V2N-MapMaker.apk into Releases on every editor change (fixed signing key -> installs over).
+
 ## v0.27 — maps from the Map Maker, road paving, unlocks by area level (30 Oct 2026)
 - Maps drawn in the Map Maker play in the game: `node scripts/import-map.mjs maps/<file>.v2nmap.json map<N> "<name>"`
   -> src/maps/. The village moves to the map's leader house (ORIGIN shift); NPC markers = NPC house plots, lot markers
