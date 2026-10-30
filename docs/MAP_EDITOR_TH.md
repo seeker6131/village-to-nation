@@ -12,7 +12,9 @@
 - `objects[]`: `asset`, `assetName`, `kind`, `x`, `y` = มุมซ้ายบนของฐาน, `fw`×`fh` = ฐาน (ส่วนที่ชน), `tw` = ความกว้างรูปเป็นช่อง, `flip`, `label`
   รูปวางกึ่งกลางฐาน ยืนบนขอบล่างของฐาน
 - `markers[]`: `type` (spawn / lot / public / gate / npc / zone / note), `x`, `y`, `w`, `h`, `label`
-- `assets[]`: `src` = `game:<sprite>` (รูปในเกม assets/v10/<sprite>.webp) หรือ data URL (รูปที่นำเข้าเอง), `kind`, `tw`, `fw`, `fh`, `pw`×`ph` = ขนาดต้นฉบับ
+- `assets[]`: `src` = `game:<sprite>` (รูปในเกม assets/v10/<sprite>.webp — ไฟล์เก็บเฉพาะรูปในเกมที่ใช้จริง) หรือ data URL (รูปที่นำเข้าเอง), `kind`, `tw`, `fw`, `fh`, `pw`×`ph` = ขนาดต้นฉบับ
+- พื้น/ถนนวาดด้วยแผ่นพื้นจริงของเกม (assets/tiles, dual-grid เหมือน src/ui/terrain.js) ระบายทีละช่องใหญ่ 2×2 · ชนิดพื้น/ถนนมี `set` / `plain` / `water` / `base` บอกว่าใช้แผ่นไหน
+- รูปทุกรูปในเกม (src/artManifest.js) โหลดเข้าคลังอัตโนมัติ
 - `summary` = นับจำนวนพื้น ถนน วัตถุ
 
 ## วิธีแปลงเข้าเกม (สำหรับ Claude)

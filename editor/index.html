@@ -61,7 +61,7 @@ kbd{background:#111;border:1px solid var(--line);border-radius:4px;padding:0 4px
     <button id="bPng" title="ภาพตัวอย่างทั้งแมพ">🖼️ PNG</button>
     <span class="sep"></span>
     <button id="bImport" title="นำเข้ารูปจาก GPT">📥 นำเข้ารูป</button>
-    <button id="bGameArt" title="โหลดรูปที่มีในเกมอยู่แล้ว">🎮 รูปในเกม</button>
+    <button id="bGameArt" title="รูปทุกรูปในเกมโหลดให้อัตโนมัติ — กดเพื่อโหลดซ้ำ">🎮 รูปในเกม</button>
     <span class="sep"></span>
     <button id="bUndo" title="ย้อนกลับ (Ctrl+Z)">↶</button>
     <button id="bRedo" title="ทำซ้ำ (Ctrl+Y)">↷</button>
@@ -123,20 +123,25 @@ kbd{background:#111;border:1px solid var(--line);border-radius:4px;padding:0 4px
 // and markers as lists with tile coordinates and footprints, imported images embedded as data URLs.
 const TILE = 16, FORMAT = 'v2n-map@1', LS = 'v2n-mapmaker-v1';
 const $ = s => document.querySelector(s), esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const KINDS = { house: 'บ้าน', building: 'อาคาร/ตึก', shop: 'ร้านค้า', civic: 'ราชการ', tree: 'ต้นไม้', bush: 'พุ่มไม้', rock: 'หิน', prop: 'ของประดับ', animal: 'สัตว์', fence: 'รั้ว', ground: 'พื้น (ลายปู)', road: 'ถนน (ลายปู)' };
-const KIND_W = { house: 4, building: 6, shop: 4, civic: 7, tree: 3, bush: 1, rock: 1, prop: 1, animal: 2, fence: 1, ground: 1, road: 1 };
+const KINDS = { house: 'บ้าน', building: 'อาคาร/ตึก', shop: 'ร้านค้า/ธุรกิจ', civic: 'ราชการ/เมือง', tree: 'ต้นไม้', bush: 'พุ่มไม้/ดอกไม้', rock: 'หิน/แร่', prop: 'ของประดับ', farm: 'ฟาร์ม/พืชผล', animal: 'สัตว์', fence: 'รั้ว', bridge: 'สะพาน', stage: 'ขั้นก่อสร้าง', ground: 'พื้น (ลายปู)', road: 'ถนน (ลายปู)' };
+const KIND_W = { house: 4, building: 6, shop: 4, civic: 7, tree: 3, bush: 1, rock: 1, prop: 1, farm: 2, animal: 2, fence: 1, bridge: 5, stage: 4, ground: 1, road: 1 };
+// Ground and roads use the GAME's own tile sheets (assets/tiles, dual-grid: every 32 px tile sits between 4 cells of 2x2
+// game tiles and picks one of 16 edge pieces), exactly like src/ui/terrain.js. Painting works on those 2x2 cells.
 const DEF_TERRAIN = [
-  { id: 'grass', name: 'หญ้า', color: '#78b858' }, { id: 'meadow', name: 'ทุ่งดอกไม้', color: '#8cc464' }, { id: 'forest', name: 'พื้นป่า', color: '#4f8a43' },
-  { id: 'dirt', name: 'ดิน', color: '#c99a62' }, { id: 'sand', name: 'ทราย', color: '#e6d39a' }, { id: 'farm', name: 'ไร่นา', color: '#9b6b3e' },
-  { id: 'rocky', name: 'หินกรวด', color: '#9a9a8c' }, { id: 'water', name: 'น้ำ', color: '#3fa8c9' }, { id: 'deep', name: 'น้ำลึก/ทะเล', color: '#2a7fb0' },
-  { id: 'cliff', name: 'หน้าผา', color: '#7a6a58' }, { id: 'lawn', name: 'สนามหน้าบ้าน', color: '#86c262' },
+  { id: 'grass', name: 'หญ้า', color: '#78b858', base: 'grass' }, { id: 'meadow', name: 'ทุ่งดอกไม้', color: '#8cc464', base: 'meadow' },
+  { id: 'rocky', name: 'หญ้ามีกรวด', color: '#9aa47c', base: 'rocky' }, { id: 'dirt', name: 'ดิน/ลานดิน', color: '#c99a62', set: 'road1' },
+  { id: 'farm', name: 'ไร่นา/แปลงปลูก', color: '#9b6b3e', set: 'farmland' }, { id: 'soil', name: 'ดินร่วน', color: '#8a6a48', plain: 'soil', edge: 'road1' },
+  { id: 'water', name: 'น้ำ (แม่น้ำ/บ่อ)', color: '#3fa8c9', water: 'bank' }, { id: 'sea', name: 'ทะเล (ชายหาด)', color: '#2a7fb0', water: 'beach' },
 ];
 const DEF_ROADS = [
-  { id: 'main', name: 'ถนนหลัก (ลาดยาง+ทางเท้า)', color: '#5d6168', edge: '#c9c3b5' }, { id: 'lane', name: 'ซอย/ถนนเล็ก', color: '#8a8c90', edge: '#6b6d70' },
-  { id: 'path', name: 'ทางดิน', color: '#c7995d', edge: '#a77b45' }, { id: 'stone', name: 'ทางเดินหิน', color: '#b6ad9c', edge: '#8e8676' },
-  { id: 'plaza', name: 'ลานอิฐ/ลานเมือง', color: '#c08a6a', edge: '#9c6a4e' }, { id: 'bridge', name: 'สะพานไม้', color: '#a0703f', edge: '#6e4a26' },
-  { id: 'rail', name: 'ทางรถไฟ', color: '#6e5a48', edge: '#3c3c3c' },
+  { id: 'main', name: 'ถนนหลัก + ทางเท้า', color: '#5d6168', set: 'road3' }, { id: 'main2', name: 'ถนนหลัก แบบ 2', color: '#5a5d63', set: 'road4' },
+  { id: 'main3', name: 'ถนนหลัก แบบ 3', color: '#55585e', set: 'road5' }, { id: 'lane', name: 'ซอย/ถนนเล็ก', color: '#8a8c90', set: 'road2' },
+  { id: 'path', name: 'ทางดิน', color: '#c7995d', set: 'road1' }, { id: 'stones', name: 'ทางเดินหิน', color: '#b6ad9c', plain: 'stones', edge: 'road2' },
+  { id: 'plaza1', name: 'ลานกลางบ้าน แบบ 1', color: '#c08a6a', plain: 'plaza1', edge: 'road2' }, { id: 'plaza2', name: 'ลานเมือง แบบ 2', color: '#b9a48a', plain: 'plaza2', edge: 'road2' },
+  { id: 'plaza3', name: 'ลานเมือง แบบ 3', color: '#a9a39a', plain: 'plaza3', edge: 'road2' }, { id: 'plaza4', name: 'ลานเมือง แบบ 4', color: '#9ea0a6', plain: 'plaza4', edge: 'road2' },
 ];
+const TILESETS = ['grass', 'farmland', 'road1', 'road2', 'road3', 'road4', 'road5', 'bank', 'beach', 'bankmask', 'beachmask', 'plaza1', 'plaza2', 'plaza3', 'plaza4', 'soil', 'stones', 'water'];
+const TL = {}; let tilesOk = false;
 const MARKERS = { spawn: { name: 'จุดเกิดผู้เล่น', color: '#ffd84a', icon: '⭐' }, lot: { name: 'ที่ดินผู้เล่น (แปลงบ้าน)', color: '#4fc3f7', icon: '🏠' }, public: { name: 'ที่ดินอาคารสาธารณะ', color: '#ba68c8', icon: '🏛️' }, gate: { name: 'ทางออก/ประตูเมือง', color: '#ff8a65', icon: '🚪' }, npc: { name: 'จุด NPC', color: '#aed581', icon: '🧑' }, zone: { name: 'โซน (ตั้งชื่อเอง)', color: '#f06292', icon: '▦' }, note: { name: 'โน้ตถึง Claude', color: '#ffffff', icon: '📝' } };
 const ROWCH = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
@@ -167,7 +172,7 @@ function toFile() {
     groundRows: rows(P.ground, false), roadRows: rows(P.road, true),
     objects: P.objects.map(o => { const a = assetById(o.asset); return { id: o.id, asset: o.asset, assetName: a?.name, kind: a?.kind, x: o.x, y: o.y, fw: o.fw, fh: o.fh, tw: o.tw, flip: !!o.flip, label: o.label || '' }; }),
     markers: P.markers.map(m => ({ ...m, typeName: MARKERS[m.type]?.name })),
-    assets: P.assets.map(a => ({ id: a.id, name: a.name, kind: a.kind, kindName: KINDS[a.kind], tw: a.tw, fw: a.fw, fh: a.fh, pw: a.pw, ph: a.ph, src: a.src })),
+    assets: P.assets.filter(a => !a.game || P.objects.some(o => o.asset === a.id) || [...P.terrains, ...P.roads].some(t => t.asset === a.id)).map(a => ({ id: a.id, game: !!a.game, name: a.name, kind: a.kind, kindName: KINDS[a.kind], tw: a.tw, fw: a.fw, fh: a.fh, pw: a.pw, ph: a.ph, src: a.src })),
     summary: summary(),
   };
 }
@@ -180,7 +185,10 @@ function summary() {
 function fromFile(f) {
   if (!f || f.format !== FORMAT) throw new Error('ไม่ใช่ไฟล์แมพ v2n-map@1');
   const p = newProject(f.width, f.height, 0, []);
-  p.name = f.name || 'แมพ'; p.terrains = f.terrains.map(t => ({ ...t })); p.roads = f.roadTypes.map(r => ({ ...r }));
+  p.name = f.name || 'แมพ';
+  // keep the rendering recipe (which game tile sheet) from the current defaults; custom/imported types are kept as saved
+  const withDef = (list, defs) => { const out = list.map(t => ({ ...(defs.find(d => d.id === t.id) || {}), ...t, ...(defs.find(d => d.id === t.id) ? { set: defs.find(d => d.id === t.id).set, base: defs.find(d => d.id === t.id).base, plain: defs.find(d => d.id === t.id).plain, edge: defs.find(d => d.id === t.id).edge, water: defs.find(d => d.id === t.id).water } : {}) })); for (const d of defs) if (!out.some(t => t.id === d.id)) out.push({ ...d }); return out; };
+  p.terrains = withDef(f.terrains, DEF_TERRAIN); p.roads = withDef(f.roadTypes, DEF_ROADS);
   const gi = {}; Object.entries(f.groundKey).forEach(([ch, id]) => gi[ch] = p.terrains.findIndex(t => t.id === id));
   const ri = {}; Object.entries(f.roadKey).forEach(([ch, id]) => ri[ch] = id === 'none' ? 0 : p.roads.findIndex(r => r.id === id) + 1);
   f.groundRows.forEach((row, y) => { for (let x = 0; x < p.w; x++) p.ground[y * p.w + x] = Math.max(0, gi[row[x]] ?? 0); });
@@ -206,74 +214,118 @@ function addAsset(a) {
   if (a.kind === 'road') P.roads.push({ id: 'tex_' + a.id, name: a.name, color: '#777', edge: '#555', asset: a.id });
   return a;
 }
-// one art style only (v0.24+): new houses hz*, the 4 new trees, new shops/businesses; older-style buildings are marked (ภาพเก่า)
-const GAME_KIND = [[/^hz\d[a-d]_s3$/, 'house'], [/^tree_(broadleaf|rubber|pine|pinesmall)$/, 'tree'], [/^pl_/, 'bush'], [/^bush/, 'bush'], [/^rock_/, 'rock'], [/^(sh|bz)_/, 'shop'], [/^(cb|cd|po)_/, 'civic'], [/^(leader|market|hall)_e\d_s3$/, 'building'],
-  [/^(bs|gt)_/, 'building'], [/^cp_/, 'prop'], [/^an_.*_0$/, 'animal'], [/^fence_/, 'fence'], [/^tx_/, 'ground']];
-const OLD_STYLE = /^(cb|cd|leader|market|hall|cp|bs|gt|po|an|fence|rock)_/;
-async function loadGameArt() {
+// every sprite the game has (src/artManifest.js), sorted into kinds; building construction stages go to "ขั้นก่อสร้าง"
+const GAME_KIND = [[/^hz\d[a-d]_s3$/, 'house'], [/_s[012]$/, 'stage'], [/^tree_/, 'tree'], [/^stump_/, 'tree'], [/^pl_/, 'bush'], [/^(rock|ore)_/, 'rock'],
+  [/^(sh|bz)_/, 'shop'], [/^(cb|cd|po)_/, 'civic'], [/^(leader|market|hall|cots|cotm|cotl|house|hs\d)_/, 'building'], [/^(bs|gt)_/, 'building'],
+  [/^pw_bridge/, 'bridge'], [/^an_/, 'animal'], [/^fence_/, 'fence'], [/^(crop|pf|pp)_/, 'farm'], [/^(cp|pc|pw)_/, 'prop'], [/^tx_/, null], [/^waterfall/, 'prop'], [/./, 'prop']];
+const OLD_STYLE = /^(cb|cd|leader|market|hall|cots|cotm|cotl|house|hs\d)_/;
+let GAME_ART = null;
+async function loadGameArt(quiet = false) {
   let ART;
-  try { ART = (await import('../src/artManifest.js')).ART10; } catch (e) { return toast('โหลดรูปในเกมไม่ได้ (ต้องเปิดผ่านเว็บ ไม่ใช่ไฟล์ในเครื่อง)'); }
+  try { ART = GAME_ART || (GAME_ART = (await import('../src/artManifest.js')).ART10); } catch (e) { return quiet || toast('โหลดรูปในเกมไม่ได้ (ต้องเปิดผ่านเว็บ ไม่ใช่ไฟล์ในเครื่อง)'); }
   let n = 0;
   for (const [name, [w, h]] of Object.entries(ART)) {
-    const k = GAME_KIND.find(([re]) => re.test(name)); if (!k) continue;
+    const k = GAME_KIND.find(([re]) => re.test(name)); if (!k || !k[1]) continue;
     if (P.assets.some(a => a.src === 'game:' + name)) continue;
     const kind = k[1], tw = Math.max(1, Math.round(w / TILE * 2) / 2);
     let fw = kind === 'ground' ? 1 : Math.max(1, Math.round(w / TILE * (kind === 'tree' ? .34 : .8))), fh = kind === 'ground' ? 1 : Math.max(1, Math.round(h / TILE * (kind === 'tree' ? .2 : kind === 'prop' || kind === 'animal' || kind === 'bush' ? .4 : .35)));
     if (/^hz/.test(name)) { fw = 4; fh = 3; } // the game's house lot: 4x3 base
-    if (kind === 'tree' || kind === 'bush') { fw = 1; fh = 1; }
+    if (kind === 'tree' || kind === 'bush' || kind === 'rock') { fw = 1; fh = 1; }
+    if (kind === 'bridge') fh = 1;
     addAsset({ name: gameName(name) + (OLD_STYLE.test(name) ? ' (ภาพเก่า)' : ''), kind, src: 'game:' + name, pw: w, ph: h, tw, fw, fh, game: true }); n++;
   }
-  save(); renderSide(); toast(`เพิ่มรูปจากเกม ${n} รูป (กรองตามประเภทได้ในคลังด้านขวา)`);
+  renderSide(); if (!quiet) toast(n ? `เพิ่มรูปจากเกม ${n} รูป` : 'มีรูปในเกมครบทุกรูปแล้ว');
 }
 function gameName(n) {
   let m;
   if ((m = n.match(/^hz(\d)([a-d])_s3$/))) return `บ้านระดับ ${m[1]} แบบ ${m[2].toUpperCase()}`;
   const tr = { tree_broadleaf: 'ต้นไม้ใหญ่ (ใบกลม)', tree_rubber: 'ต้นไม้เล็ก (ใบกลม)', tree_pine: 'สนใหญ่', tree_pinesmall: 'สนเล็ก' }; if (tr[n]) return tr[n];
-  const map = { sh_conv: 'ร้านสะดวกซื้อ', sh_grocery: 'ร้านชำ', sh_rest: 'ร้านอาหาร', bz_bank: 'ธนาคาร', bz_office: 'สำนักงาน', bz_work: 'โรงงาน', leader: 'บ้านผู้นำ', market: 'ตลาด', hall: 'ศาลา' };
+  if (n.startsWith('stump_')) return 'ตอไม้ ' + n.slice(6);
+  const map = { sh_conv: 'ร้านสะดวกซื้อ', sh_grocery: 'ร้านชำ', sh_rest: 'ร้านอาหาร', bz_bank: 'ธนาคาร', bz_office: 'สำนักงาน', bz_work: 'โรงงาน', leader: 'บ้านผู้นำ', market: 'ตลาด', hall: 'ศาลา',
+    an_buffalo: 'ควาย', an_cow: 'วัว', an_dog: 'หมา', an_chicken: 'ไก่', an_duck: 'เป็ด', an_pig: 'หมู', bs_metro: 'สถานีรถไฟฟ้า', bs_sala: 'ศาลารอรถ', bs_stop: 'ป้ายรถเมล์', bs_terminal: 'สถานีขนส่ง',
+    gt_bamboo: 'ประตูไม้ไผ่', gt_village: 'ซุ้มประตูหมู่บ้าน', gt_district: 'ซุ้มประตูอำเภอ', gt_city: 'ซุ้มประตูเมือง', cb_district: 'ที่ว่าการอำเภอ', cb_police: 'สถานีตำรวจ', cb_fire: 'สถานีดับเพลิง',
+    cb_school: 'โรงเรียน', cb_temple: 'วัด', cb_post: 'ไปรษณีย์', cb_market: 'ตลาดสด', cb_shophouse: 'ตึกแถว', cb_store: 'ร้านสะดวกซื้อเก่า', cb_apartment: 'อพาร์ตเมนต์', cb_province: 'ศาลากลางจังหวัด',
+    cb_hospital: 'โรงพยาบาล', cb_mall: 'ห้างสรรพสินค้า', cb_condo: 'คอนโด', cb_tower: 'ตึกสูง', cb_bank: 'ธนาคารเก่า', cb_parliament: 'ทำเนียบรัฐบาล', cd_: 'อาคารเมือง ', po_refinery: 'โรงกลั่นน้ำมัน',
+    po_crane: 'เครนท่าเรือ', po_pier: 'ท่าเรือ', po_pumpjack: 'บ่อน้ำมัน', po_rig: 'แท่นขุดเจาะ', pw_bridge: 'สะพาน', cp_bench: 'ม้านั่ง', cp_lamp: 'เสาไฟ', cp_fountain: 'น้ำพุ', cp_bin: 'ถังขยะ',
+    cp_planter: 'กระถางต้นไม้', cp_busstop: 'ป้ายรถเมล์เล็ก', cp_hydrant: 'หัวดับเพลิง', cp_policebox: 'ป้อมตำรวจ', cp_phone: 'ตู้โทรศัพท์', cp_traffic: 'ไฟจราจร', cp_billboard: 'ป้ายโฆษณา', cp_tree: 'ต้นไม้ริมทาง',
+    fence_: 'รั้ว ', crop_: 'พืชผล ', pl_: 'พุ่มไม้ ', rock_: 'หิน ' };
   for (const [k, v] of Object.entries(map)) if (n.startsWith(k)) return `${v} ${n.replace(k, '').replace(/[_e]/g, ' ').trim()}`.trim();
   return n.replace(/_/g, ' ');
 }
 
-// ------------------------------------------------------------------ ground cache (16 px per tile)
-let base = null, bctx = null, dirty = new Set(), allDirty = true;
+// ------------------------------------------------------------------ ground (game tile sheets, dual grid)
+let base = null, bctx = null, wbase = null, wctx = null, allDirty = true;
 const patterns = {};
+const TBASE = new URL('../assets/tiles/', location.href).href, TPX = 64, CELL = 2;
+function loadTiles() {
+  let left = TILESETS.length;
+  for (const n of TILESETS) { const im = new Image(); im.onload = () => { if (--left === 0) { tilesOk = true; dirtyAll(); draw(); renderSide(); } }; im.onerror = () => { left = -999; toast('โหลดแผ่นพื้นของเกมไม่ได้ (ต้องเปิดผ่านเว็บ) — แสดงเป็นสีแทน'); }; im.src = TBASE + n + '.webp'; TL[n] = im; }
+}
 function rebuildPatterns() {
   for (const k of Object.keys(patterns)) delete patterns[k];
   for (const t of [...P.terrains, ...P.roads]) if (t.asset) { const a = assetById(t.asset), im = a && img.get(a.id); if (im?.complete && im.naturalWidth) { const c = document.createElement('canvas'); c.width = TILE * 4; c.height = TILE * 4; c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); patterns[t.id] = bctx.createPattern(c, 'repeat'); } }
 }
+let dbox = null; // dirty area in tiles
 function dirtyAll() { allDirty = true; }
-function markDirty(x, y) { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (inside(x + dx, y + dy)) dirty.add(idx(x + dx, y + dy)); }
+function markDirty(x, y) { if (!dbox) dbox = [x, y, x, y]; else { dbox[0] = Math.min(dbox[0], x); dbox[1] = Math.min(dbox[1], y); dbox[2] = Math.max(dbox[2], x); dbox[3] = Math.max(dbox[3], y); } }
 function hash(x, y, s = 1) { let h = (x * 374761393 + y * 668265263 + s * 2147483647) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967295; }
-function shade(hex, k) { const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255, f = v => Math.max(0, Math.min(255, Math.round(v * k))); return `rgb(${f(r)},${f(g)},${f(b)})`; }
-function paintCell(x, y) {
-  const i = idx(x, y), t = P.terrains[P.ground[i]] || P.terrains[0], px = x * TILE, py = y * TILE;
-  if (patterns[t.id]) { bctx.fillStyle = patterns[t.id]; bctx.fillRect(px, py, TILE, TILE); }
-  else {
-    bctx.fillStyle = shade(t.color, .96 + hash(x, y) * .08); bctx.fillRect(px, py, TILE, TILE);
-    // a few darker / lighter pixels so the ground is not a flat colour
-    for (let k = 0; k < 5; k++) { const h = hash(x, y, k + 2); bctx.fillStyle = shade(t.color, h > .5 ? 1.1 : .86); bctx.fillRect(px + Math.floor(hash(x, y, k + 9) * 15), py + Math.floor(hash(x, y, k + 19) * 15), 1 + (h > .8 ? 1 : 0), 1); }
-    // soft border where another terrain starts
-    const other = (dx, dy) => inside(x + dx, y + dy) && P.ground[idx(x + dx, y + dy)] !== P.ground[i];
-    bctx.fillStyle = shade(t.color, .82);
-    if (other(0, -1)) bctx.fillRect(px, py, TILE, 1); if (other(0, 1)) bctx.fillRect(px, py + TILE - 1, TILE, 1);
-    if (other(-1, 0)) bctx.fillRect(px, py, 1, TILE); if (other(1, 0)) bctx.fillRect(px + TILE - 1, py, 1, TILE);
+const CWn = () => Math.ceil(P.w / CELL), CHn = () => Math.ceil(P.h / CELL);
+let cellG = null, cellR = null; // per 2x2 cell: index of the ground / road type covering most of it
+function buildCells() {
+  const cw = CWn(), ch = CHn(); cellG = new Int16Array(cw * ch); cellR = new Int16Array(cw * ch);
+  for (let Y = 0; Y < ch; Y++) for (let X = 0; X < cw; X++) {
+    const cg = {}, cr = {};
+    for (let j = 0; j < CELL; j++) for (let i = 0; i < CELL; i++) { const x = X * CELL + i, y = Y * CELL + j; if (!inside(x, y)) continue; const k = idx(x, y); cg[P.ground[k]] = (cg[P.ground[k]] || 0) + 1; cr[P.road[k]] = (cr[P.road[k]] || 0) + 1; }
+    const best = o => +Object.entries(o).sort((a, b) => b[1] - a[1])[0][0];
+    cellG[Y * cw + X] = best(cg); const r = Object.entries(cr).sort((a, b) => b[1] - a[1])[0]; cellR[Y * cw + X] = r && +r[0] && r[1] >= 2 ? +r[0] : 0;
   }
-  const rv = P.road[i]; if (!rv) return;
-  const r = P.roads[rv - 1]; if (!r) return;
-  const same = (dx, dy) => inside(x + dx, y + dy) && P.road[idx(x + dx, y + dy)] === rv;
-  bctx.fillStyle = patterns[r.id] || shade(r.color, .97 + hash(x, y, 7) * .06); bctx.fillRect(px, py, TILE, TILE);
-  const kerb = r.id === 'main' ? 3 : 1;
-  bctx.fillStyle = r.edge || shade(r.color, .7);
-  if (!same(0, -1)) bctx.fillRect(px, py, TILE, kerb); if (!same(0, 1)) bctx.fillRect(px, py + TILE - kerb, TILE, kerb);
-  if (!same(-1, 0)) bctx.fillRect(px, py, kerb, TILE); if (!same(1, 0)) bctx.fillRect(px + TILE - kerb, py, kerb, TILE);
-  if (r.id === 'main' && same(-1, 0) && same(1, 0) && !same(0, -1) && !same(0, 1)) { bctx.fillStyle = '#e8d27a'; if ((x & 1) === 0) bctx.fillRect(px + 2, py + 7, 10, 2); } // centre line on 1-tall strips
-  if (r.id === 'bridge') { bctx.fillStyle = shade(r.color, .78); for (let k = 2; k < TILE; k += 4) bctx.fillRect(px, py + k, TILE, 1); }
-  if (r.id === 'rail') { bctx.fillStyle = '#8f8f8f'; bctx.fillRect(px, py + 4, TILE, 2); bctx.fillRect(px, py + 10, TILE, 2); }
 }
+const cAt = (arr, X, Y) => arr[Math.max(0, Math.min(CHn() - 1, Y)) * CWn() + Math.max(0, Math.min(CWn() - 1, X))];
+function mask(X, Y, arr, test) { return (test(cAt(arr, X, Y)) ? 8 : 0) | (test(cAt(arr, X + 1, Y)) ? 4 : 0) | (test(cAt(arr, X, Y + 1)) ? 2 : 0) | (test(cAt(arr, X + 1, Y + 1)) ? 1 : 0); }
+function blit(g, name, i, dx, dy) { g.drawImage(TL[name], i * TPX, 0, TPX, TPX, dx, dy, CELL * TILE, CELL * TILE); }
 function refreshBase() {
-  if (!base || base.width !== P.w * TILE || base.height !== P.h * TILE) { base = document.createElement('canvas'); base.width = P.w * TILE; base.height = P.h * TILE; bctx = base.getContext('2d'); rebuildPatterns(); allDirty = true; }
-  if (allDirty) { for (let y = 0; y < P.h; y++) for (let x = 0; x < P.w; x++) paintCell(x, y); allDirty = false; dirty.clear(); return; }
-  for (const i of dirty) paintCell(i % P.w, Math.floor(i / P.w)); dirty.clear();
+  const W = P.w * TILE, H = P.h * TILE;
+  if (!base || base.width !== W || base.height !== H) { base = document.createElement('canvas'); base.width = W; base.height = H; bctx = base.getContext('2d'); wbase = document.createElement('canvas'); wbase.width = W; wbase.height = H; wctx = wbase.getContext('2d'); rebuildPatterns(); allDirty = true; }
+  if (!allDirty && !dbox) return;
+  // dual tiles to redraw: everything, or only those touching the painted area (each dual tile covers 4 cells)
+  let X0 = -1, Y0 = -1, X1 = CWn() - 1, Y1 = CHn() - 1;
+  if (!allDirty) { X0 = Math.max(-1, Math.floor(dbox[0] / CELL) - 2); Y0 = Math.max(-1, Math.floor(dbox[1] / CELL) - 2); X1 = Math.min(CWn() - 1, Math.floor(dbox[2] / CELL) + 1); Y1 = Math.min(CHn() - 1, Math.floor(dbox[3] / CELL) + 1); }
+  allDirty = false; dbox = null;
+  buildCells();
+  const rx = (X0 * CELL + 1) * TILE, ry = (Y0 * CELL + 1) * TILE, rw = (X1 - X0 + 1) * CELL * TILE, rh = (Y1 - Y0 + 1) * CELL * TILE;
+  bctx.clearRect(rx, ry, rw, rh); wctx.clearRect(rx, ry, rw, rh); bctx.imageSmoothingEnabled = wctx.imageSmoothingEnabled = false;
+  if (!tilesOk) { bctx.clearRect(0, 0, W, H); for (let y = 0; y < P.h; y++) for (let x = 0; x < P.w; x++) { const t = P.terrains[P.ground[idx(x, y)]], r = P.road[idx(x, y)] && P.roads[P.road[idx(x, y)] - 1]; bctx.fillStyle = (r || t || {}).color || '#78b858'; bctx.fillRect(x * TILE, y * TILE, TILE, TILE); } return; }
+  const T = P.terrains, R = P.roads, isTerr = (pred) => v => !!T[v] && pred(T[v]), isRoad = (pred) => v => v > 0 && !!R[v - 1] && pred(R[v - 1]);
+  const wet = isTerr(t => !!t.water);
+  for (let Y = Y0; Y <= Y1; Y++) for (let X = X0; X <= X1; X++) {
+    const dx = (X * CELL + 1) * TILE, dy = (Y * CELL + 1) * TILE, h = hash(X, Y, 301), h2 = hash(Y, X, 302);
+    const wm = mask(X, Y, cellG, wet);
+    if (wm) { wctx.drawImage(TL.water, 0, 0, TPX, TPX, dx, dy, CELL * TILE, CELL * TILE); if (wm === 15 && h < .05) wctx.drawImage(TL.bank, 16 * TPX, 0, TPX, TPX, dx, dy, CELL * TILE, CELL * TILE); }
+    if (wm === 15) continue;
+    // grass base: plain variants, flowers in meadows, pebbles on rocky ground (same picks as the game)
+    const sub = T[cAt(cellG, X + (h > .5 ? 1 : 0), Y + (h2 > .5 ? 1 : 0))]?.base;
+    let v = Math.floor(h * 8);
+    if (sub === 'meadow' && h2 < .55) v = 8 + Math.floor(h2 * 7.27) % 4; else if (sub === 'rocky' && h2 < .45) v = 14 + (h2 < .22 ? 1 : 0); else if (h2 < .07) v = 8 + Math.floor(h2 * 85) % 6;
+    blit(bctx, 'grass', v, dx, dy);
+    if (wm) {
+      const sea = mask(X, Y, cellG, isTerr(t => t.water === 'beach')) ? 'beach' : 'bank';
+      bctx.globalCompositeOperation = 'destination-out'; blit(bctx, sea + 'mask', wm, dx, dy);
+      bctx.globalCompositeOperation = 'source-over'; blit(bctx, sea, wm, dx, dy); continue;
+    }
+    // ground layers with edges (farmland, dirt), then plain fills (soil), then roads: lanes/plazas, main streets on top
+    for (const t of T) {
+      if (t.set) { const m = mask(X, Y, cellG, v2 => T[v2] === t); if (m) blit(bctx, t.set, m === 15 && h < .14 && t.set === 'road1' ? 16 + Math.floor(h2 * 3) : m, dx, dy); }
+      else if (t.plain) { const m = mask(X, Y, cellG, v2 => T[v2] === t); if (m === 15) blit(bctx, t.plain, Math.floor(h * 4), dx, dy); else if (m) blit(bctx, t.edge, m, dx, dy); }
+      else if (t.asset && patterns[t.id]) { const m = mask(X, Y, cellG, v2 => T[v2] === t); if (m === 15) { bctx.fillStyle = patterns[t.id]; bctx.fillRect(dx, dy, CELL * TILE, CELL * TILE); } }
+    }
+    const order = [...R].sort((a, b) => (/^main/.test(a.id) ? 1 : 0) - (/^main/.test(b.id) ? 1 : 0));
+    for (const r of order) {
+      const m = mask(X, Y, cellR, v2 => v2 > 0 && R[v2 - 1] === r); if (!m) continue;
+      if (r.set) blit(bctx, r.set, m === 15 && r.set === 'road2' && h < .1 ? 16 + Math.floor(h2 * 3) : m, dx, dy);
+      else if (r.plain) { if (m === 15) blit(bctx, r.plain, Math.floor(h * 4), dx, dy); else blit(bctx, r.edge, m, dx, dy); }
+      else if (r.asset && patterns[r.id] && m === 15) { bctx.fillStyle = patterns[r.id]; bctx.fillRect(dx, dy, CELL * TILE, CELL * TILE); }
+    }
+  }
 }
 
 // ------------------------------------------------------------------ view
@@ -292,7 +344,7 @@ function render() {
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#111614'; ctx.fillRect(0, 0, cv.width, cv.height);
   ctx.imageSmoothingEnabled = false;
   ctx.setTransform(s, 0, 0, s, ui.ox, ui.oy);
-  ctx.drawImage(base, 0, 0);
+  ctx.drawImage(wbase, 0, 0); ctx.drawImage(base, 0, 0);
   // markers under objects
   for (const m of P.markers) { const M = MARKERS[m.type] || MARKERS.note; ctx.fillStyle = M.color + '33'; ctx.strokeStyle = M.color; ctx.lineWidth = 1 / ui.zoom * 1.5; ctx.fillRect(m.x * TILE, m.y * TILE, (m.w || 1) * TILE, (m.h || 1) * TILE); ctx.strokeRect(m.x * TILE, m.y * TILE, (m.w || 1) * TILE, (m.h || 1) * TILE); }
   // objects sorted by their base (y-sort like the game)
@@ -307,17 +359,17 @@ function render() {
   if (ui.grid && s >= 1.2) {
     const r = cv.width / s, b = cv.height / s, x0 = Math.max(0, Math.floor(-ui.ox / s / TILE)), y0 = Math.max(0, Math.floor(-ui.oy / s / TILE));
     const x1 = Math.min(P.w, Math.ceil((r - ui.ox / s) / TILE) + 1), y1 = Math.min(P.h, Math.ceil((b - ui.oy / s) / TILE) + 1);
-    ctx.strokeStyle = 'rgba(0,0,0,.18)'; ctx.lineWidth = 1 / s; ctx.beginPath();
+    ctx.strokeStyle = 'rgba(0,0,0,.10)'; ctx.lineWidth = 1 / s; ctx.beginPath();
     for (let x = x0; x <= x1; x++) { ctx.moveTo(x * TILE, y0 * TILE); ctx.lineTo(x * TILE, y1 * TILE); }
     for (let y = y0; y <= y1; y++) { ctx.moveTo(x0 * TILE, y * TILE); ctx.lineTo(x1 * TILE, y * TILE); }
     ctx.stroke();
-    ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); for (let x = 0; x <= P.w; x += 2) { if (x % 10) continue; ctx.moveTo(x * TILE, 0); ctx.lineTo(x * TILE, P.h * TILE); } for (let y = 0; y <= P.h; y += 10) { ctx.moveTo(0, y * TILE); ctx.lineTo(P.w * TILE, y * TILE); } ctx.stroke();
+    ctx.strokeStyle = 'rgba(0,0,0,.32)'; ctx.beginPath(); for (let x = x0 - x0 % 2; x <= x1; x += 2) { ctx.moveTo(x * TILE, y0 * TILE); ctx.lineTo(x * TILE, y1 * TILE); } for (let y = y0 - y0 % 2; y <= y1; y += 2) { ctx.moveTo(x0 * TILE, y * TILE); ctx.lineTo(x1 * TILE, y * TILE); } ctx.stroke();
   }
   // marker labels on top
   ctx.font = `${Math.max(6, 10 / ui.zoom)}px system-ui`; ctx.textBaseline = 'top';
   for (const m of P.markers) { const M = MARKERS[m.type] || MARKERS.note; const t = `${M.icon} ${m.label || M.name}`; ctx.fillStyle = '#000a'; const w = ctx.measureText(t).width; ctx.fillRect(m.x * TILE, m.y * TILE - 12 / ui.zoom, w + 4 / ui.zoom, 12 / ui.zoom); ctx.fillStyle = '#fff'; ctx.fillText(t, m.x * TILE + 2 / ui.zoom, m.y * TILE - 11 / ui.zoom); }
   // brush / rect preview
-  if (h && ['brush', 'erase', 'road', 'scatter'].includes(ui.tool)) { const r = ui.brush, cx = Math.floor(h.x), cy = Math.floor(h.y); ctx.strokeStyle = ui.tool === 'erase' ? '#d9634c' : '#fff'; ctx.lineWidth = 1.5 / s; ctx.strokeRect((cx - r + 1) * TILE, (cy - r + 1) * TILE, (2 * r - 1) * TILE, (2 * r - 1) * TILE); }
+  if (h && ['brush', 'erase', 'road', 'scatter'].includes(ui.tool)) { const r = ui.brush, CX = Math.floor(h.x / CELL), CY = Math.floor(h.y / CELL); ctx.strokeStyle = ui.tool === 'erase' ? '#d9634c' : '#fff'; ctx.lineWidth = 1.5 / s; ctx.strokeRect((CX - r + 1) * CELL * TILE, (CY - r + 1) * CELL * TILE, (2 * r - 1) * CELL * TILE, (2 * r - 1) * CELL * TILE); }
   if (ui.drag?.rect) { const q = normRect(ui.drag.rect); ctx.strokeStyle = '#fff'; ctx.setLineDash([4 / s, 3 / s]); ctx.lineWidth = 1.5 / s; ctx.strokeRect(q.x * TILE, q.y * TILE, q.w * TILE, q.h * TILE); ctx.setLineDash([]); }
   $('#zoomLbl').textContent = Math.round(ui.zoom * 100) + '%';
 }
@@ -346,7 +398,7 @@ function undo() { if (!undoStack.length) return; redoStack.push(snapshot()); res
 function redo() { if (!redoStack.length) return; undoStack.push(snapshot()); restore(redoStack.pop()); }
 function setGround(x, y, v) { if (!inside(x, y)) return; const i = idx(x, y); if (P.ground[i] === v) return; P.ground[i] = v; markDirty(x, y); }
 function setRoad(x, y, v) { if (!inside(x, y)) return; const i = idx(x, y); if (P.road[i] === v) return; P.road[i] = v; markDirty(x, y); }
-function stamp(cx, cy, fn) { const r = ui.brush; for (let y = cy - r + 1; y <= cy + r - 1; y++) for (let x = cx - r + 1; x <= cx + r - 1; x++) fn(x, y); }
+function stamp(tx, ty, fn) { const r = ui.brush, CX = Math.floor(tx / CELL), CY = Math.floor(ty / CELL); for (let Y = CY - r + 1; Y <= CY + r - 1; Y++) for (let X = CX - r + 1; X <= CX + r - 1; X++) for (let j = 0; j < CELL; j++) for (let i = 0; i < CELL; i++) fn(X * CELL + i, Y * CELL + j); }
 function line(x0, y0, x1, y1, fn) { const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1; for (let k = 0; k <= n; k++) fn(Math.round(x0 + (x1 - x0) * k / n), Math.round(y0 + (y1 - y0) * k / n)); }
 function flood(x, y, v) {
   const target = P.ground[idx(x, y)]; if (target === v) return; const st = [[x, y]], seen = new Uint8Array(P.w * P.h);
@@ -369,14 +421,14 @@ function objectAt(tx, ty) {
   return hits.sort((a, b) => (b.y + b.fh) - (a.y + a.fh))[0] || null;
 }
 function scatter(cx, cy) {
-  const set = ui.scatterSet.length ? ui.scatterSet : P.assets.filter(a => a.kind === 'tree' || a.kind === 'bush').map(a => a.id).slice(0, 4);
+  const set = ui.scatterSet.length ? ui.scatterSet : P.assets.filter(a => a.kind === 'tree' && !/stump/.test(a.src || '')).map(a => a.id).slice(0, 4);
   if (!set.length) return toast('ยังไม่มีรูปต้นไม้/พุ่มไม้ในคลัง — นำเข้ารูปหรือกด 🎮 รูปในเกม');
   const r = ui.brush + 1;
   for (let k = 0; k < 3; k++) {
     if (Math.random() * 100 > ui.density) continue;
     const x = cx + Math.round((Math.random() * 2 - 1) * r), y = cy + Math.round((Math.random() * 2 - 1) * r);
     if (!inside(x, y) || P.road[idx(x, y)]) continue;
-    const t = P.terrains[P.ground[idx(x, y)]]; if (/water|deep/.test(t?.id)) continue;
+    const t = P.terrains[P.ground[idx(x, y)]]; if (t?.water) continue;
     const a = assetById(set[Math.floor(Math.random() * set.length)]); if (!a) continue;
     const o = { id: P.nextId++, asset: a.id, x: x - Math.floor((a.fw - 1) / 2), y: y - a.fh + 1, fw: a.fw, fh: a.fh, tw: a.tw, flip: Math.random() < .5 };
     const spacing = { x: o.x - 1, y: o.y - 1, fw: o.fw + 2, fh: o.fh + 2 };
@@ -442,7 +494,7 @@ function endPointer(e) {
   const D = ui.drag; ui.drag = null;
   if (D?.rect) {
     const q = normRect(D.rect);
-    if (ui.tool === 'rect') { for (let y = q.y; y < q.y + q.h; y++) for (let x = q.x; x < q.x + q.w; x++) setGround(x, y, ui.terrain); }
+    if (ui.tool === 'rect') { const x0 = Math.floor(q.x / CELL) * CELL, y0 = Math.floor(q.y / CELL) * CELL, x1 = Math.ceil((q.x + q.w) / CELL) * CELL, y1 = Math.ceil((q.y + q.h) / CELL) * CELL; for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) setGround(x, y, ui.terrain); }
     else if (ui.tool === 'marker') { const m = { id: P.nextId++, type: ui.marker, x: q.x, y: q.y, w: q.w, h: q.h, label: '' }; if (ui.marker === 'zone' || ui.marker === 'note') m.label = prompt(ui.marker === 'note' ? 'โน้ตถึง Claude (เช่น "ตรงนี้อยากได้ตลาดน้ำ")' : 'ชื่อโซน (เช่น "ย่านราชการ")', '') || ''; P.markers.push(m); ui.selMarker = m; }
   }
   if (D) { save(); renderSide(); }
@@ -485,25 +537,26 @@ function status(tx, ty) {
 // ------------------------------------------------------------------ UI: tools + side panel
 const TOOLS = [['select', '🖐️', 'เลือก'], ['brush', '🖌️', 'ปูพื้น'], ['rect', '▭', 'สี่เหลี่ยม'], ['fill', '🪣', 'เทพื้น'], ['road', '🛣️', 'ถนน'], ['place', '🏠', 'วางของ'], ['scatter', '🌳', 'โปรยไม้'], ['marker', '📍', 'หมุด'], ['erase', '🧽', 'ลบ']];
 function renderTools() { $('#tools').innerHTML = TOOLS.map(([id, ic, n]) => `<button data-tool="${id}" class="${ui.tool === id ? 'on' : ''}" title="${n}">${ic}<small>${n}</small></button>`).join(''); }
-function setTool(t) { ui.tool = t; renderTools(); renderSide(); draw(); if (innerWidth < 820) $('#side').classList.add('open'); }
+function setTool(t) { if (t === 'scatter' && !['tree', 'bush', 'rock'].includes(ui.kindFilter)) ui.kindFilter = 'tree'; ui.tool = t; renderTools(); renderSide(); draw(); if (innerWidth < 820) $('#side').classList.add('open'); }
 $('#tools').addEventListener('click', e => { const b = e.target.closest('[data-tool]'); if (b) setTool(b.dataset.tool); });
 function swatch(t) { const a = t.asset && assetById(t.asset); return a ? `background-image:url('${srcUrl(a)}')` : `background:${t.color}`; }
 function renderSide() {
   const T = ui.tool; let h = '';
-  const brush = `<div class="row">ขนาดแปรง <input type="range" min="1" max="12" value="${ui.brush}" data-k="brush" style="flex:1"/> <b>${ui.brush * 2 - 1}</b> ช่อง</div>`;
+  const brush = `<div class="row">ขนาดแปรง <input type="range" min="1" max="12" value="${ui.brush}" data-k="brush" style="flex:1"/> <b>${(ui.brush * 2 - 1) * 2}</b> ช่อง</div>`;
   if (T === 'brush' || T === 'rect' || T === 'fill') {
     h += `<h3>🟩 พื้น</h3>${T === 'brush' ? brush : ''}<div class="pal">${P.terrains.map((t, i) => `<div class="sw ${ui.terrain === i ? 'on' : ''}" data-terrain="${i}"><i style="${swatch(t)}"></i>${esc(t.name)}</div>`).join('')}</div>
     <p class="help">${T === 'fill' ? 'คลิกเพื่อเทพื้นทั้งบริเวณที่ติดกัน' : T === 'rect' ? 'ลากเป็นกรอบเพื่อปูพื้นทั้งกรอบ' : 'ลากเพื่อระบายพื้น'} · เพิ่มลายพื้นเองได้: นำเข้ารูปแล้วตั้งประเภทเป็น "พื้น"</p>`;
   } else if (T === 'road') {
     h += `<h3>🛣️ ถนน / ทางเดิน</h3>${brush}<div class="pal">${P.roads.map((r, i) => `<div class="sw ${ui.road === i + 1 ? 'on' : ''}" data-road="${i + 1}"><i style="${swatch(r)}"></i>${esc(r.name)}</div>`).join('')}</div>
-    <p class="help">ลากเพื่อวาดถนน · กด <kbd>Shift</kbd> แล้วคลิก = ลากเส้นตรงต่อจากจุดก่อน · ถนนในเกมกว้าง 2 ช่อง (แปรง 1 = 1 ช่อง ลองวาด 2 เส้นติดกันหรือใช้แปรง 2 = 3 ช่อง) · ลบด้วยเครื่องมือ 🧽</p>`;
+    <p class="help">ลากเพื่อวาดถนน · กด <kbd>Shift</kbd> แล้วคลิก = ลากเส้นตรงต่อจากจุดก่อน · แปรงเล็กสุด = ถนนกว้าง 2 ช่องแบบในเกม (ขอบ ทางเท้า ทางแยกต่อกันเอง) · ลบด้วย 🧽</p>`;
   } else if (T === 'place' || T === 'scatter') {
     const kinds = ['all', ...Object.keys(KINDS).filter(k => P.assets.some(a => a.kind === k))];
-    const list = P.assets.filter(a => (ui.kindFilter === 'all' || a.kind === ui.kindFilter) && (!ui.q || a.name.toLowerCase().includes(ui.q.toLowerCase())) && (T !== 'scatter' || a.kind === 'tree' || a.kind === 'bush' || a.kind === 'rock'));
+    const list = P.assets.filter(a => (ui.kindFilter === 'all' ? a.kind !== 'stage' : a.kind === ui.kindFilter) && (!ui.q || a.name.toLowerCase().includes(ui.q.toLowerCase())) && (T !== 'scatter' || a.kind === 'tree' || a.kind === 'bush' || a.kind === 'rock'));
     h += T === 'scatter' ? `<h3>🌳 โปรยต้นไม้</h3>${brush}<div class="row">ความหนาแน่น <input type="range" min="5" max="100" value="${ui.density}" data-k="density" style="flex:1"/> ${ui.density}%</div><p class="help">เลือกได้หลายแบบ (คลิกให้ติดกรอบ) · ไม่วางบนถนน/น้ำ และเว้นระยะไม่ให้ทับกัน${ui.scatterSet.length ? '' : ' · ยังไม่เลือก = ใช้ต้นไม้ 4 แบบแรกในคลัง'}</p>`
       : `<h3>🏠 วางวัตถุ</h3><div class="row"><label><input type="checkbox" data-k="overlap" ${ui.overlap ? 'checked' : ''}/> วางซ้อนได้</label> <label><input type="checkbox" data-k="flip" ${ui.flip ? 'checked' : ''}/> กลับด้าน (X)</label></div>`;
     h += `<div class="row"><input placeholder="ค้นหา…" data-k="q" value="${esc(ui.q)}" style="flex:1"/></div><div class="chips">${kinds.map(k => `<button class="${ui.kindFilter === k ? 'on' : ''}" data-kind="${k}">${k === 'all' ? 'ทั้งหมด' : KINDS[k]}</button>`).join('')}</div>`;
-    h += list.length ? `<div class="lib" style="margin-top:8px">${list.slice(0, 240).map(a => `<div class="card ${(T === 'place' ? ui.asset === a.id : ui.scatterSet.includes(a.id)) ? 'on' : ''}" data-asset="${a.id}" title="${esc(a.name)} · ${a.fw}×${a.fh} ช่อง"><img src="${esc(srcUrl(a))}" loading="lazy"/><span>${esc(a.name)}</span></div>`).join('')}</div>`
+    list.sort((a, b) => (/stump/.test(a.src || '') ? 1 : 0) - (/stump/.test(b.src || '') ? 1 : 0) || (a.game ? 1 : 0) - (b.game ? 1 : 0)); // your imports first, stumps last
+    h += list.length ? `<div class="lib" style="margin-top:8px">${list.slice(0, 600).map(a => `<div class="card ${(T === 'place' ? ui.asset === a.id : ui.scatterSet.includes(a.id)) ? 'on' : ''}" data-asset="${a.id}" title="${esc(a.name)} · ${a.fw}×${a.fh} ช่อง"><img src="${esc(srcUrl(a))}" loading="lazy"/><span>${esc(a.name)}</span></div>`).join('')}</div>`
       : `<p class="help">คลังยังว่าง — กด <b>📥 นำเข้ารูป</b> (รูปจาก GPT) หรือ <b>🎮 รูปในเกม</b></p>`;
     const a = assetById(ui.asset);
     if (T === 'place' && a) h += assetEditor(a);
@@ -542,7 +595,7 @@ $('#side').addEventListener('click', e => {
 });
 $('#side').addEventListener('input', e => {
   const t = e.target, k = t.dataset.k;
-  if (k === 'brush' || k === 'density') { ui[k] = +t.value; if (k === 'brush') draw(); return t.nextElementSibling && (t.nextElementSibling.textContent = k === 'brush' ? ui.brush * 2 - 1 : ''); }
+  if (k === 'brush' || k === 'density') { ui[k] = +t.value; if (k === 'brush') draw(); return t.nextElementSibling && (t.nextElementSibling.textContent = k === 'brush' ? (ui.brush * 2 - 1) * 2 : ''); }
   if (k === 'q') { ui.q = t.value; clearTimeout(ui.qt); ui.qt = setTimeout(() => { renderSide(); const q = $('#side [data-k=q]'); q.focus(); q.setSelectionRange(q.value.length, q.value.length); }, 250); return; }
   if (k === 'overlap' || k === 'flip') { ui[k] = t.checked; return draw(); }
   if (t.dataset.o && ui.sel) { const v = t.dataset.o === 'label' ? t.value : Number(t.value); if (t.dataset.o !== 'label' && !Number.isFinite(v)) return; ui.sel[t.dataset.o] = v; save(); draw(); }
@@ -686,6 +739,7 @@ $('#pname').oninput = e => { P.name = e.target.value; save(); };
 function toast(t) { const el = $('#toast'); el.textContent = t; el.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(() => el.style.display = 'none', 3200); }
 function afterLoad() {
   img.clear(); for (const a of P.assets) loadImg(a);
+  loadGameArt(true);
   base = null; ui.sel = ui.selMarker = null; ui.asset = null; $('#pname').value = P.name;
   const r = $('#stage').getBoundingClientRect(), d = devicePixelRatio || 1; ui.zoom = Math.max(.25, Math.min(2, Math.min(r.width / (P.w * TILE), r.height / (P.h * TILE)) * .95));
   ui.ox = (r.width * d - P.w * TILE * ui.zoom * d) / 2; ui.oy = (r.height * d - P.h * TILE * ui.zoom * d) / 2;
@@ -694,7 +748,7 @@ function afterLoad() {
 // ------------------------------------------------------------------ boot
 try { const raw = localStorage.getItem(LS); P = raw ? fromFile(JSON.parse(raw)) : null; } catch { P = null; }
 if (!P) P = newProject();
-addEventListener('resize', fit); fit(); afterLoad();
+addEventListener('resize', fit); loadTiles(); fit(); afterLoad();
 window.__MAPMAKER__ = { get P() { return P; }, toFile, fromFile, ui, setTool, addAsset, render };
 </script>
 </body>
