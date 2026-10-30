@@ -264,7 +264,9 @@ export function render() {
   for (const p of villageProps(s)) {
     const x = p.x * TILE, y = p.y * TILE; if (x < vx0 - 80 || x > vx1 + 80 || y < vy0 - 20 || y > vy1 + 90) continue;
     const name = p.anim ? `${p.name}_${Math.floor(G.now * 8 + p.x) % p.anim}` : p.name, sz = ART10[name] || [16, 16];
-    add(p.flat ? y - 40 : y - 1, () => { if (prof.shadow && !p.flat && sz[0] > 18) groundShadow(x, y - 1, sz[0] * (p.big ? 1.02 : .9), p.big ? 10 : 4); spr(ctx, name, x, y, p.scale || 1); },
+    add(p.flat ? y - 40 : y - 1, () => { if (prof.shadow && !p.flat && sz[0] > 18 && !p.rot) groundShadow(x, y - 1, sz[0] * (p.big ? 1.02 : .9), p.big ? 10 : 4);
+      if (p.rot || p.flip) { const k = p.scale || 1, pv = p.pivot || 0; ctx.save(); ctx.translate(x, y - pv); if (p.rot) ctx.rotate(p.rot * Math.PI / 180); if (p.flip) ctx.scale(-1, 1); spr(ctx, name, 0, pv, k); ctx.restore(); } // v0.28 rotated / mirrored props from the Map Maker
+      else spr(ctx, name, x, y, p.scale || 1); },
       sz[1] > 34 && !p.flat ? { x0: x - sz[0] / 2 + 4, x1: x + sz[0] / 2 - 4, y0: y - sz[1], y1: y - 10 } : null, p.flat ? null : { name, cx: x, by: y - (p.big ? 4 : 1) });
   }
   // animals

@@ -1,0 +1,38 @@
+name: Map Maker APK
+on:
+  push:
+    branches: [main]
+    paths: ['editor/**', 'android/**', 'assets/**', 'src/artManifest.js', '.github/workflows/mapmaker-apk.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.9' }
+      - name: Copy the web editor + game art into the app
+        run: |
+          W=android/app/src/main/assets/www
+          mkdir -p $W/editor $W/assets $W/src
+          cp editor/index.html $W/editor/
+          cp -r assets/v10 assets/tiles $W/assets/
+          cp src/artManifest.js $W/src/
+      - name: Build APK
+        run: gradle -p android assembleRelease --no-daemon
+      - name: Rename
+        run: cp android/app/build/outputs/apk/release/app-release.apk V2N-MapMaker.apk
+      - uses: actions/upload-artifact@v4
+        with: { name: V2N-MapMaker, path: V2N-MapMaker.apk }
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: mapmaker-v${{ github.run_number }}
+          name: V2N Map Maker ${{ github.run_number }}
+          body: แอปสร้างแมพ V2N (Android) — ดาวน์โหลด V2N-MapMaker.apk แล้วติดตั้ง (อนุญาตติดตั้งจากแหล่งที่ไม่รู้จัก)
+          files: V2N-MapMaker.apk
+          make_latest: true

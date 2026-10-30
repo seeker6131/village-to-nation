@@ -1,0 +1,18 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'th.seafishingclub.v2nmapmaker'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'th.seafishingclub.v2nmapmaker'
+        minSdk 24
+        targetSdk 34
+        versionCode (System.getenv('GITHUB_RUN_NUMBER') ?: '1').toInteger()
+        versionName "1.${System.getenv('GITHUB_RUN_NUMBER') ?: '0'}"
+    }
+    // fixed key so a new APK installs over the old one (personal tool; the key is not a secret)
+    signingConfigs { v2n { storeFile file('../v2n.keystore'); storePassword 'v2nmapmaker'; keyAlias 'v2n'; keyPassword 'v2nmapmaker' } }
+    buildTypes { release { minifyEnabled false; signingConfig signingConfigs.v2n } }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    androidResources { noCompress 'webp', 'png', 'json' }
+}
+dependencies { implementation 'androidx.webkit:webkit:1.11.0' }

@@ -70,7 +70,7 @@ function customProps(s, t) {
   for (const p of s.placed || []) if (p.type === 'cottage' && p.level >= 1) list.push(P('pp_mailbox', p.tx + 3.6, p.ty + 3.4));
   for (const m of WORLD.custom.props) {
     const blk = []; for (let y = m.y; y < m.y + m.fh; y++) for (let x = m.x; x < m.x + m.fw; x++) blk.push([x, y]);
-    list.push(P(m.name, m.x + m.fw / 2, m.y + m.fh + .1, { block: blk, flip: m.flip, city: m.label }));
+    list.push(P(m.name, m.x + m.fw / 2, m.y + m.fh + .1, { block: blk, flip: m.flip, rot: m.rot || 0, pivot: m.fh * 8 + 1.6, scale: m.scale || 1, city: m.label })); // pivot: the footprint centre, like the Map Maker
   }
   return list;
 }

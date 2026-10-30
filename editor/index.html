@@ -2,125 +2,128 @@
 <html lang="th">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#1d2321" />
 <title>V2N Map Maker</title>
 <style>
-:root{--bg:#1d2321;--panel:#262e2b;--panel2:#2f3935;--line:#3d4a45;--ink:#eef2ea;--mute:#a6b3ab;--acc:#e7b04a;--acc2:#6fbf73;--bad:#d9634c}
-*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,-apple-system,"Noto Sans Thai",sans-serif;overflow:hidden}
+:root{--bg:#1d2321;--panel:#262e2b;--panel2:#2f3935;--line:#3d4a45;--ink:#eef2ea;--mute:#a6b3ab;--acc:#e7b04a;--bad:#d9634c}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,-apple-system,"Noto Sans Thai",sans-serif;overflow:hidden;overscroll-behavior:none;user-select:none;-webkit-user-select:none}
 button,select,input{font:inherit;color:inherit}
-button{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer}
-button:hover{border-color:var(--acc)}button.on{background:var(--acc);color:#1d2321;border-color:var(--acc);font-weight:600}
-button:disabled{opacity:.45;cursor:not-allowed}
-input,select{background:#1a201e;border:1px solid var(--line);border-radius:6px;padding:5px 7px}
-#app{display:grid;grid-template-columns:62px 1fr 300px;grid-template-rows:48px 1fr 28px;height:100%}
-#top{grid-column:1/4;display:flex;gap:6px;align-items:center;padding:6px 10px;background:var(--panel);border-bottom:1px solid var(--line);overflow-x:auto;white-space:nowrap}
-#top .name{width:170px}#top .sep{width:1px;height:26px;background:var(--line);margin:0 4px}
-#tools{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:6px;padding:8px 6px;overflow-y:auto}
-#tools button{width:48px;height:48px;padding:0;font-size:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
-#tools button small{font-size:9px;margin-top:3px;opacity:.85}
-#stage{position:relative;overflow:hidden;background:#111614;touch-action:none}
-#view{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;cursor:crosshair}
-#side{background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;padding:10px}
-#side h3{margin:12px 0 6px;font-size:13px;color:var(--acc);text-transform:none}
-#side .row{display:flex;gap:6px;align-items:center;margin:4px 0;flex-wrap:wrap}
-#status{grid-column:1/4;background:var(--panel);border-top:1px solid var(--line);padding:4px 10px;color:var(--mute);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pal{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
-.sw{display:flex;gap:6px;align-items:center;padding:5px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);cursor:pointer;min-height:38px}
+input,select{background:#1a201e;border:1px solid var(--line);border-radius:8px;padding:6px 8px;user-select:text;-webkit-user-select:text}
+input[type=number]{width:62px}input[type=range]{flex:1;min-width:90px}
+button{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:7px 11px;cursor:pointer;min-height:36px}
+button.on{background:var(--acc);color:#1d2321;border-color:var(--acc);font-weight:600}
+#app{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr auto auto;height:100%;padding-bottom:env(safe-area-inset-bottom)}
+#top{min-width:0;display:flex;gap:6px;align-items:center;padding:6px 8px;padding-top:max(6px,env(safe-area-inset-top));background:var(--panel);border-bottom:1px solid var(--line)}
+#top .name{flex:1;min-width:60px;max-width:240px}
+#top button{min-width:40px;padding:6px 9px}
+#zoomLbl{color:var(--mute);font-size:12px;min-width:38px;text-align:center}
+#stage{position:relative;overflow:hidden;background:#111614;touch-action:none;min-height:0}
+#view{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+#status{position:absolute;left:6px;bottom:6px;background:#000a;color:var(--mute);font-size:11px;padding:2px 8px;border-radius:8px;pointer-events:none;max-width:70%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#selbar[hidden]{display:none}#selbar{position:absolute;display:flex;gap:4px;background:#1d2321ee;border:1px solid var(--acc);border-radius:12px;padding:4px;z-index:5}
+#selbar button{min-width:38px;min-height:38px;padding:4px 7px}
+#selRot{align-self:center;font-size:12px;color:var(--acc);min-width:32px;text-align:center}
+#sheet{min-width:0;background:var(--panel);border-top:1px solid var(--line);display:flex;flex-direction:column;max-height:42vh}
+#sheet.closed #sheetBody{display:none}
+#sheetHead{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;cursor:pointer;color:var(--acc);font-weight:600}
+#sheetHead::after{content:'▾';color:var(--mute)}#sheet.closed #sheetHead::after{content:'▴'}
+#sheetBody{overflow-y:auto;padding:0 10px 10px}
+.row{display:flex;gap:6px;align-items:center;margin:6px 0;flex-wrap:wrap}
+.seg{display:flex;gap:4px;margin:6px 0;flex-wrap:wrap}.seg button{flex:1}
+.pal{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-top:6px}
+.sw{display:flex;gap:8px;align-items:center;padding:6px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);cursor:pointer;min-height:42px;font-size:13px}
 .sw.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset}
-.sw i{width:24px;height:24px;border-radius:4px;flex:none;background-size:cover;image-rendering:pixelated}
-.lib{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.card{border:1px solid var(--line);border-radius:8px;background:var(--panel2);padding:4px;cursor:pointer;text-align:center;font-size:11px;overflow:hidden}
-.card.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset}
-.card img{width:100%;height:64px;object-fit:contain;image-rendering:pixelated;display:block;background:repeating-conic-gradient(#2a332f 0 25%,#232b28 0 50%) 0 0/12px 12px;border-radius:5px}
+.sw i{width:26px;height:26px;border-radius:5px;flex:none;background-size:cover;image-rendering:pixelated}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}.chips button{padding:4px 10px;font-size:12px;border-radius:14px;min-height:32px}
+.chips small{opacity:.7}
+.lib{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:6px;margin-top:6px}
+.lib.recent{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:72px;overflow-x:auto;padding-bottom:6px;border-bottom:1px dashed var(--line)}
+.card{border:1px solid var(--line);border-radius:10px;background:var(--panel2);padding:4px;cursor:pointer;text-align:center;font-size:11px;overflow:hidden}
+.card.on{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc) inset}
+.card img{width:100%;height:58px;object-fit:contain;image-rendering:pixelated;display:block;background:repeating-conic-gradient(#2a332f 0 25%,#232b28 0 50%) 0 0/12px 12px;border-radius:6px}
 .card span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
-.help{color:var(--mute);font-size:12px;margin:4px 0}
-.chips{display:flex;flex-wrap:wrap;gap:4px}.chips button{padding:3px 8px;font-size:12px;border-radius:12px}
+.help{color:var(--mute);font-size:12px;margin:6px 0}
+#tools{display:flex;background:var(--panel);border-top:1px solid var(--line)}
+#tools button{flex:1;border:0;border-radius:0;background:none;padding:6px 2px;font-size:21px;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:56px}
+#tools button small{font-size:10px;color:var(--mute)}#tools button.on{background:#e7b04a22;color:var(--ink)}#tools button.on small{color:var(--acc)}
 .modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;z-index:20;padding:12px}
 .modal.open{display:flex}
-.box{background:var(--panel);border:1px solid var(--line);border-radius:12px;max-width:980px;width:100%;max-height:94vh;overflow:auto;padding:14px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:980px;width:100%;max-height:92vh;overflow:auto;padding:14px}
 .box h2{margin:0 0 8px;font-size:17px}
+#menuList{display:flex;flex-direction:column;gap:6px;min-width:260px}#menuList button{text-align:left;min-height:44px}
 .pieces{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}
-.piece{border:1px solid var(--line);border-radius:8px;padding:6px;background:var(--panel2)}
-.piece canvas{width:100%;height:110px;object-fit:contain;image-rendering:pixelated;background:repeating-conic-gradient(#2a332f 0 25%,#232b28 0 50%) 0 0/12px 12px;border-radius:5px}
-.piece input,.piece select{width:100%;margin-top:4px}
-#srcprev{max-width:100%;max-height:260px;image-rendering:pixelated;background:repeating-conic-gradient(#2a332f 0 25%,#232b28 0 50%) 0 0/12px 12px;border-radius:6px}
+.piece{border:1px solid var(--line);border-radius:10px;padding:6px;background:var(--panel2)}
+.piece input:not([type=checkbox]),.piece select{width:100%;margin-top:4px}
+.srcprev{max-width:100%;max-height:220px;image-rendering:pixelated;background:repeating-conic-gradient(#2a332f 0 25%,#232b28 0 50%) 0 0/12px 12px;border-radius:8px}
 kbd{background:#111;border:1px solid var(--line);border-radius:4px;padding:0 4px;font-size:11px}
-#toast{position:fixed;left:50%;bottom:42px;transform:translateX(-50%);background:#111c;border:1px solid var(--line);padding:8px 14px;border-radius:10px;display:none;z-index:30;max-width:90vw}
-#sideToggle{display:none}
-@media (max-width:820px){#app{grid-template-columns:54px 1fr}#side{position:fixed;right:0;top:48px;bottom:28px;width:min(320px,88vw);z-index:10;transform:translateX(100%);transition:transform .2s}#side.open{transform:none}#sideToggle{display:inline-block}#tools button{width:42px;height:42px;font-size:17px}}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:#111e;border:1px solid var(--line);padding:8px 14px;border-radius:12px;display:none;z-index:30;max-width:90vw;text-align:center}
+@media (min-width:900px){
+  #app{grid-template-columns:minmax(0,1fr) 340px;grid-template-rows:auto 1fr auto}
+  #top{grid-column:1/3}#stage{grid-column:1;grid-row:2}#sheet{grid-column:2;grid-row:2/4;max-height:none;border-top:0;border-left:1px solid var(--line)}
+  #tools{grid-column:1;grid-row:3}#sheetHead{cursor:default}#sheetHead::after{content:''}#sheet.closed #sheetBody{display:block}
+}
 </style>
 </head>
 <body>
 <div id="app">
-  <div id="top">
-    <b style="color:var(--acc)">🗺️ V2N Map Maker</b>
+  <header id="top">
+    <button id="bMenu" title="เมนู">☰</button>
     <input class="name" id="pname" value="แมพใหม่" title="ชื่อแมพ" />
-    <button id="bNew" title="แมพใหม่">🆕 ใหม่</button>
-    <button id="bOpen" title="เปิดไฟล์ .v2nmap.json">📂 เปิด</button>
-    <button id="bSave" title="ดาวน์โหลดไฟล์แมพ (ส่งให้ Claude)">💾 บันทึก/ส่งออก</button>
-    <button id="bPng" title="ภาพตัวอย่างทั้งแมพ">🖼️ PNG</button>
-    <span class="sep"></span>
-    <button id="bImport" title="นำเข้ารูปจาก GPT">📥 นำเข้ารูป</button>
-    <button id="bGameArt" title="รูปทุกรูปในเกมโหลดให้อัตโนมัติ — กดเพื่อโหลดซ้ำ">🎮 รูปในเกม</button>
-    <span class="sep"></span>
-    <button id="bUndo" title="ย้อนกลับ (Ctrl+Z)">↶</button>
-    <button id="bRedo" title="ทำซ้ำ (Ctrl+Y)">↷</button>
-    <button id="bZoomOut">−</button><span id="zoomLbl">100%</span><button id="bZoomIn">+</button>
-    <button id="bGrid" class="on" title="เส้นตาราง (G)">#</button>
-    <button id="bFoot" title="แสดงฐานวัตถุ (H)">▢ ฐาน</button>
-    <button id="bHelp">❓</button>
-    <button id="sideToggle">☰</button>
-  </div>
-  <div id="tools"></div>
-  <div id="stage"><canvas id="view"></canvas></div>
-  <div id="side"></div>
-  <div id="status">พร้อม</div>
+    <button id="bUndo" title="ย้อนกลับ">↶</button><button id="bRedo" title="ทำซ้ำ">↷</button>
+    <button id="bFit" title="ดูทั้งแมพ">⤢</button><span id="zoomLbl"></span>
+    <button id="bSave" title="บันทึกไฟล์">💾</button>
+  </header>
+  <main id="stage"><canvas id="view"></canvas><div id="status"></div>
+    <div id="selbar" hidden><button data-sa="l">⟲</button><span id="selRot">0°</span><button data-sa="r">⟳</button><button data-sa="r90">↻90</button><button data-sa="flip">↔</button><button data-sa="dup">⧉</button><button data-sa="del">🗑</button><button data-sa="done">✓</button></div>
+  </main>
+  <aside id="sheet"><div id="sheetHead"><span id="sheetTitle"></span></div><div id="sheetBody"></div></aside>
+  <nav id="tools"></nav>
 </div>
-<input type="file" id="fileOpen" accept=".json,application/json" hidden />
+<input type="file" id="fileOpen" accept=".json,application/json,*/*" hidden />
 <input type="file" id="fileImg" accept="image/*" multiple hidden />
+
+<div class="modal" id="mMenu"><div class="box" style="max-width:360px"><h2>☰ เมนู</h2><div id="menuList"></div></div></div>
 
 <div class="modal" id="mImport"><div class="box">
   <h2>📥 นำเข้ารูปจาก GPT</h2>
-  <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+  <div class="row">
     <button id="iPick">เลือกรูป…</button>
-    <label>ลบพื้นหลัง <select id="iBg"><option value="magenta">ม่วงแดง #FF00FF</option><option value="corner">สีมุมภาพ (อัตโนมัติ)</option><option value="none">ไม่ลบ (มีพื้นโปร่งแล้ว)</option></select></label>
-    <label>ความเพี้ยนสี <input id="iTol" type="number" value="70" min="0" max="200" style="width:64px" /></label>
-    <label>ตัดชิ้น <select id="iSplit"><option value="auto">อัตโนมัติ (แยกตามช่องว่าง)</option><option value="grid">ตาราง</option><option value="none">ไม่ตัด (ทั้งรูป = 1 ชิ้น)</option></select></label>
-    <label id="iGridBox" style="display:none">คอลัมน์ <input id="iCols" type="number" value="2" min="1" max="16" style="width:52px" /> แถว <input id="iRows" type="number" value="2" min="1" max="16" style="width:52px" /></label>
+    <label>พื้นหลัง <select id="iBg"><option value="magenta">ม่วงแดง #FF00FF</option><option value="corner">สีมุมภาพ</option><option value="none">ไม่ลบ</option></select></label>
+    <label>เพี้ยนสี <input id="iTol" type="number" value="70" min="0" max="200" /></label>
+    <label>ตัดชิ้น <select id="iSplit"><option value="auto">อัตโนมัติ</option><option value="grid">ตาราง</option><option value="none">ทั้งรูป</option></select></label>
+    <label id="iGridBox" style="display:none">คอลัมน์ <input id="iCols" type="number" value="2" min="1" max="16" /> แถว <input id="iRows" type="number" value="2" min="1" max="16" /></label>
     <button id="iRun">🔄 ประมวลผล</button>
   </div>
-  <p class="help">ตั้งค่าแล้วกดประมวลผล · ใส่ชื่อ ประเภท และ <b>ความกว้างเป็นช่อง</b> (1 ช่อง = ความกว้างตัวคน 16px) ให้แต่ละชิ้น · ประเภท "พื้น" จะกลายเป็นลายพื้นให้ปู · "ถนน" จะกลายเป็นชนิดถนน</p>
-  <div id="iSrc"></div>
-  <div class="pieces" id="iPieces"></div>
-  <div class="row" style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
-    <button id="iCancel">ยกเลิก</button><button id="iAdd" class="on">➕ เพิ่มเข้าคลัง</button>
-  </div>
+  <p class="help">ตั้งชื่อ ประเภท และความกว้างเป็นช่องให้แต่ละชิ้น (1 ช่อง = ความกว้างตัวคน) · ประเภท "พื้น" = ลายปูพื้น</p>
+  <div id="iSrc"></div><div class="pieces" id="iPieces"></div>
+  <div class="row" style="justify-content:flex-end"><button id="iCancel">ยกเลิก</button><button id="iAdd" class="on">➕ เพิ่มเข้าคลัง</button></div>
 </div></div>
 
 <div class="modal" id="mNew"><div class="box" style="max-width:420px">
   <h2>🆕 แมพใหม่</h2>
-  <div class="row">กว้าง <input id="nW" type="number" value="144" min="16" max="512" style="width:80px"/> ช่อง · สูง <input id="nH" type="number" value="96" min="16" max="512" style="width:80px"/> ช่อง</div>
-  <div class="row" style="margin-top:6px">พื้นเริ่มต้น <select id="nFill"></select></div>
-  <p class="help">แมพในเกมตอนนี้ 144 × 96 ช่อง · 1 ช่อง = 16 พิกเซล (กว้างเท่าตัวคน) · คลังรูปจะติดไปกับแมพใหม่ด้วย</p>
-  <div class="row" style="justify-content:flex-end;display:flex;gap:8px;margin-top:10px"><button id="nCancel">ยกเลิก</button><button id="nOk" class="on">สร้าง</button></div>
+  <div class="row">กว้าง <input id="nW" type="number" value="144" min="16" max="512"/> สูง <input id="nH" type="number" value="96" min="16" max="512"/> ช่อง</div>
+  <div class="row">พื้นเริ่มต้น <select id="nFill"></select></div>
+  <p class="help">แมพในเกม 144 × 96 ช่อง</p>
+  <div class="row" style="justify-content:flex-end"><button id="nCancel">ยกเลิก</button><button id="nOk" class="on">สร้าง</button></div>
 </div></div>
 
-<div class="modal" id="mHelp"><div class="box" style="max-width:640px">
-  <h2>❓ วิธีใช้</h2>
-  <p><b>เครื่องมือ</b> (คีย์ลัด): <kbd>V</kbd> เลือก/ย้าย · <kbd>B</kbd> แปรงพื้น · <kbd>R</kbd> สี่เหลี่ยม · <kbd>F</kbd> เทสี · <kbd>L</kbd> ถนน · <kbd>P</kbd> วางวัตถุ · <kbd>T</kbd> โปรยต้นไม้ · <kbd>M</kbd> หมุด/โซน · <kbd>E</kbd> ยางลบ</p>
-  <p><b>กล้อง</b>: ล้อเมาส์ = ซูม · คลิกขวาลาก / กด <kbd>Space</kbd> ค้างแล้วลาก / ลากสองนิ้ว = เลื่อน · <kbd>G</kbd> ตาราง · <kbd>H</kbd> ฐานวัตถุ · <kbd>Ctrl+Z</kbd>/<kbd>Ctrl+Y</kbd></p>
-  <p><b>วัตถุ</b>: เลือกรูปจากคลังแล้วคลิกวาง · <kbd>X</kbd> กลับซ้ายขวา · <kbd>Delete</kbd> ลบ · <kbd>[</kbd> <kbd>]</kbd> ปรับขนาดแปรง · ฐาน (กรอบเหลี่ยมใต้อาคาร) = พื้นที่ที่เดินชนในเกม</p>
-  <p><b>ส่งงานให้ Claude</b>: กด 💾 แล้วส่งไฟล์ <code>.v2nmap.json</code> มาในแชท ไฟล์บอกครบว่าแต่ละช่องเป็นพื้นอะไร ถนนชนิดไหน วัตถุอะไรอยู่ช่องไหน ขนาดเท่าไร ใช้รูปไหน (รูปที่นำเข้าเองฝังมาในไฟล์ด้วย)</p>
-  <p class="help">งานบันทึกอัตโนมัติในเครื่องนี้ทุกครั้งที่แก้ (เปิดหน้าใหม่ก็ยังอยู่) · ถ้าจะย้ายเครื่องให้กด 💾 แล้วเปิดไฟล์</p>
-  <div style="text-align:right"><button id="hOk" class="on">เข้าใจแล้ว</button></div>
+<div class="modal" id="mHelp"><div class="box" style="max-width:560px">
+  <h2>❓ วิธีใช้ V2N Map Maker</h2>
+  <p>👆 <b>นิ้วเดียว</b> = ใช้เครื่องมือที่เลือก · ✌️ <b>สองนิ้ว</b> = ซูม/เลื่อนแมพเสมอ (ไม่วาด ไม่วางของ)</p>
+  <p>🖐 <b>เลื่อน/เลือก</b>: ลากเลื่อนแมพ แตะของเพื่อเลือก → แถบเหนือของ: ⟲⟳ หมุนทีละ 15° · ↻90 · ↔ กลับด้าน · ⧉ ทำซ้ำ · 🗑 ลบ · แตะของที่เลือกแล้วลาก = ย้าย</p>
+  <p>🏠 <b>วางของ</b>: เลือกรูปด้านล่าง แตะแมพ = วาง · ลาก = เลื่อนแมพ · หมุนก่อนวางได้</p>
+  <p>📍 <b>ที่ดิน/หมุด</b>: แตะ = ที่ดินขนาดมาตรฐาน (บ้าน 6×5 ช่อง) มีรูปบ้านจางๆ บอกขนาดจริง · ลาก = กำหนดขนาดเอง · ที่ดินอาคารเลือกชนิดได้ (ตลาด รพ. ฯลฯ)</p>
+  <p>💾 บันทึกแล้วส่งไฟล์ <code>.v2nmap.json</code> ให้ Claude · งานบันทึกในเครื่องอัตโนมัติ</p>
+  <p class="help">คอม: <kbd>V</kbd> <kbd>B</kbd> <kbd>L</kbd> <kbd>P</kbd> <kbd>T</kbd> <kbd>M</kbd> <kbd>E</kbd> เครื่องมือ · <kbd>R</kbd> หมุน · <kbd>X</kbd> กลับด้าน · ล้อเมาส์ซูม · Space/คลิกขวา ลากเลื่อน · <kbd>Ctrl+Z</kbd></p>
+  <div style="text-align:right"><button id="hOk" class="on">เริ่มเลย</button></div>
 </div></div>
 <div id="toast"></div>
-
 <script type="module">
-// ============================================================== V2N Map Maker
-// One self-contained page. The saved file (.v2nmap.json, format "v2n-map@1") is meant to be read by Claude and by
-// scripts: ground and roads are stored as text rows (one character per tile, see groundKey / roadKey), objects
-// and markers as lists with tile coordinates and footprints, imported images embedded as data URLs.
+// ============================================================== V2N Map Maker v2 (mobile-first)
+// The saved file (.v2nmap.json, format "v2n-map@1") is read by Claude / scripts/import-map.mjs: ground and roads as
+// text rows, objects and markers as lists with tile coordinates, footprints and rotation, imported images embedded.
 const TILE = 16, FORMAT = 'v2n-map@1', LS = 'v2n-mapmaker-v1';
 const $ = s => document.querySelector(s), esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const KINDS = { house: 'บ้าน', building: 'อาคาร/ตึก', shop: 'ร้านค้า/ธุรกิจ', civic: 'ราชการ/เมือง', tree: 'ต้นไม้', bush: 'พุ่มไม้/ดอกไม้', rock: 'หิน/แร่', prop: 'ของประดับ', farm: 'ฟาร์ม/พืชผล', animal: 'สัตว์', fence: 'รั้ว', bridge: 'สะพาน', stage: 'ขั้นก่อสร้าง', ground: 'พื้น (ลายปู)', road: 'ถนน (ลายปู)' };
@@ -142,14 +145,46 @@ const DEF_ROADS = [
 ];
 const TILESETS = ['grass', 'farmland', 'road1', 'road2', 'road3', 'road4', 'road5', 'bank', 'beach', 'bankmask', 'beachmask', 'plaza1', 'plaza2', 'plaza3', 'plaza4', 'soil', 'stones', 'water'];
 const TL = {}; let tilesOk = false;
-const MARKERS = { spawn: { name: 'จุดเกิดผู้เล่น', color: '#ffd84a', icon: '⭐' }, lot: { name: 'ที่ดินผู้เล่น (แปลงบ้าน)', color: '#4fc3f7', icon: '🏠' }, public: { name: 'ที่ดินอาคารสาธารณะ', color: '#ba68c8', icon: '🏛️' }, gate: { name: 'ทางออก/ประตูเมือง', color: '#ff8a65', icon: '🚪' }, npc: { name: 'จุด NPC', color: '#aed581', icon: '🧑' }, zone: { name: 'โซน (ตั้งชื่อเอง)', color: '#f06292', icon: '▦' }, note: { name: 'โน้ตถึง Claude', color: '#ffffff', icon: '📝' } };
 const ROWCH = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
+// ------------------------------------------------------------------ v2 additions: markers with real-size previews
+// Lots and building plots show the REAL game sprite (translucent) inside the box, so the size is obvious.
+// A house plot in the game is a 4x3 base; with a front yard / gap it needs about 6 x 5 tiles.
+const LOT_W = 6, LOT_H = 5;
+const PLOT_TYPES = { // building plots ("ที่ดินอาคาร") with their game sprite and a good size in tiles
+  home: { name: 'บ้านพักชุมชน', sprite: 'house_e3_s3', w: 10, h: 7, tier: 1 }, farm: { name: 'สวนอาหาร/ฟาร์ม', sprite: null, w: 9, h: 8, tier: 1 },
+  market: { name: 'ตลาด', sprite: 'market_e2_s3', w: 12, h: 8, tier: 2 }, hall: { name: 'ศาลาประชาคม', sprite: 'hall_e2_s3', w: 14, h: 9, tier: 2 },
+  workshop: { name: 'โรงงาน', sprite: 'bz_work_2', w: 6, h: 5, tier: 2 }, district: { name: 'ที่ว่าการอำเภอ', sprite: 'cb_district', w: 11, h: 8, tier: 3 },
+  police: { name: 'สถานีตำรวจ', sprite: 'cb_police', w: 10, h: 7, tier: 3 }, school: { name: 'โรงเรียน', sprite: 'cb_school', w: 11, h: 7, tier: 3 },
+  post: { name: 'ไปรษณีย์', sprite: 'cb_post', w: 8, h: 6, tier: 3 }, temple: { name: 'วัด', sprite: 'cb_temple', w: 9, h: 8, tier: 3 },
+  shop: { name: 'ร้านค้า', sprite: 'sh_conv_2', w: 6, h: 5, tier: 2 }, hospital: { name: 'โรงพยาบาล', sprite: 'cb_hospital', w: 15, h: 10, tier: 4 },
+  mall: { name: 'ห้างสรรพสินค้า', sprite: 'cb_mall', w: 13, h: 9, tier: 4 }, fire: { name: 'สถานีดับเพลิง', sprite: 'cb_fire', w: 9, h: 7, tier: 4 },
+  province: { name: 'ศาลากลางจังหวัด', sprite: 'cb_province', w: 13, h: 9, tier: 4 }, bank: { name: 'ธนาคาร', sprite: 'bz_bank_3', w: 8, h: 6, tier: 5 },
+  office: { name: 'ตึกสำนักงาน', sprite: 'bz_office_3', w: 8, h: 6, tier: 5 }, hotel: { name: 'โรงแรม', sprite: 'cd_hotel', w: 9, h: 7, tier: 5 },
+  parliament: { name: 'ทำเนียบรัฐบาล', sprite: 'cb_parliament', w: 16, h: 11, tier: 5 }, port: { name: 'ท่าเรือ', sprite: 'po_pier', w: 9, h: 7, tier: 5 },
+  station: { name: 'สถานีขนส่ง/รถไฟ', sprite: 'bs_terminal', w: 8, h: 5, tier: 3 },
+};
+const MARKERS = {
+  lot: { name: 'ที่ดินผู้เล่น', color: '#4fc3f7', icon: '🏠', w: LOT_W, h: LOT_H, house: true },
+  npc: { name: 'บ้าน NPC', color: '#aed581', icon: '🧑', w: LOT_W, h: LOT_H, house: true },
+  public: { name: 'ที่ดินอาคาร', color: '#ba68c8', icon: '🏛️', plot: true },
+  spawn: { name: 'จุดเกิดผู้เล่น', color: '#ffd84a', icon: '⭐', w: 1, h: 1 },
+  gate: { name: 'ทางออก/ประตูเมือง', color: '#ff8a65', icon: '🚪', w: 4, h: 2 },
+  zone: { name: 'โซน (ตั้งชื่อเอง)', color: '#f06292', icon: '▦', w: 10, h: 8 },
+  note: { name: 'โน้ตถึง Claude', color: '#ffffff', icon: '📝', w: 2, h: 2 },
+};
+const HOUSE_PREVIEW = ['hz1a_s3', 'hz3a_s3', 'hz5a_s3']; // cabin, medium, mansion: what will stand on the lot
+const gameImg = new Map();
+function gameSprite(name) { if (!name) return null; if (!gameImg.has(name)) { const im = new Image(); im.onload = draw; im.src = GAME_BASE + name + '.webp'; gameImg.set(name, im); } return gameImg.get(name); }
+function markerSize(m) { const M = MARKERS[m.type] || MARKERS.note, T = PLOT_TYPES[m.plot] || PLOT_TYPES.home; return [m.w || (m.type === 'public' ? T.w : M.w) || 1, m.h || (m.type === 'public' ? T.h : M.h) || 1]; }
+
 // ------------------------------------------------------------------ state
-let P = null;                 // project (see newProject)
-const img = new Map();        // asset id -> HTMLImageElement
+let P = null;
+const img = new Map();
 let undoStack = [], redoStack = [];
-const ui = { tool: 'brush', terrain: 0, road: 1, asset: null, marker: 'lot', brush: 1, zoom: 1, ox: 0, oy: 0, grid: true, foot: false, sel: null, kindFilter: 'all', q: '', density: 35, overlap: false, flip: false, hover: null, drag: null, scatterSet: [] };
+const ui = { tool: 'pan', terrain: 0, road: 1, asset: null, marker: 'lot', plot: 'home', brush: 1, groundMode: 'brush', roadMode: 'brush', zoom: 1, ox: 0, oy: 0,
+  grid: true, foot: false, sel: null, selMarker: null, kindFilter: 'house', q: '', density: 35, overlap: false, flip: false, rot: 0, hover: null, scatterSet: [],
+  housePreview: 1, sheet: true, lineStart: null, recent: [] };
 
 function newProject(w = 144, h = 96, fill = 0, keepAssets = null) {
   return { format: FORMAT, name: 'แมพใหม่', tile: TILE, w, h, terrains: DEF_TERRAIN.map(t => ({ ...t })), roads: DEF_ROADS.map(r => ({ ...r })),
@@ -166,11 +201,11 @@ function toFile() {
   const rows = (arr, none) => Array.from({ length: P.h }, (_, y) => Array.from({ length: P.w }, (_, x) => { const v = arr[idx(x, y)]; return none && !v ? '.' : ROWCH[none ? v - 1 : v]; }).join(''));
   return {
     format: FORMAT, app: 'V2N Map Maker', saved: new Date().toISOString(), name: P.name, tile: TILE, width: P.w, height: P.h,
-    readme: 'Tiles are 16 px. Coordinates are tiles, x to the right, y down, (0,0) top-left. groundRows[y][x] is a key of groundKey; roadRows uses roadKey ("." = no road). Objects: x,y = top-left tile of the footprint (fw x fh tiles, the solid base); the sprite is drawn centred on the footprint and stands on its bottom edge, sprite width = tw tiles. asset = id in assets; game art has src "game:<sprite name>" (assets/v10/<name>.webp), imported art has a data URL.',
+    readme: 'Tiles are 16 px. Coordinates are tiles, x to the right, y down, (0,0) top-left. groundRows[y][x] is a key of groundKey; roadRows uses roadKey ("." = no road). Objects: x,y = top-left tile of the footprint (fw x fh tiles, the solid base, already turned for rot ~90/270); the sprite is drawn centred on the footprint and stands on its bottom edge, sprite width = tw tiles, then rotated by rot degrees (clockwise) around the footprint centre and mirrored if flip. Markers: lot / npc = house plots (house 4x3 at the bottom-centre of the box), public = building plot of type plot. asset = id in assets; game art has src "game:<sprite name>" (assets/v10/<name>.webp), imported art has a data URL.',
     groundKey: gk, terrains: P.terrains.map(t => ({ id: t.id, name: t.name, color: t.color, asset: t.asset || null })),
     roadKey: rk, roadTypes: P.roads.map(r => ({ id: r.id, name: r.name, color: r.color, asset: r.asset || null })),
     groundRows: rows(P.ground, false), roadRows: rows(P.road, true),
-    objects: P.objects.map(o => { const a = assetById(o.asset); return { id: o.id, asset: o.asset, assetName: a?.name, kind: a?.kind, x: o.x, y: o.y, fw: o.fw, fh: o.fh, tw: o.tw, flip: !!o.flip, label: o.label || '' }; }),
+    objects: P.objects.map(o => { const a = assetById(o.asset); return { id: o.id, asset: o.asset, assetName: a?.name, kind: a?.kind, x: o.x, y: o.y, fw: o.fw, fh: o.fh, tw: o.tw, flip: !!o.flip, rot: o.rot || 0, label: o.label || '' }; }),
     markers: P.markers.map(m => ({ ...m, typeName: MARKERS[m.type]?.name })),
     assets: P.assets.filter(a => !a.game || P.objects.some(o => o.asset === a.id) || [...P.terrains, ...P.roads].some(t => t.asset === a.id)).map(a => ({ id: a.id, game: !!a.game, name: a.name, kind: a.kind, kindName: KINDS[a.kind], tw: a.tw, fw: a.fw, fh: a.fh, pw: a.pw, ph: a.ph, src: a.src })),
     summary: summary(),
@@ -194,18 +229,19 @@ function fromFile(f) {
   f.groundRows.forEach((row, y) => { for (let x = 0; x < p.w; x++) p.ground[y * p.w + x] = Math.max(0, gi[row[x]] ?? 0); });
   f.roadRows.forEach((row, y) => { for (let x = 0; x < p.w; x++) p.road[y * p.w + x] = ri[row[x]] ?? 0; });
   p.assets = f.assets.map(a => ({ ...a }));
-  p.objects = f.objects.map(o => ({ id: o.id, asset: o.asset, x: o.x, y: o.y, fw: o.fw, fh: o.fh, tw: o.tw, flip: o.flip, label: o.label }));
+  p.objects = f.objects.map(o => ({ id: o.id, asset: o.asset, x: o.x, y: o.y, fw: o.fw, fh: o.fh, tw: o.tw, flip: o.flip, rot: o.rot || 0, label: o.label }));
   p.markers = (f.markers || []).map(m => { const { typeName, ...rest } = m; void typeName; return rest; });
   p.nextId = 1 + Math.max(0, ...p.objects.map(o => o.id), ...p.markers.map(m => m.id || 0));
   return p;
 }
+
 
 // ------------------------------------------------------------------ assets
 const GAME_BASE = new URL('../assets/v10/', location.href).href;
 function srcUrl(a) { return a.src?.startsWith('game:') ? GAME_BASE + a.src.slice(5) + '.webp' : a.src; }
 function loadImg(a) {
   if (img.has(a.id)) return img.get(a.id);
-  const im = new Image(); im.onload = () => { if (a.kind === 'ground' || a.kind === 'road') rebuildPatterns(); dirtyAll(); draw(); renderSide(); }; im.src = srcUrl(a); img.set(a.id, im); return im;
+  const im = new Image(); im.onload = () => { if (a.kind === 'ground' || a.kind === 'road') rebuildPatterns(); dirtyAll(); draw(); renderSheet(); }; im.src = srcUrl(a); img.set(a.id, im); return im;
 }
 function addAsset(a) {
   a.id = a.id || 'a' + (P.nextId++);
@@ -234,7 +270,7 @@ async function loadGameArt(quiet = false) {
     if (kind === 'bridge') fh = 1;
     addAsset({ name: gameName(name) + (OLD_STYLE.test(name) ? ' (ภาพเก่า)' : ''), kind, src: 'game:' + name, pw: w, ph: h, tw, fw, fh, game: true }); n++;
   }
-  renderSide(); if (!quiet) toast(n ? `เพิ่มรูปจากเกม ${n} รูป` : 'มีรูปในเกมครบทุกรูปแล้ว');
+  renderSheet(); if (!quiet) toast(n ? `เพิ่มรูปจากเกม ${n} รูป` : 'มีรูปในเกมครบทุกรูปแล้ว');
 }
 function gameName(n) {
   let m;
@@ -259,7 +295,7 @@ const patterns = {};
 const TBASE = new URL('../assets/tiles/', location.href).href, TPX = 64, CELL = 2;
 function loadTiles() {
   let left = TILESETS.length;
-  for (const n of TILESETS) { const im = new Image(); im.onload = () => { if (--left === 0) { tilesOk = true; dirtyAll(); draw(); renderSide(); } }; im.onerror = () => { left = -999; toast('โหลดแผ่นพื้นของเกมไม่ได้ (ต้องเปิดผ่านเว็บ) — แสดงเป็นสีแทน'); }; im.src = TBASE + n + '.webp'; TL[n] = im; }
+  for (const n of TILESETS) { const im = new Image(); im.onload = () => { if (--left === 0) { tilesOk = true; dirtyAll(); draw(); renderSheet(); } }; im.onerror = () => { left = -999; toast('โหลดแผ่นพื้นของเกมไม่ได้ (ต้องเปิดผ่านเว็บ) — แสดงเป็นสีแทน'); }; im.src = TBASE + n + '.webp'; TL[n] = im; }
 }
 function rebuildPatterns() {
   for (const k of Object.keys(patterns)) delete patterns[k];
@@ -328,50 +364,69 @@ function refreshBase() {
   }
 }
 
+
 // ------------------------------------------------------------------ view
 const cv = $('#view'), ctx = cv.getContext('2d');
 let raf = 0;
 function draw() { if (!raf) raf = requestAnimationFrame(() => { raf = 0; render(); }); }
-function fit() {
-  const r = $('#stage').getBoundingClientRect(), d = devicePixelRatio || 1;
-  cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d); draw();
-}
+function fit() { const r = $('#stage').getBoundingClientRect(), d = devicePixelRatio || 1; cv.width = Math.max(1, Math.round(r.width * d)); cv.height = Math.max(1, Math.round(r.height * d)); draw(); }
 const scale = () => ui.zoom * (devicePixelRatio || 1);
 function toTile(cx, cy) { const r = cv.getBoundingClientRect(), d = devicePixelRatio || 1, s = scale(); return { x: ((cx - r.left) * d - ui.ox) / s / TILE, y: ((cy - r.top) * d - ui.oy) / s / TILE }; }
+function fitView() {
+  const r = $('#stage').getBoundingClientRect(), d = devicePixelRatio || 1;
+  ui.zoom = Math.max(.25, Math.min(3, Math.min(r.width / (P.w * TILE), r.height / (P.h * TILE)) * .96));
+  ui.ox = (r.width * d - P.w * TILE * ui.zoom * d) / 2; ui.oy = (r.height * d - P.h * TILE * ui.zoom * d) / 2; draw();
+}
 function render() {
   refreshBase();
-  const s = scale();
+  const s = scale(), z = ui.zoom;
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#111614'; ctx.fillRect(0, 0, cv.width, cv.height);
   ctx.imageSmoothingEnabled = false;
   ctx.setTransform(s, 0, 0, s, ui.ox, ui.oy);
   ctx.drawImage(wbase, 0, 0); ctx.drawImage(base, 0, 0);
-  // markers under objects
-  for (const m of P.markers) { const M = MARKERS[m.type] || MARKERS.note; ctx.fillStyle = M.color + '33'; ctx.strokeStyle = M.color; ctx.lineWidth = 1 / ui.zoom * 1.5; ctx.fillRect(m.x * TILE, m.y * TILE, (m.w || 1) * TILE, (m.h || 1) * TILE); ctx.strokeRect(m.x * TILE, m.y * TILE, (m.w || 1) * TILE, (m.h || 1) * TILE); }
-  // objects sorted by their base (y-sort like the game)
-  const objs = [...P.objects].sort((a, b) => (a.y + a.fh) - (b.y + b.fh) || a.x - b.x);
-  for (const o of objs) drawObject(o, 1);
-  // ghost of the object to place
+  for (const m of P.markers) drawMarkerBox(m, m === ui.selMarker);
+  // objects + building previews of the plots, y-sorted like the game
+  const list = P.objects.map(o => ({ y: o.y + o.fh, f: () => drawObject(o, 1) }));
+  for (const m of P.markers) { const pv = markerPreview(m); if (pv) list.push({ y: pv.by / TILE, f: () => drawPreview(pv) }); }
+  list.sort((a, b) => a.y - b.y).forEach(e => e.f());
   const h = ui.hover;
-  if (h && ui.tool === 'place' && ui.asset) { const g = ghostAt(h.x, h.y); if (g) { drawObject(g, .6); footRect(g, canPlace(g) ? '#6fbf73' : '#d9634c'); } }
-  if (ui.foot || ui.tool === 'select') for (const o of P.objects) footRect(o, o === ui.sel ? '#e7b04a' : '#ffffff55');
-  if (ui.sel) { const o = ui.sel, a = assetById(o.asset); const b = spriteBox(o, a); ctx.strokeStyle = '#e7b04a'; ctx.lineWidth = 2 / s; ctx.strokeRect(b.x, b.y, b.w, b.h); }
-  // grid
-  if (ui.grid && s >= 1.2) {
-    const r = cv.width / s, b = cv.height / s, x0 = Math.max(0, Math.floor(-ui.ox / s / TILE)), y0 = Math.max(0, Math.floor(-ui.oy / s / TILE));
-    const x1 = Math.min(P.w, Math.ceil((r - ui.ox / s) / TILE) + 1), y1 = Math.min(P.h, Math.ceil((b - ui.oy / s) / TILE) + 1);
-    ctx.strokeStyle = 'rgba(0,0,0,.10)'; ctx.lineWidth = 1 / s; ctx.beginPath();
-    for (let x = x0; x <= x1; x++) { ctx.moveTo(x * TILE, y0 * TILE); ctx.lineTo(x * TILE, y1 * TILE); }
-    for (let y = y0; y <= y1; y++) { ctx.moveTo(x0 * TILE, y * TILE); ctx.lineTo(x1 * TILE, y * TILE); }
-    ctx.stroke();
-    ctx.strokeStyle = 'rgba(0,0,0,.32)'; ctx.beginPath(); for (let x = x0 - x0 % 2; x <= x1; x += 2) { ctx.moveTo(x * TILE, y0 * TILE); ctx.lineTo(x * TILE, y1 * TILE); } for (let y = y0 - y0 % 2; y <= y1; y += 2) { ctx.moveTo(x0 * TILE, y * TILE); ctx.lineTo(x1 * TILE, y * TILE); } ctx.stroke();
+  if (h && ui.tool === 'place' && ui.asset && !ui.touching) { const g = ghostAt(h.x, h.y); if (g) { drawObject(g, .55); footRect(g, canPlace(g) ? '#6fbf73' : '#d9634c'); } }
+  if (h && ui.tool === 'marker' && !ui.drag && !ui.touching) { const g = markerGhost(h.x, h.y); drawMarkerBox(g, false, .6); const pv = markerPreview(g); if (pv) drawPreview(pv); }
+  if (ui.foot || ui.tool === 'pan') for (const o of P.objects) footRect(o, o === ui.sel ? '#e7b04a' : '#ffffff40');
+  if (ui.sel) { const b = spriteBox(ui.sel, assetById(ui.sel.asset)); ctx.strokeStyle = '#e7b04a'; ctx.lineWidth = 2 / s; ctx.strokeRect(b.x, b.y, b.w, b.h); }
+  if (ui.grid && s >= 1.1) {
+    const vw = cv.width / s, vh = cv.height / s, x0 = Math.max(0, Math.floor(-ui.ox / s / TILE)), y0 = Math.max(0, Math.floor(-ui.oy / s / TILE));
+    const x1 = Math.min(P.w, Math.ceil((vw - ui.ox / s) / TILE) + 1), y1 = Math.min(P.h, Math.ceil((vh - ui.oy / s) / TILE) + 1);
+    ctx.lineWidth = 1 / s; ctx.strokeStyle = 'rgba(0,0,0,.09)'; ctx.beginPath();
+    for (let x = x0; x <= x1; x++) { ctx.moveTo(x * TILE, y0 * TILE); ctx.lineTo(x * TILE, y1 * TILE); } for (let y = y0; y <= y1; y++) { ctx.moveTo(x0 * TILE, y * TILE); ctx.lineTo(x1 * TILE, y * TILE); } ctx.stroke();
+    ctx.strokeStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); for (let x = x0 - x0 % 2; x <= x1; x += 2) { ctx.moveTo(x * TILE, y0 * TILE); ctx.lineTo(x * TILE, y1 * TILE); } for (let y = y0 - y0 % 2; y <= y1; y += 2) { ctx.moveTo(x0 * TILE, y * TILE); ctx.lineTo(x1 * TILE, y * TILE); } ctx.stroke();
   }
-  // marker labels on top
-  ctx.font = `${Math.max(6, 10 / ui.zoom)}px system-ui`; ctx.textBaseline = 'top';
-  for (const m of P.markers) { const M = MARKERS[m.type] || MARKERS.note; const t = `${M.icon} ${m.label || M.name}`; ctx.fillStyle = '#000a'; const w = ctx.measureText(t).width; ctx.fillRect(m.x * TILE, m.y * TILE - 12 / ui.zoom, w + 4 / ui.zoom, 12 / ui.zoom); ctx.fillStyle = '#fff'; ctx.fillText(t, m.x * TILE + 2 / ui.zoom, m.y * TILE - 11 / ui.zoom); }
-  // brush / rect preview
-  if (h && ['brush', 'erase', 'road', 'scatter'].includes(ui.tool)) { const r = ui.brush, CX = Math.floor(h.x / CELL), CY = Math.floor(h.y / CELL); ctx.strokeStyle = ui.tool === 'erase' ? '#d9634c' : '#fff'; ctx.lineWidth = 1.5 / s; ctx.strokeRect((CX - r + 1) * CELL * TILE, (CY - r + 1) * CELL * TILE, (2 * r - 1) * CELL * TILE, (2 * r - 1) * CELL * TILE); }
-  if (ui.drag?.rect) { const q = normRect(ui.drag.rect); ctx.strokeStyle = '#fff'; ctx.setLineDash([4 / s, 3 / s]); ctx.lineWidth = 1.5 / s; ctx.strokeRect(q.x * TILE, q.y * TILE, q.w * TILE, q.h * TILE); ctx.setLineDash([]); }
-  $('#zoomLbl').textContent = Math.round(ui.zoom * 100) + '%';
+  ctx.font = `${Math.max(5, 10 / z)}px system-ui`; ctx.textBaseline = 'top';
+  for (const m of P.markers) { const M = MARKERS[m.type] || MARKERS.note, [w, hh] = markerSize(m); const t = `${M.icon} ${m.label || (m.type === 'public' ? PLOT_TYPES[m.plot]?.name : M.name)} ${w}×${hh}`; ctx.fillStyle = '#000b'; const tw = ctx.measureText(t).width; ctx.fillRect(m.x * TILE, m.y * TILE - 12 / z, tw + 4 / z, 12 / z); ctx.fillStyle = '#fff'; ctx.fillText(t, m.x * TILE + 2 / z, m.y * TILE - 11 / z); }
+  if (h && ['ground', 'erase', 'road', 'scatter'].includes(ui.tool) && !ui.touching && (ui.tool !== 'ground' || ui.groundMode === 'brush')) { const r = ui.brush, CX = Math.floor(h.x / CELL), CY = Math.floor(h.y / CELL); ctx.strokeStyle = ui.tool === 'erase' ? '#d9634c' : '#fff'; ctx.lineWidth = 1.5 / s; ctx.strokeRect((CX - r + 1) * CELL * TILE, (CY - r + 1) * CELL * TILE, (2 * r - 1) * CELL * TILE, (2 * r - 1) * CELL * TILE); }
+  if (ui.drag?.rect) { const q = normRect(ui.drag.rect); ctx.strokeStyle = '#fff'; ctx.setLineDash([4 / s, 3 / s]); ctx.lineWidth = 1.5 / s; ctx.strokeRect(q.x * TILE, q.y * TILE, q.w * TILE, q.h * TILE); ctx.setLineDash([]); ctx.fillStyle = '#000b'; ctx.fillRect(q.x * TILE, (q.y + q.h) * TILE + 1, 46 / z, 12 / z); ctx.fillStyle = '#fff'; ctx.fillText(`${q.w}×${q.h} ช่อง`, q.x * TILE + 2 / z, (q.y + q.h) * TILE + 2 / z); }
+  if (ui.lineStart) { ctx.fillStyle = '#e7b04a'; ctx.fillRect(ui.lineStart.x * TILE, ui.lineStart.y * TILE, TILE, TILE); }
+  $('#zoomLbl').textContent = Math.round(z * 100) + '%';
+  placeSelbar();
+}
+function drawMarkerBox(m, sel, alpha = 1) {
+  const M = MARKERS[m.type] || MARKERS.note, [w, h] = markerSize(m);
+  ctx.globalAlpha = alpha; ctx.fillStyle = M.color + '30'; ctx.strokeStyle = sel ? '#e7b04a' : M.color; ctx.lineWidth = (sel ? 3 : 1.5) / scale();
+  ctx.fillRect(m.x * TILE, m.y * TILE, w * TILE, h * TILE); ctx.strokeRect(m.x * TILE, m.y * TILE, w * TILE, h * TILE);
+  if (M.house) { ctx.setLineDash([3 / scale(), 2 / scale()]); ctx.strokeRect((m.x + Math.floor((w - 4) / 2)) * TILE, (m.y + h - 1 - 3) * TILE, 4 * TILE, 3 * TILE); ctx.setLineDash([]); }
+  ctx.globalAlpha = 1;
+}
+/** What would stand on a marker in the game: a house on a lot (cabin / medium / mansion), the building of a plot. */
+function markerPreview(m) {
+  const M = MARKERS[m.type]; if (!M) return null; const [w, h] = markerSize(m);
+  if (M.house) { const name = HOUSE_PREVIEW[ui.housePreview], im = gameSprite(name), sz = GAME_ART?.[name]; if (!sz) return null; const bx = m.x + Math.floor((w - 4) / 2); return { im, cx: (bx + 2) * TILE, by: (m.y + h - 1) * TILE, w: sz[0], h: sz[1] }; }
+  if (M.plot) { const T = PLOT_TYPES[m.plot]; if (!T?.sprite) return null; const sz = GAME_ART?.[T.sprite]; if (!sz) return null; return { im: gameSprite(T.sprite), cx: (m.x + w / 2) * TILE, by: (m.y + h - .5) * TILE, w: sz[0], h: sz[1] }; }
+  return null;
+}
+function drawPreview(pv) { if (!pv.im?.complete || !pv.im.naturalWidth) return; ctx.globalAlpha = .5; ctx.drawImage(pv.im, pv.cx - pv.w / 2, pv.by - pv.h, pv.w, pv.h); ctx.globalAlpha = 1; }
+function markerGhost(tx, ty) {
+  const M = MARKERS[ui.marker], w = ui.marker === 'public' ? PLOT_TYPES[ui.plot].w : M.w, h = ui.marker === 'public' ? PLOT_TYPES[ui.plot].h : M.h;
+  return { type: ui.marker, plot: ui.plot, x: Math.floor(tx) - Math.floor(w / 2), y: Math.floor(ty) - h + 1, w, h, label: '' };
 }
 function spriteBox(o, a) {
   const w = (o.tw || a?.tw || 1) * TILE, ar = a && a.pw ? a.ph / a.pw : 1, h = w * ar;
@@ -381,20 +436,21 @@ function spriteBox(o, a) {
 function drawObject(o, alpha) {
   const a = assetById(o.asset), im = a && img.get(a.id), b = spriteBox(o, a);
   ctx.globalAlpha = alpha;
-  if (im?.complete && im.naturalWidth) {
-    if (o.flip) { ctx.save(); ctx.translate(b.x + b.w, b.y); ctx.scale(-1, 1); ctx.drawImage(im, 0, 0, b.w, b.h); ctx.restore(); }
-    else ctx.drawImage(im, b.x, b.y, b.w, b.h);
-  } else { ctx.fillStyle = '#e7b04a88'; ctx.fillRect(b.x, b.y, b.w, b.h); }
-  ctx.globalAlpha = 1;
+  ctx.save();
+  if (o.rot) { const px = (o.x + o.fw / 2) * TILE, py = (o.y + o.fh / 2) * TILE; ctx.translate(px, py); ctx.rotate(o.rot * Math.PI / 180); ctx.translate(-px, -py); }
+  if (o.flip) { ctx.translate(b.x * 2 + b.w, 0); ctx.scale(-1, 1); }
+  if (im?.complete && im.naturalWidth) ctx.drawImage(im, b.x, b.y, b.w, b.h); else { ctx.fillStyle = '#e7b04a88'; ctx.fillRect(b.x, b.y, b.w, b.h); }
+  ctx.restore(); ctx.globalAlpha = 1;
 }
 function footRect(o, col) { ctx.strokeStyle = col; ctx.lineWidth = 1.5 / scale(); ctx.strokeRect(o.x * TILE + .5 / ui.zoom, o.y * TILE + .5 / ui.zoom, o.fw * TILE - 1 / ui.zoom, o.fh * TILE - 1 / ui.zoom); }
 function normRect([x0, y0, x1, y1]) { const x = Math.min(x0, x1), y = Math.min(y0, y1); return { x, y, w: Math.abs(x1 - x0) + 1, h: Math.abs(y1 - y0) + 1 }; }
 
 // ------------------------------------------------------------------ editing ops
 function snapshot() { return { g: P.ground.slice(), r: P.road.slice(), o: JSON.stringify(P.objects), m: JSON.stringify(P.markers) }; }
-function restore(sn) { P.ground = sn.g.slice(); P.road = sn.r.slice(); P.objects = JSON.parse(sn.o); P.markers = JSON.parse(sn.m); ui.sel = null; dirtyAll(); save(); draw(); renderSide(); }
+function restore(sn) { P.ground = sn.g.slice(); P.road = sn.r.slice(); P.objects = JSON.parse(sn.o); P.markers = JSON.parse(sn.m); ui.sel = ui.selMarker = null; dirtyAll(); save(); draw(); renderSheet(); }
 function begin() { undoStack.push(snapshot()); if (undoStack.length > 80) undoStack.shift(); redoStack = []; }
-function undo() { if (!undoStack.length) return; redoStack.push(snapshot()); restore(undoStack.pop()); }
+function cancelStroke() { if (undoStack.length) { const sn = undoStack.pop(); P.ground = sn.g.slice(); P.road = sn.r.slice(); P.objects = JSON.parse(sn.o); P.markers = JSON.parse(sn.m); dirtyAll(); draw(); } }
+function undo() { if (!undoStack.length) return toast('ไม่มีอะไรให้ย้อน'); redoStack.push(snapshot()); restore(undoStack.pop()); }
 function redo() { if (!redoStack.length) return; undoStack.push(snapshot()); restore(redoStack.pop()); }
 function setGround(x, y, v) { if (!inside(x, y)) return; const i = idx(x, y); if (P.ground[i] === v) return; P.ground[i] = v; markDirty(x, y); }
 function setRoad(x, y, v) { if (!inside(x, y)) return; const i = idx(x, y); if (P.road[i] === v) return; P.road[i] = v; markDirty(x, y); }
@@ -405,24 +461,23 @@ function flood(x, y, v) {
   while (st.length) { const [a, b] = st.pop(); if (!inside(a, b)) continue; const i = idx(a, b); if (seen[i] || P.ground[i] !== target) continue; seen[i] = 1; P.ground[i] = v; st.push([a + 1, b], [a - 1, b], [a, b + 1], [a, b - 1]); }
   dirtyAll();
 }
+const sideways = rot => Math.round(((rot % 360) + 360) % 360 / 90) % 2 === 1; // footprint turns with the object at ~90 / 270
 function ghostAt(tx, ty) {
   const a = assetById(ui.asset); if (!a) return null;
-  const fw = a.fw || 1, fh = a.fh || 1;
-  return { id: 0, asset: a.id, x: Math.floor(tx) - Math.floor((fw - 1) / 2), y: Math.floor(ty) - fh + 1, fw, fh, tw: a.tw, flip: ui.flip };
+  const sw = sideways(ui.rot), fw = sw ? a.fh || 1 : a.fw || 1, fh = sw ? a.fw || 1 : a.fh || 1;
+  return { id: 0, asset: a.id, x: Math.floor(tx) - Math.floor((fw - 1) / 2), y: Math.floor(ty) - fh + 1, fw, fh, tw: a.tw, flip: ui.flip, rot: ui.rot };
 }
-function overlaps(o, other) { return o.x < other.x + other.fw && o.x + o.fw > other.x && o.y < other.y + other.fh && o.y + o.fh > other.y; }
-function canPlace(o) {
-  if (o.x < 0 || o.y < 0 || o.x + o.fw > P.w || o.y + o.fh > P.h) return false;
-  if (!ui.overlap && P.objects.some(p => p !== o && overlaps(o, p))) return false;
-  return true;
-}
+function overlaps(o, q) { return o.x < q.x + q.fw && o.x + o.fw > q.x && o.y < q.y + q.fh && o.y + o.fh > q.y; }
+function canPlace(o) { if (o.x < 0 || o.y < 0 || o.x + o.fw > P.w || o.y + o.fh > P.h) return false; return ui.overlap || !P.objects.some(p => p !== o && overlaps(o, p)); }
 function objectAt(tx, ty) {
-  const hits = P.objects.filter(o => { const a = assetById(o.asset), b = spriteBox(o, a); return tx * TILE >= b.x && tx * TILE <= b.x + b.w && ty * TILE >= b.y && ty * TILE <= b.y + b.h; });
+  const hits = P.objects.filter(o => { const b = spriteBox(o, assetById(o.asset)); const inFoot = tx >= o.x && tx < o.x + o.fw && ty >= o.y && ty < o.y + o.fh; return inFoot || (tx * TILE >= b.x && tx * TILE <= b.x + b.w && ty * TILE >= b.y && ty * TILE <= b.y + b.h); });
   return hits.sort((a, b) => (b.y + b.fh) - (a.y + a.fh))[0] || null;
 }
+function markerAt(tx, ty) { return [...P.markers].reverse().find(m => { const [w, h] = markerSize(m); return tx >= m.x && ty >= m.y && tx < m.x + w && ty < m.y + h; }) || null; }
+function rotate(o, d) { const before = sideways(o.rot || 0); o.rot = (((o.rot || 0) + d) % 360 + 360) % 360; if (sideways(o.rot) !== before) { const cx = o.x + o.fw / 2, cy = o.y + o.fh; [o.fw, o.fh] = [o.fh, o.fw]; o.x = Math.round(cx - o.fw / 2); o.y = Math.round(cy - o.fh); } }
 function scatter(cx, cy) {
   const set = ui.scatterSet.length ? ui.scatterSet : P.assets.filter(a => a.kind === 'tree' && !/stump/.test(a.src || '')).map(a => a.id).slice(0, 4);
-  if (!set.length) return toast('ยังไม่มีรูปต้นไม้/พุ่มไม้ในคลัง — นำเข้ารูปหรือกด 🎮 รูปในเกม');
+  if (!set.length) return toast('ยังไม่มีรูปต้นไม้ในคลัง');
   const r = ui.brush + 1;
   for (let k = 0; k < 3; k++) {
     if (Math.random() * 100 > ui.density) continue;
@@ -430,78 +485,115 @@ function scatter(cx, cy) {
     if (!inside(x, y) || P.road[idx(x, y)]) continue;
     const t = P.terrains[P.ground[idx(x, y)]]; if (t?.water) continue;
     const a = assetById(set[Math.floor(Math.random() * set.length)]); if (!a) continue;
-    const o = { id: P.nextId++, asset: a.id, x: x - Math.floor((a.fw - 1) / 2), y: y - a.fh + 1, fw: a.fw, fh: a.fh, tw: a.tw, flip: Math.random() < .5 };
+    const o = { id: P.nextId++, asset: a.id, x: x - Math.floor((a.fw - 1) / 2), y: y - a.fh + 1, fw: a.fw, fh: a.fh, tw: a.tw, flip: Math.random() < .5, rot: 0 };
     const spacing = { x: o.x - 1, y: o.y - 1, fw: o.fw + 2, fh: o.fh + 2 };
     if (o.x < 0 || o.y < 0 || P.objects.some(p => overlaps(spacing, p))) continue;
     P.objects.push(o);
   }
 }
-
-// ------------------------------------------------------------------ input
-let pointers = new Map(), pinch = null, spaceDown = false, lastTile = null;
-cv.addEventListener('contextmenu', e => e.preventDefault());
-cv.addEventListener('pointerdown', e => {
-  cv.setPointerCapture(e.pointerId); pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-  if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), z: ui.zoom, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, ox: ui.ox, oy: ui.oy }; ui.drag = null; return; }
-  if (e.button === 2 || e.button === 1 || spaceDown) { ui.drag = { pan: true, sx: e.clientX, sy: e.clientY, ox: ui.ox, oy: ui.oy }; return; }
-  const t = toTile(e.clientX, e.clientY), tx = Math.floor(t.x), ty = Math.floor(t.y);
-  lastTile = { x: tx, y: ty };
-  const T = ui.tool;
-  if (T === 'select') {
-    const o = objectAt(t.x, t.y); ui.sel = o;
-    if (o) { begin(); ui.drag = { move: o, dx: tx - o.x, dy: ty - o.y }; }
-    else { const m = P.markers.find(m => tx >= m.x && ty >= m.y && tx < m.x + (m.w || 1) && ty < m.y + (m.h || 1)); ui.selMarker = m || null; }
-    renderSide(); draw(); return;
-  }
+function placeAt(t) {
+  const g = ghostAt(t.x, t.y); if (!g) return toast('เลือกรูปจากคลังด้านล่างก่อน');
+  if (!canPlace(g)) return toast('วางทับของอื่นไม่ได้ (เปิด "วางซ้อนได้" ในแผงถ้าจำเป็น)');
+  begin(); g.id = P.nextId++; P.objects.push(g); ui.sel = g;
+  ui.recent = [g.asset, ...ui.recent.filter(x => x !== g.asset)].slice(0, 8);
+  save(); renderSheet(); draw();
+}
+function placeMarker(x, y, w, h) {
   begin();
-  if (T === 'brush') { stamp(tx, ty, (x, y) => setGround(x, y, ui.terrain)); ui.drag = { paint: true }; }
-  else if (T === 'erase') { stamp(tx, ty, (x, y) => { setRoad(x, y, 0); P.objects = P.objects.filter(o => !(x >= o.x && x < o.x + o.fw && y >= o.y && y < o.y + o.fh)); }); ui.drag = { paint: true }; }
-  else if (T === 'road') { if (e.shiftKey && ui.lastRoad) line(ui.lastRoad.x, ui.lastRoad.y, tx, ty, (x, y) => stamp(x, y, (a, b) => setRoad(a, b, ui.road))); stamp(tx, ty, (x, y) => setRoad(x, y, ui.road)); ui.drag = { paint: true }; ui.lastRoad = { x: tx, y: ty }; }
-  else if (T === 'fill') { if (inside(tx, ty)) flood(tx, ty, ui.terrain); }
-  else if (T === 'rect' || T === 'marker') ui.drag = { rect: [tx, ty, tx, ty] };
-  else if (T === 'place') { const g = ghostAt(t.x, t.y); if (g && canPlace(g)) { g.id = P.nextId++; P.objects.push(g); ui.sel = g; } else if (g) toast('วางทับวัตถุอื่นไม่ได้ (เปิด "วางซ้อนได้" ถ้าจำเป็น)'); }
-  else if (T === 'scatter') { scatter(tx, ty); ui.drag = { paint: true }; }
-  save(); draw();
+  const m = { id: P.nextId++, type: ui.marker, x, y, w, h, label: '' };
+  if (ui.marker === 'public') { m.plot = ui.plot; m.label = PLOT_TYPES[ui.plot].name; }
+  if (ui.marker === 'spawn') P.markers = P.markers.filter(q => q.type !== 'spawn');
+  if (ui.marker === 'note' || ui.marker === 'zone') m.label = prompt(ui.marker === 'note' ? 'โน้ตถึง Claude (เช่น "ตรงนี้อยากได้ตลาดน้ำ")' : 'ชื่อโซน (เช่น "ย่านราชการ")', '') || '';
+  P.markers.push(m); ui.selMarker = m; ui.sel = null; save(); renderSheet(); draw();
+}
+
+// ------------------------------------------------------------------ input: one finger = the tool, two fingers = pan/zoom, never both
+// Touch: nothing happens on touch-down. Once the finger moves (or lifts = tap) we know it was ONE finger; if a second
+// finger lands, the stroke in progress is cancelled (undone) and it becomes pinch-zoom/pan. In "วางของ", dragging pans.
+const pointers = new Map(); let gesture = null, spaceDown = false;
+cv.addEventListener('contextmenu', e => e.preventDefault());
+const PANNING_TOOLS = new Set(['pan', 'place']);
+cv.addEventListener('pointerdown', e => {
+  try { cv.setPointerCapture(e.pointerId); } catch { } pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  ui.touching = e.pointerType !== 'mouse';
+  if (pointers.size >= 2) { // pinch: undo whatever the first finger started
+    if (gesture?.stroke) cancelStroke();
+    if (gesture?.move) { cancelStroke(); }
+    const [a, b] = [...pointers.values()];
+    gesture = { pinch: true, d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: ui.zoom, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, ox: ui.ox, oy: ui.oy };
+    draw(); return;
+  }
+  const t = toTile(e.clientX, e.clientY);
+  if (e.button === 2 || e.button === 1 || spaceDown) { gesture = { pan: true, sx: e.clientX, sy: e.clientY, ox: ui.ox, oy: ui.oy }; return; }
+  gesture = { pending: true, sx: e.clientX, sy: e.clientY, t, mouse: e.pointerType === 'mouse', shift: e.shiftKey };
+  if (ui.tool === 'pan') { const o = objectAt(t.x, t.y); if (o && o === ui.sel) gesture.grab = o; }
 });
+function startDrag(g, t) {
+  const T = ui.tool, tx = Math.floor(g.t.x), ty = Math.floor(g.t.y);
+  g.pending = false;
+  if (g.grab) { begin(); g.move = g.grab; g.dx = tx - g.grab.x; g.dy = ty - g.grab.y; return; }
+  if (PANNING_TOOLS.has(T)) { g.pan = true; g.ox = ui.ox; g.oy = ui.oy; return; }
+  if (T === 'marker' || (T === 'ground' && ui.groundMode === 'rect')) { begin(); g.rect = true; ui.drag = { rect: [tx, ty, tx, ty] }; return; }
+  if (T === 'ground' && ui.groundMode === 'fill') { g.pan = true; g.ox = ui.ox; g.oy = ui.oy; return; }
+  begin(); g.stroke = true; g.last = { x: tx, y: ty }; strokeAt(tx, ty); void t;
+}
+function strokeAt(x, y) {
+  const T = ui.tool;
+  if (T === 'ground') stamp(x, y, (a, b) => setGround(a, b, ui.terrain));
+  else if (T === 'road') stamp(x, y, (a, b) => setRoad(a, b, ui.road));
+  else if (T === 'erase') stamp(x, y, (a, b) => { setRoad(a, b, 0); P.objects = P.objects.filter(o => !(a >= o.x && a < o.x + o.fw && b >= o.y && b < o.y + o.fh)); });
+  else if (T === 'scatter') scatter(x, y);
+}
 cv.addEventListener('pointermove', e => {
   if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-  if (pinch && pointers.size === 2) {
-    const [a, b] = [...pointers.values()], d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-    zoomAt(pinch.mx, pinch.my, Math.max(.25, Math.min(8, pinch.z * d / pinch.d)), pinch);
-    const dd = devicePixelRatio || 1; ui.ox += (mx - pinch.mx) * dd; ui.oy += (my - pinch.my) * dd; draw(); return;
+  const t = toTile(e.clientX, e.clientY), tx = Math.floor(t.x), ty = Math.floor(t.y), g = gesture;
+  if (e.pointerType === 'mouse') { ui.hover = t; status(tx, ty); }
+  if (!g) { draw(); return; }
+  const d = devicePixelRatio || 1;
+  if (g.pinch) {
+    if (pointers.size < 2) return;
+    const [a, b] = [...pointers.values()], dist = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    zoomAt(g.mx, g.my, Math.max(.25, Math.min(8, g.z * dist / g.d)), g); ui.ox += (mx - g.mx) * d; ui.oy += (my - g.my) * d; draw(); return;
   }
-  const t = toTile(e.clientX, e.clientY), tx = Math.floor(t.x), ty = Math.floor(t.y);
-  ui.hover = t; status(tx, ty);
-  const D = ui.drag;
-  if (D?.pan) { const d = devicePixelRatio || 1; ui.ox = D.ox + (e.clientX - D.sx) * d; ui.oy = D.oy + (e.clientY - D.sy) * d; }
-  else if (D?.move) { D.move.x = tx - D.dx; D.move.y = ty - D.dy; }
-  else if (D?.rect) D.rect[2] = tx, D.rect[3] = ty;
-  else if (D?.paint && lastTile && (tx !== lastTile.x || ty !== lastTile.y)) {
-    const T = ui.tool;
-    line(lastTile.x, lastTile.y, tx, ty, (x, y) => {
-      if (T === 'brush') stamp(x, y, (a, b) => setGround(a, b, ui.terrain));
-      else if (T === 'road') stamp(x, y, (a, b) => setRoad(a, b, ui.road));
-      else if (T === 'erase') stamp(x, y, (a, b) => { setRoad(a, b, 0); P.objects = P.objects.filter(o => !(a >= o.x && a < o.x + o.fw && b >= o.y && b < o.y + o.fh)); });
-    });
-    if (T === 'scatter') scatter(tx, ty);
-    if (T === 'road') ui.lastRoad = { x: tx, y: ty };
-    lastTile = { x: tx, y: ty };
-  }
+  if (g.pending) { if (Math.hypot(e.clientX - g.sx, e.clientY - g.sy) < (g.mouse ? 3 : 9)) return; startDrag(g, t); }
+  if (g.pan) { ui.ox = g.ox + (e.clientX - g.sx) * d; ui.oy = g.oy + (e.clientY - g.sy) * d; }
+  else if (g.move) { g.move.x = tx - g.dx; g.move.y = ty - g.dy; }
+  else if (g.rect) { ui.drag.rect[2] = tx; ui.drag.rect[3] = ty; }
+  else if (g.stroke && (tx !== g.last.x || ty !== g.last.y)) { line(g.last.x, g.last.y, tx, ty, strokeAt); g.last = { x: tx, y: ty }; }
+  if (!g.pan) { ui.hover = t; status(tx, ty); }
   draw();
 });
-function endPointer(e) {
-  pointers.delete(e.pointerId); if (pointers.size < 2) pinch = null;
-  const D = ui.drag; ui.drag = null;
-  if (D?.rect) {
-    const q = normRect(D.rect);
-    if (ui.tool === 'rect') { const x0 = Math.floor(q.x / CELL) * CELL, y0 = Math.floor(q.y / CELL) * CELL, x1 = Math.ceil((q.x + q.w) / CELL) * CELL, y1 = Math.ceil((q.y + q.h) / CELL) * CELL; for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) setGround(x, y, ui.terrain); }
-    else if (ui.tool === 'marker') { const m = { id: P.nextId++, type: ui.marker, x: q.x, y: q.y, w: q.w, h: q.h, label: '' }; if (ui.marker === 'zone' || ui.marker === 'note') m.label = prompt(ui.marker === 'note' ? 'โน้ตถึง Claude (เช่น "ตรงนี้อยากได้ตลาดน้ำ")' : 'ชื่อโซน (เช่น "ย่านราชการ")', '') || ''; P.markers.push(m); ui.selMarker = m; }
+function tap(g) {
+  const t = g.t, tx = Math.floor(t.x), ty = Math.floor(t.y), T = ui.tool;
+  ui.hover = t;
+  if (T === 'pan') { const o = objectAt(t.x, t.y); ui.sel = o; ui.selMarker = o ? null : markerAt(tx, ty); renderSheet(); return draw(); }
+  if (T === 'place') return placeAt(t);
+  if (T === 'marker') { const G = markerGhost(t.x, t.y); return placeMarker(G.x, G.y, G.w, G.h); }
+  if (T === 'ground' && ui.groundMode === 'fill') { if (inside(tx, ty)) { begin(); flood(tx, ty, ui.terrain); save(); } return draw(); }
+  if (T === 'road' && ui.roadMode === 'line') {
+    if (!ui.lineStart) { ui.lineStart = { x: tx, y: ty }; toast('แตะจุดปลายถนน'); return draw(); }
+    begin(); line(ui.lineStart.x, ui.lineStart.y, tx, ty, (x, y) => stamp(x, y, (a, b) => setRoad(a, b, ui.road))); ui.lineStart = { x: tx, y: ty }; save(); return draw();
   }
-  if (D) { save(); renderSide(); }
+  if (T === 'road' && g.shift && ui.lastRoad) { begin(); line(ui.lastRoad.x, ui.lastRoad.y, tx, ty, (x, y) => stamp(x, y, (a, b) => setRoad(a, b, ui.road))); ui.lastRoad = { x: tx, y: ty }; save(); return draw(); }
+  if (T === 'ground' && ui.groundMode === 'rect') return;
+  begin(); strokeAt(tx, ty); if (T === 'road') ui.lastRoad = { x: tx, y: ty }; save(); draw();
+}
+function endPointer(e) {
+  pointers.delete(e.pointerId);
+  const g = gesture;
+  if (pointers.size === 0) { gesture = null; ui.touching = false; }
+  else if (g?.pinch) { gesture = { pan: true, sx: [...pointers.values()][0].x, sy: [...pointers.values()][0].y, ox: ui.ox, oy: ui.oy, afterPinch: true }; return; }
+  if (!g || g.pinch || g.afterPinch) return draw();
+  if (g.pending) tap(g);
+  else if (g.rect) {
+    const q = normRect(ui.drag.rect); ui.drag = null;
+    if (ui.tool === 'marker') { cancelStroke(); placeMarker(q.x, q.y, q.w, q.h); }
+    else { const x0 = Math.floor(q.x / CELL) * CELL, y0 = Math.floor(q.y / CELL) * CELL, x1 = Math.ceil((q.x + q.w) / CELL) * CELL, y1 = Math.ceil((q.y + q.h) / CELL) * CELL; for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) setGround(x, y, ui.terrain); save(); }
+  } else if (g.stroke || g.move) { if (ui.tool === 'road' && g.last) ui.lastRoad = g.last; save(); renderSheet(); }
   draw();
 }
 cv.addEventListener('pointerup', endPointer); cv.addEventListener('pointercancel', endPointer);
-cv.addEventListener('pointerleave', () => { ui.hover = null; draw(); });
+cv.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') { ui.hover = null; draw(); } });
 cv.addEventListener('wheel', e => { e.preventDefault(); zoomAt(e.clientX, e.clientY, Math.max(.25, Math.min(8, ui.zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15)))); }, { passive: false });
 function zoomAt(cx, cy, z, from = null) {
   const r = cv.getBoundingClientRect(), d = devicePixelRatio || 1, px = (cx - r.left) * d, py = (cy - r.top) * d;
@@ -516,105 +608,132 @@ addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); return redo(); }
   if ((e.ctrlKey || e.metaKey) && k === 's') { e.preventDefault(); return download(); }
   if (k === ' ') { spaceDown = true; cv.style.cursor = 'grab'; e.preventDefault(); return; }
-  const tk = { v: 'select', b: 'brush', r: 'rect', f: 'fill', l: 'road', p: 'place', t: 'scatter', m: 'marker', e: 'erase' }[k];
+  const tk = { v: 'pan', b: 'ground', l: 'road', p: 'place', t: 'scatter', m: 'marker', e: 'erase' }[k];
   if (tk) return setTool(tk);
-  if (k === 'g') { ui.grid = !ui.grid; $('#bGrid').classList.toggle('on', ui.grid); draw(); }
-  if (k === 'h') { ui.foot = !ui.foot; $('#bFoot').classList.toggle('on', ui.foot); draw(); }
-  if (k === '[') { ui.brush = Math.max(1, ui.brush - 1); renderSide(); draw(); }
-  if (k === ']') { ui.brush = Math.min(12, ui.brush + 1); renderSide(); draw(); }
-  if (k === 'x') { if (ui.sel) { begin(); ui.sel.flip = !ui.sel.flip; save(); } else ui.flip = !ui.flip; draw(); }
-  if ((k === 'delete' || k === 'backspace') && (ui.sel || ui.selMarker)) { begin(); if (ui.sel) P.objects = P.objects.filter(o => o !== ui.sel); if (ui.selMarker) P.markers = P.markers.filter(m => m !== ui.selMarker); ui.sel = ui.selMarker = null; save(); draw(); renderSide(); }
-  if (k === 'escape') { ui.sel = ui.selMarker = null; draw(); renderSide(); }
+  if (k === 'r') return rotAction(e.shiftKey ? -15 : 15);
+  if (k === 'x') return flipAction();
+  if (k === 'g') { ui.grid = !ui.grid; draw(); }
+  if (k === 'h') { ui.foot = !ui.foot; draw(); }
+  if (k === '[') { ui.brush = Math.max(1, ui.brush - 1); renderSheet(); draw(); }
+  if (k === ']') { ui.brush = Math.min(12, ui.brush + 1); renderSheet(); draw(); }
+  if (k === 'delete' || k === 'backspace') delAction();
+  if (k === 'escape') { ui.sel = ui.selMarker = null; ui.lineStart = null; renderSheet(); draw(); }
 });
-addEventListener('keyup', e => { if (e.key === ' ') { spaceDown = false; cv.style.cursor = 'crosshair'; } });
+addEventListener('keyup', e => { if (e.key === ' ') { spaceDown = false; cv.style.cursor = ''; } });
 function status(tx, ty) {
-  if (!inside(tx, ty)) return $('#status').textContent = `นอกแมพ · ${P.w}×${P.h} ช่อง`;
+  if (!inside(tx, ty)) return $('#status').textContent = `${P.w}×${P.h} ช่อง`;
   const i = idx(tx, ty), t = P.terrains[P.ground[i]], r = P.road[i] ? P.roads[P.road[i] - 1] : null;
   const o = P.objects.find(o => tx >= o.x && tx < o.x + o.fw && ty >= o.y && ty < o.y + o.fh), a = o && assetById(o.asset);
-  $('#status').textContent = `ช่อง x ${tx}, y ${ty} · พื้น: ${t?.name}${r ? ' · ถนน: ' + r.name : ''}${a ? ` · ${KINDS[a.kind]}: ${a.name}` : ''} · วัตถุทั้งหมด ${P.objects.length}`;
+  $('#status').textContent = `x ${tx}, y ${ty} · ${t?.name}${r ? ' · ' + r.name : ''}${a ? ' · ' + a.name : ''}`;
 }
 
-// ------------------------------------------------------------------ UI: tools + side panel
-const TOOLS = [['select', '🖐️', 'เลือก'], ['brush', '🖌️', 'ปูพื้น'], ['rect', '▭', 'สี่เหลี่ยม'], ['fill', '🪣', 'เทพื้น'], ['road', '🛣️', 'ถนน'], ['place', '🏠', 'วางของ'], ['scatter', '🌳', 'โปรยไม้'], ['marker', '📍', 'หมุด'], ['erase', '🧽', 'ลบ']];
-function renderTools() { $('#tools').innerHTML = TOOLS.map(([id, ic, n]) => `<button data-tool="${id}" class="${ui.tool === id ? 'on' : ''}" title="${n}">${ic}<small>${n}</small></button>`).join(''); }
-function setTool(t) { if (t === 'scatter' && !['tree', 'bush', 'rock'].includes(ui.kindFilter)) ui.kindFilter = 'tree'; ui.tool = t; renderTools(); renderSide(); draw(); if (innerWidth < 820) $('#side').classList.add('open'); }
+// ------------------------------------------------------------------ actions on the selection / the object to place
+function rotAction(d) {
+  if (ui.sel) { begin(); rotate(ui.sel, d); save(); }
+  else if (ui.tool === 'place') { ui.rot = (((ui.rot + d) % 360) + 360) % 360; toast(`หมุน ${ui.rot}°`); renderSheet(); }
+  draw();
+}
+function flipAction() { if (ui.sel) { begin(); ui.sel.flip = !ui.sel.flip; save(); } else { ui.flip = !ui.flip; renderSheet(); } draw(); }
+function delAction() { if (!ui.sel && !ui.selMarker) return; begin(); if (ui.sel) P.objects = P.objects.filter(o => o !== ui.sel); if (ui.selMarker) P.markers = P.markers.filter(m => m !== ui.selMarker); ui.sel = ui.selMarker = null; save(); renderSheet(); draw(); }
+function placeSelbar() {
+  const bar = $('#selbar'), o = ui.sel;
+  if (!o) { bar.hidden = true; return; }
+  bar.hidden = false;
+  const b = spriteBox(o, assetById(o.asset)), s = scale(), d = devicePixelRatio || 1, r = $('#stage').getBoundingClientRect();
+  const x = (b.x + b.w / 2) * s / d + ui.ox / d, y = b.y * s / d + ui.oy / d - 8;
+  bar.style.left = Math.max(4, Math.min(r.width - bar.offsetWidth - 4, x - bar.offsetWidth / 2)) + 'px';
+  bar.style.top = Math.max(4, Math.min(r.height - bar.offsetHeight - 4, y - bar.offsetHeight)) + 'px';
+  $('#selRot').textContent = `${o.rot || 0}°`;
+}
+$('#selbar').addEventListener('click', e => {
+  const a = e.target.closest('[data-sa]')?.dataset.sa; if (!a) return;
+  if (a === 'l') rotAction(-15); if (a === 'r') rotAction(15); if (a === 'r90') rotAction(90); if (a === 'flip') flipAction(); if (a === 'del') delAction();
+  if (a === 'dup' && ui.sel) { begin(); const c = { ...ui.sel, id: P.nextId++, x: ui.sel.x + ui.sel.fw }; P.objects.push(c); ui.sel = c; save(); draw(); }
+  if (a === 'done') { ui.sel = null; renderSheet(); draw(); }
+});
+
+// ------------------------------------------------------------------ tools + sheet (only the options of the tool in hand)
+const TOOLS = [['pan', '🖐️', 'เลื่อน/เลือก'], ['ground', '🖌️', 'พื้น'], ['road', '🛣️', 'ถนน'], ['place', '🏠', 'วางของ'], ['scatter', '🌳', 'ต้นไม้'], ['marker', '📍', 'ที่ดิน/หมุด'], ['erase', '🧽', 'ลบ']];
+function renderTools() { $('#tools').innerHTML = TOOLS.map(([id, ic, n]) => `<button data-tool="${id}" class="${ui.tool === id ? 'on' : ''}">${ic}<small>${n}</small></button>`).join(''); }
+function setTool(t) { if (t === 'scatter' && !['tree', 'bush', 'rock'].includes(ui.kindFilter)) ui.kindFilter = 'tree'; if (t === 'place' && ui.kindFilter === 'tree' && ui.tool === 'scatter') ui.kindFilter = 'house'; ui.tool = t; ui.lineStart = null; if (t !== 'pan') ui.sel = null; ui.sheet = true; renderTools(); renderSheet(); draw(); }
 $('#tools').addEventListener('click', e => { const b = e.target.closest('[data-tool]'); if (b) setTool(b.dataset.tool); });
-function swatch(t) { const a = t.asset && assetById(t.asset); return a ? `background-image:url('${srcUrl(a)}')` : `background:${t.color}`; }
-function renderSide() {
-  const T = ui.tool; let h = '';
-  const brush = `<div class="row">ขนาดแปรง <input type="range" min="1" max="12" value="${ui.brush}" data-k="brush" style="flex:1"/> <b>${(ui.brush * 2 - 1) * 2}</b> ช่อง</div>`;
-  if (T === 'brush' || T === 'rect' || T === 'fill') {
-    h += `<h3>🟩 พื้น</h3>${T === 'brush' ? brush : ''}<div class="pal">${P.terrains.map((t, i) => `<div class="sw ${ui.terrain === i ? 'on' : ''}" data-terrain="${i}"><i style="${swatch(t)}"></i>${esc(t.name)}</div>`).join('')}</div>
-    <p class="help">${T === 'fill' ? 'คลิกเพื่อเทพื้นทั้งบริเวณที่ติดกัน' : T === 'rect' ? 'ลากเป็นกรอบเพื่อปูพื้นทั้งกรอบ' : 'ลากเพื่อระบายพื้น'} · เพิ่มลายพื้นเองได้: นำเข้ารูปแล้วตั้งประเภทเป็น "พื้น"</p>`;
+function swatch(t) { const a = t.asset && assetById(t.asset); if (a) return `background-image:url('${srcUrl(a)}')`; const set = t.set || t.plain || (t.water ? 'water' : t.base ? 'grass' : null); if (set && TL[set]?.src) { const i = t.set ? 15 : 0; return `background-image:url('${TL[set].src}');background-size:auto 100%;background-position:${-i * 26}px 0`; } return `background:${t.color}`; }
+const seg = (key, opts) => `<div class="seg">${opts.map(([v, n]) => `<button data-set="${key}" data-v="${v}" class="${String(ui[key]) === String(v) ? 'on' : ''}">${n}</button>`).join('')}</div>`;
+const brushRow = () => `<div class="row">ขนาด <input type="range" min="1" max="10" value="${ui.brush}" data-k="brush"/> <b>${(ui.brush * 2 - 1) * 2}</b> ช่อง</div>`;
+function renderSheet() {
+  const T = ui.tool, tl = TOOLS.find(x => x[0] === T); let h = '';
+  $('#sheetTitle').textContent = `${tl[1]} ${tl[2]}`;
+  if (T === 'pan') {
+    h += `<p class="help">ลาก = เลื่อนแมพ · สองนิ้ว = ซูม · แตะของ = เลือก (หมุน กลับด้าน ลบ ได้ที่แถบเหนือของ) · แตะของที่เลือกอยู่แล้วลาก = ย้าย</p>`;
+    if (ui.selMarker) { const m = ui.selMarker, M = MARKERS[m.type], [w, hh] = markerSize(m); h += `<div class="row"><b>${M.icon} ${m.type === 'public' ? PLOT_TYPES[m.plot]?.name : M.name}</b> ${w}×${hh} ช่อง</div><div class="row"><input value="${esc(m.label || '')}" data-m="label" placeholder="ชื่อ/โน้ต" style="flex:1"/><button data-act="delMarker">🗑 ลบ</button></div>`; }
+    if (ui.sel) { const o = ui.sel, a = assetById(o.asset); h += `<div class="row"><b>${esc(a?.name)}</b> · ฐาน ${o.fw}×${o.fh} · หมุน ${o.rot || 0}°</div><div class="row">ฐาน <input type="number" min="1" value="${o.fw}" data-o="fw"/> × <input type="number" min="1" value="${o.fh}" data-o="fh"/> รูปกว้าง <input type="number" min=".5" step=".5" value="${o.tw}" data-o="tw"/> ช่อง</div><div class="row"><input value="${esc(o.label || '')}" data-o="label" placeholder="ป้ายชื่อ เช่น บ้านลุงมี" style="flex:1"/></div>`; }
+  } else if (T === 'ground') {
+    h += seg('groundMode', [['brush', '🖌 แปรง'], ['rect', '▭ สี่เหลี่ยม'], ['fill', '🪣 เท']]) + (ui.groundMode === 'brush' ? brushRow() : '');
+    h += `<div class="pal">${P.terrains.map((t, i) => `<div class="sw ${ui.terrain === i ? 'on' : ''}" data-terrain="${i}"><i style="${swatch(t)}"></i>${esc(t.name)}</div>`).join('')}</div>`;
   } else if (T === 'road') {
-    h += `<h3>🛣️ ถนน / ทางเดิน</h3>${brush}<div class="pal">${P.roads.map((r, i) => `<div class="sw ${ui.road === i + 1 ? 'on' : ''}" data-road="${i + 1}"><i style="${swatch(r)}"></i>${esc(r.name)}</div>`).join('')}</div>
-    <p class="help">ลากเพื่อวาดถนน · กด <kbd>Shift</kbd> แล้วคลิก = ลากเส้นตรงต่อจากจุดก่อน · แปรงเล็กสุด = ถนนกว้าง 2 ช่องแบบในเกม (ขอบ ทางเท้า ทางแยกต่อกันเอง) · ลบด้วย 🧽</p>`;
+    h += seg('roadMode', [['brush', '🖌 ลากวาด'], ['line', '📏 เส้นตรง (แตะต้น-ปลาย)']]) + brushRow();
+    h += `<div class="pal">${P.roads.map((r, i) => `<div class="sw ${ui.road === i + 1 ? 'on' : ''}" data-road="${i + 1}"><i style="${swatch(r)}"></i>${esc(r.name)}</div>`).join('')}</div><p class="help">ขนาดเล็กสุด = ถนนกว้าง 2 ช่องแบบในเกม · ถนนหลักควรกว้าง 4 ช่อง (ขนาด 2)</p>`;
   } else if (T === 'place' || T === 'scatter') {
-    const kinds = ['all', ...Object.keys(KINDS).filter(k => P.assets.some(a => a.kind === k))];
-    const list = P.assets.filter(a => (ui.kindFilter === 'all' ? a.kind !== 'stage' : a.kind === ui.kindFilter) && (!ui.q || a.name.toLowerCase().includes(ui.q.toLowerCase())) && (T !== 'scatter' || a.kind === 'tree' || a.kind === 'bush' || a.kind === 'rock'));
-    h += T === 'scatter' ? `<h3>🌳 โปรยต้นไม้</h3>${brush}<div class="row">ความหนาแน่น <input type="range" min="5" max="100" value="${ui.density}" data-k="density" style="flex:1"/> ${ui.density}%</div><p class="help">เลือกได้หลายแบบ (คลิกให้ติดกรอบ) · ไม่วางบนถนน/น้ำ และเว้นระยะไม่ให้ทับกัน${ui.scatterSet.length ? '' : ' · ยังไม่เลือก = ใช้ต้นไม้ 4 แบบแรกในคลัง'}</p>`
-      : `<h3>🏠 วางวัตถุ</h3><div class="row"><label><input type="checkbox" data-k="overlap" ${ui.overlap ? 'checked' : ''}/> วางซ้อนได้</label> <label><input type="checkbox" data-k="flip" ${ui.flip ? 'checked' : ''}/> กลับด้าน (X)</label></div>`;
-    h += `<div class="row"><input placeholder="ค้นหา…" data-k="q" value="${esc(ui.q)}" style="flex:1"/></div><div class="chips">${kinds.map(k => `<button class="${ui.kindFilter === k ? 'on' : ''}" data-kind="${k}">${k === 'all' ? 'ทั้งหมด' : KINDS[k]}</button>`).join('')}</div>`;
-    list.sort((a, b) => (/stump/.test(a.src || '') ? 1 : 0) - (/stump/.test(b.src || '') ? 1 : 0) || (a.game ? 1 : 0) - (b.game ? 1 : 0)); // your imports first, stumps last
-    h += list.length ? `<div class="lib" style="margin-top:8px">${list.slice(0, 600).map(a => `<div class="card ${(T === 'place' ? ui.asset === a.id : ui.scatterSet.includes(a.id)) ? 'on' : ''}" data-asset="${a.id}" title="${esc(a.name)} · ${a.fw}×${a.fh} ช่อง"><img src="${esc(srcUrl(a))}" loading="lazy"/><span>${esc(a.name)}</span></div>`).join('')}</div>`
-      : `<p class="help">คลังยังว่าง — กด <b>📥 นำเข้ารูป</b> (รูปจาก GPT) หรือ <b>🎮 รูปในเกม</b></p>`;
-    const a = assetById(ui.asset);
-    if (T === 'place' && a) h += assetEditor(a);
+    if (T === 'place') h += `<div class="row"><button data-act="rotL">⟲ 15°</button><button data-act="rotR">⟳ 15°</button><button data-act="rot90">↻ 90°</button><b>${ui.rot}°</b><button data-act="flip" class="${ui.flip ? 'on' : ''}">↔ กลับด้าน</button><label><input type="checkbox" data-k="overlap" ${ui.overlap ? 'checked' : ''}/> วางซ้อน</label></div><p class="help">แตะ = วาง · ลาก = เลื่อนแมพ (ไม่วางให้เอง)</p>`;
+    else h += brushRow() + `<div class="row">หนาแน่น <input type="range" min="5" max="100" value="${ui.density}" data-k="density"/> ${ui.density}%</div><p class="help">ลากเพื่อโปรย · แตะรูปได้หลายแบบเพื่อผสม</p>`;
+    const kinds = Object.keys(KINDS).filter(k => k !== 'ground' && k !== 'road' && P.assets.some(a => a.kind === k)).filter(k => T !== 'scatter' || ['tree', 'bush', 'rock'].includes(k));
+    h += `<div class="chips">${kinds.map(k => `<button class="${ui.kindFilter === k ? 'on' : ''}" data-kind="${k}">${KINDS[k]}</button>`).join('')}<input placeholder="🔎 ค้นหา" data-k="q" value="${esc(ui.q)}" style="width:110px"/></div>`;
+    let list = P.assets.filter(a => (ui.q ? a.name.toLowerCase().includes(ui.q.toLowerCase()) : a.kind === ui.kindFilter) && a.kind !== 'ground' && a.kind !== 'road');
+    list.sort((a, b) => (/stump/.test(a.src || '') ? 1 : 0) - (/stump/.test(b.src || '') ? 1 : 0) || (a.game ? 1 : 0) - (b.game ? 1 : 0));
+    if (T === 'place' && ui.recent.length && !ui.q) h += `<div class="lib recent">${ui.recent.map(id => assetById(id)).filter(Boolean).map(a => card(a, ui.asset === a.id)).join('')}</div>`;
+    h += list.length ? `<div class="lib">${list.slice(0, 400).map(a => card(a, T === 'place' ? ui.asset === a.id : ui.scatterSet.includes(a.id))).join('')}</div>` : '<p class="help">ไม่มีรูปในหมวดนี้</p>';
   } else if (T === 'marker') {
-    h += `<h3>📍 หมุด / โซน</h3><div class="pal">${Object.entries(MARKERS).map(([k, m]) => `<div class="sw ${ui.marker === k ? 'on' : ''}" data-marker="${k}"><i style="background:${m.color}"></i>${m.icon} ${m.name}</div>`).join('')}</div><p class="help">ลากเป็นกรอบเพื่อวางหมุด · ใช้บอก Claude ว่าตรงไหนคือที่ดินผู้เล่น จุดเกิด ทางออก โซน หรือเขียนโน้ตอธิบาย</p>`;
-  } else if (T === 'erase') h += `<h3>🧽 ยางลบ</h3>${brush}<p class="help">ลบถนนและวัตถุใต้แปรง (พื้นไม่ลบ ให้ปูพื้นทับแทน)</p>`;
-  else if (T === 'select') h += `<h3>🖐️ เลือก/ย้าย</h3><p class="help">คลิกวัตถุเพื่อเลือก ลากเพื่อย้าย · <kbd>X</kbd> กลับด้าน · <kbd>Delete</kbd> ลบ · คลิกหมุดเพื่อแก้ชื่อ</p>`;
-  if (ui.sel) { const o = ui.sel, a = assetById(o.asset); h += `<h3>✏️ วัตถุที่เลือก</h3><div class="card on" style="cursor:default"><img src="${esc(srcUrl(a))}"/><span>${esc(a?.name)}</span></div>
-    <div class="row">ช่อง x <input type="number" value="${o.x}" data-o="x" style="width:60px"/> y <input type="number" value="${o.y}" data-o="y" style="width:60px"/></div>
-    <div class="row">ฐาน กว้าง <input type="number" min="1" value="${o.fw}" data-o="fw" style="width:52px"/> ลึก <input type="number" min="1" value="${o.fh}" data-o="fh" style="width:52px"/> · รูปกว้าง <input type="number" min=".5" step=".5" value="${o.tw}" data-o="tw" style="width:58px"/> ช่อง</div>
-    <div class="row">ป้ายชื่อ <input value="${esc(o.label || '')}" data-o="label" placeholder="เช่น บ้านลุงมี" style="flex:1"/></div>
-    <div class="row"><button data-act="flipSel">↔ กลับด้าน</button><button data-act="delSel">🗑 ลบ</button></div>`; }
-  if (ui.selMarker) { const m = ui.selMarker; h += `<h3>📍 หมุดที่เลือก</h3><div class="row">${MARKERS[m.type]?.icon} ${MARKERS[m.type]?.name}</div><div class="row">ชื่อ/โน้ต <input value="${esc(m.label || '')}" data-m="label" style="flex:1"/></div><div class="row">x ${m.x} y ${m.y} · ${m.w}×${m.h} ช่อง <button data-act="delMarker">🗑 ลบ</button></div>`; }
-  h += `<h3>📊 แมพนี้</h3><p class="help">${P.w}×${P.h} ช่อง · วัตถุ ${P.objects.length} · หมุด ${P.markers.length} · รูปในคลัง ${P.assets.length}</p>`;
-  $('#side').innerHTML = h;
+    h += `<div class="chips">${Object.entries(MARKERS).map(([k, m]) => `<button class="${ui.marker === k ? 'on' : ''}" data-marker="${k}">${m.icon} ${m.name}</button>`).join('')}</div>`;
+    if (ui.marker === 'public') h += `<div class="chips">${Object.entries(PLOT_TYPES).map(([k, p]) => `<button class="${ui.plot === k ? 'on' : ''}" data-plot="${k}">${p.name}<small> ${p.w}×${p.h}</small></button>`).join('')}</div>`;
+    if (MARKERS[ui.marker].house) h += `<div class="row">ดูขนาดบ้าน ${seg('housePreview', [[0, 'กระท่อม'], [1, 'บ้านกลาง'], [2, 'บ้านหรู']])}</div>`;
+    h += `<p class="help">แตะ = วางขนาดมาตรฐาน${MARKERS[ui.marker].house ? ` (${LOT_W}×${LOT_H} ช่อง: บ้าน 4×3 + สนามหน้าบ้าน — กรอบประคือฐานบ้าน)` : ''} · ลาก = กำหนดขนาดเอง · รูปจางๆ คือขนาดจริงของบ้าน/อาคารในเกม</p>`;
+  } else if (T === 'erase') h += brushRow() + '<p class="help">ลบถนนและของที่อยู่ใต้แปรง (พื้นไม่ลบ ให้ปูพื้นทับแทน) · ลบที่ดิน/หมุด: ใช้ 🖐 แตะเลือกแล้วกด 🗑</p>';
+  $('#sheetBody').innerHTML = h;
+  $('#sheet').classList.toggle('closed', !ui.sheet);
 }
-function assetEditor(a) {
-  return `<h3>⚙️ ค่าของรูป "${esc(a.name)}"</h3><div class="row">ชื่อ <input value="${esc(a.name)}" data-a="name" style="flex:1"/></div>
-  <div class="row">ประเภท <select data-a="kind">${Object.entries(KINDS).map(([k, v]) => `<option value="${k}" ${a.kind === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
-  <div class="row">รูปกว้าง <input type="number" min=".5" step=".5" value="${a.tw}" data-a="tw" style="width:64px"/> ช่อง · ฐาน <input type="number" min="1" value="${a.fw}" data-a="fw" style="width:48px"/>×<input type="number" min="1" value="${a.fh}" data-a="fh" style="width:48px"/></div>
-  <p class="help">ฐาน = ส่วนที่ชนในเกม (กว้าง × ลึก เป็นช่อง) · บ้านในเกมฐาน 4×3 · ต้นไม้ 1×1 · ค่าที่ตั้งใหม่ใช้กับของที่วางหลังจากนี้</p>${a.game ? '' : `<div class="row"><button data-act="delAsset">🗑 ลบรูปนี้ออกจากคลัง</button></div>`}`;
-}
-$('#side').addEventListener('click', e => {
-  const t = e.target.closest('[data-terrain],[data-road],[data-asset],[data-kind],[data-marker],[data-act]'); if (!t) return;
-  if (t.dataset.terrain) ui.terrain = +t.dataset.terrain;
-  if (t.dataset.road) ui.road = +t.dataset.road;
-  if (t.dataset.kind) ui.kindFilter = t.dataset.kind;
-  if (t.dataset.marker) ui.marker = t.dataset.marker;
-  if (t.dataset.asset) { const id = t.dataset.asset; if (ui.tool === 'scatter') ui.scatterSet = ui.scatterSet.includes(id) ? ui.scatterSet.filter(x => x !== id) : [...ui.scatterSet, id]; else ui.asset = id; }
-  const act = t.dataset.act;
-  if (act === 'flipSel' && ui.sel) { begin(); ui.sel.flip = !ui.sel.flip; save(); }
-  if (act === 'delSel' && ui.sel) { begin(); P.objects = P.objects.filter(o => o !== ui.sel); ui.sel = null; save(); }
-  if (act === 'delMarker' && ui.selMarker) { begin(); P.markers = P.markers.filter(m => m !== ui.selMarker); ui.selMarker = null; save(); }
-  if (act === 'delAsset') { const a = assetById(ui.asset); if (a && confirm(`ลบ "${a.name}" และของที่วางไว้ทั้งหมดที่ใช้รูปนี้?`)) { begin(); P.objects = P.objects.filter(o => o.asset !== a.id); P.assets = P.assets.filter(x => x !== a); P.terrains = P.terrains.filter(x => x.asset !== a.id); P.roads = P.roads.filter(x => x.asset !== a.id); ui.asset = null; dirtyAll(); save(); } }
-  renderSide(); draw();
+const card = (a, on) => `<div class="card ${on ? 'on' : ''}" data-asset="${a.id}" title="${esc(a.name)}"><img src="${esc(srcUrl(a))}" loading="lazy"/><span>${esc(a.name)}</span></div>`;
+$('#sheetHead').onclick = () => { ui.sheet = !ui.sheet; $('#sheet').classList.toggle('closed', !ui.sheet); setTimeout(fit, 220); };
+$('#sheetBody').addEventListener('click', e => {
+  const t = e.target.closest('[data-terrain],[data-road],[data-asset],[data-kind],[data-marker],[data-plot],[data-act],[data-set]'); if (!t) return;
+  const D = t.dataset;
+  if (D.terrain) ui.terrain = +D.terrain;
+  if (D.road) ui.road = +D.road;
+  if (D.kind) { ui.kindFilter = D.kind; ui.q = ''; }
+  if (D.marker) ui.marker = D.marker;
+  if (D.plot) ui.plot = D.plot;
+  if (D.set) { ui[D.set] = isNaN(+D.v) ? D.v : +D.v; ui.lineStart = null; }
+  if (D.asset) { if (ui.tool === 'scatter') ui.scatterSet = ui.scatterSet.includes(D.asset) ? ui.scatterSet.filter(x => x !== D.asset) : [...ui.scatterSet, D.asset]; else { ui.asset = D.asset; if (innerWidth < 900) toast('แตะบนแมพเพื่อวาง'); } }
+  const a = D.act;
+  if (a === 'rotL') rotAction(-15); if (a === 'rotR') rotAction(15); if (a === 'rot90') rotAction(90); if (a === 'flip') flipAction();
+  if (a === 'delMarker') delAction();
+  renderSheet(); draw();
 });
-$('#side').addEventListener('input', e => {
+$('#sheetBody').addEventListener('input', e => {
   const t = e.target, k = t.dataset.k;
-  if (k === 'brush' || k === 'density') { ui[k] = +t.value; if (k === 'brush') draw(); return t.nextElementSibling && (t.nextElementSibling.textContent = k === 'brush' ? (ui.brush * 2 - 1) * 2 : ''); }
-  if (k === 'q') { ui.q = t.value; clearTimeout(ui.qt); ui.qt = setTimeout(() => { renderSide(); const q = $('#side [data-k=q]'); q.focus(); q.setSelectionRange(q.value.length, q.value.length); }, 250); return; }
-  if (k === 'overlap' || k === 'flip') { ui[k] = t.checked; return draw(); }
-  if (t.dataset.o && ui.sel) { const v = t.dataset.o === 'label' ? t.value : Number(t.value); if (t.dataset.o !== 'label' && !Number.isFinite(v)) return; ui.sel[t.dataset.o] = v; save(); draw(); }
+  if (k === 'brush' || k === 'density') { ui[k] = +t.value; const b = t.nextElementSibling; if (b) b.textContent = k === 'brush' ? (ui.brush * 2 - 1) * 2 : ''; return draw(); }
+  if (k === 'q') { ui.q = t.value; clearTimeout(ui.qt); ui.qt = setTimeout(() => { renderSheet(); const q = $('#sheetBody [data-k=q]'); q.focus(); q.setSelectionRange(q.value.length, q.value.length); }, 300); return; }
+  if (k === 'overlap') { ui.overlap = t.checked; return; }
+  if (t.dataset.o && ui.sel) { const f = t.dataset.o, v = f === 'label' ? t.value : Number(t.value); if (f !== 'label' && !(v > 0)) return; ui.sel[f] = v; save(); draw(); }
   if (t.dataset.m && ui.selMarker) { ui.selMarker.label = t.value; save(); draw(); }
-  if (t.dataset.a) { const a = assetById(ui.asset); if (!a) return; const f = t.dataset.a; a[f] = f === 'name' || f === 'kind' ? t.value : Math.max(f === 'tw' ? .5 : 1, Number(t.value) || 1); save(); draw(); }
 });
-$('#side').addEventListener('change', e => { if (e.target.dataset.a === 'kind' || e.target.dataset.a === 'name') renderSide(); });
+
+// ------------------------------------------------------------------ menu
+const MENU = [['new', '🆕 แมพใหม่'], ['open', '📂 เปิดไฟล์แมพ'], ['save', '💾 บันทึก / ส่งออกไฟล์ (ส่งให้ Claude)'], ['png', '🖼️ บันทึกเป็นรูป PNG'], ['import', '📥 นำเข้ารูปจาก GPT'], ['grid', '# เส้นตาราง เปิด/ปิด'], ['foot', '▢ แสดงฐานของทุกชิ้น'], ['help', '❓ วิธีใช้']];
+$('#bMenu').onclick = () => { $('#menuList').innerHTML = MENU.map(([k, n]) => `<button data-menu="${k}">${n}</button>`).join(''); $('#mMenu').classList.add('open'); };
+$('#mMenu').addEventListener('click', e => {
+  if (e.target === $('#mMenu')) return $('#mMenu').classList.remove('open');
+  const k = e.target.closest('[data-menu]')?.dataset.menu; if (!k) return; $('#mMenu').classList.remove('open');
+  if (k === 'new') { $('#nFill').innerHTML = P.terrains.map((t, i) => `<option value="${i}">${esc(t.name)}</option>`).join(''); $('#mNew').classList.add('open'); }
+  if (k === 'open') openFile();
+  if (k === 'save') download();
+  if (k === 'png') exportPng();
+  if (k === 'import') { $('#mImport').classList.add('open'); if (!imp.files.length) pickImages(); }
+  if (k === 'grid') { ui.grid = !ui.grid; draw(); }
+  if (k === 'foot') { ui.foot = !ui.foot; draw(); }
+  if (k === 'help') $('#mHelp').classList.add('open');
+});
 
 // ------------------------------------------------------------------ import GPT images
-const imp = { files: [], pieces: [] };
-$('#bImport').onclick = () => { $('#mImport').classList.add('open'); if (!imp.files.length) $('#fileImg').click(); };
-$('#iPick').onclick = () => $('#fileImg').click();
-$('#iCancel').onclick = () => { $('#mImport').classList.remove('open'); };
-$('#iSplit').onchange = () => { $('#iGridBox').style.display = $('#iSplit').value === 'grid' ? '' : 'none'; };
-$('#fileImg').onchange = async e => {
-  imp.files = await Promise.all([...e.target.files].map(f => new Promise(res => { const r = new FileReader(); r.onload = () => { const im = new Image(); im.onload = () => res({ name: f.name.replace(/\.[^.]+$/, ''), im }); im.src = r.result; }; r.readAsDataURL(f); })));
-  e.target.value = ''; $('#mImport').classList.add('open'); processImport();
-};
-$('#iRun').onclick = processImport;
 function keyOut(data, mode, tol) {
   const d = data.data, W = data.width, H = data.height;
   if (mode === 'none') return;
@@ -651,10 +770,33 @@ function components(data) {
   const minA = W * H * .002;
   return merged.filter(b => b.n > minA).sort((a, b) => (Math.round(a.y0 / (H / 8)) - Math.round(b.y0 / (H / 8))) || a.x0 - b.x0);
 }
+function trim(g, x, y, w, h) {
+  const d = g.getImageData(x, y, w, h).data; let x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) if (d[(j * w + i) * 4 + 3] > 20) { if (i < x0) x0 = i; if (i > x1) x1 = i; if (j < y0) y0 = j; if (j > y1) y1 = j; }
+  return x1 < 0 ? null : { x: x + x0, y: y + y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+}
+function guessKind(name, w, h) {
+  const n = name.toLowerCase();
+  if (/tree|ต้น/.test(n)) return 'tree'; if (/bush|พุ่ม/.test(n)) return 'bush'; if (/house|บ้าน|hz|home/.test(n)) return 'house';
+  if (/shop|ร้าน|store|market/.test(n)) return 'shop'; if (/gov|hall|police|hospital|school|ราชการ/.test(n)) return 'civic';
+  if (/tile|ground|grass|พื้น/.test(n)) return 'ground'; if (/road|ถนน/.test(n)) return 'road'; if (/rock|หิน/.test(n)) return 'rock'; if (/fence|รั้ว/.test(n)) return 'fence';
+  return h > w * 1.2 ? 'tree' : 'building';
+}
+
+const imp = { files: [], pieces: [] };
+function pickImages() { $('#fileImg').click(); }
+$('#iPick').onclick = pickImages;
+$('#iCancel').onclick = () => $('#mImport').classList.remove('open');
+$('#iSplit').onchange = () => { $('#iGridBox').style.display = $('#iSplit').value === 'grid' ? '' : 'none'; };
+$('#fileImg').onchange = async e => {
+  imp.files = await Promise.all([...e.target.files].map(f => new Promise(res => { const r = new FileReader(); r.onload = () => { const im = new Image(); im.onload = () => res({ name: f.name.replace(/\.[^.]+$/, ''), im }); im.src = r.result; }; r.readAsDataURL(f); })));
+  e.target.value = ''; $('#mImport').classList.add('open'); processImport();
+};
+$('#iRun').onclick = processImport;
 function processImport() {
   imp.pieces = [];
   const mode = $('#iBg').value, tol = +$('#iTol').value, split = $('#iSplit').value;
-  $('#iSrc').innerHTML = imp.files.map(f => `<img id="srcprev" src="${f.im.src}"/>`).join(' ');
+  $('#iSrc').innerHTML = imp.files.map(f => `<img class="srcprev" src="${f.im.src}"/>`).join(' ');
   for (const f of imp.files) {
     const c = document.createElement('canvas'); c.width = f.im.naturalWidth; c.height = f.im.naturalHeight;
     const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(f.im, 0, 0);
@@ -668,22 +810,10 @@ function processImport() {
   }
   renderPieces();
 }
-function trim(g, x, y, w, h) {
-  const d = g.getImageData(x, y, w, h).data; let x0 = w, y0 = h, x1 = -1, y1 = -1;
-  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) if (d[(j * w + i) * 4 + 3] > 20) { if (i < x0) x0 = i; if (i > x1) x1 = i; if (j < y0) y0 = j; if (j > y1) y1 = j; }
-  return x1 < 0 ? null : { x: x + x0, y: y + y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
-}
-function guessKind(name, w, h) {
-  const n = name.toLowerCase();
-  if (/tree|ต้น/.test(n)) return 'tree'; if (/bush|พุ่ม/.test(n)) return 'bush'; if (/house|บ้าน|hz|home/.test(n)) return 'house';
-  if (/shop|ร้าน|store|market/.test(n)) return 'shop'; if (/gov|hall|police|hospital|school|ราชการ/.test(n)) return 'civic';
-  if (/tile|ground|grass|พื้น/.test(n)) return 'ground'; if (/road|ถนน/.test(n)) return 'road'; if (/rock|หิน/.test(n)) return 'rock'; if (/fence|รั้ว/.test(n)) return 'fence';
-  return h > w * 1.2 ? 'tree' : 'building';
-}
 function renderPieces() {
-  $('#iPieces').innerHTML = imp.pieces.map((p, i) => `<div class="piece" data-i="${i}"><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-pf="keep" ${p.keep ? 'checked' : ''} style="width:auto;margin:0"/> ใช้ชิ้นนี้ <small style="margin-left:auto;color:var(--mute)">${p.canvas.width}×${p.canvas.height}px</small></label><div id="pc${i}"></div>
+  $('#iPieces').innerHTML = imp.pieces.map((p, i) => `<div class="piece" data-i="${i}"><label class="row"><input type="checkbox" data-pf="keep" ${p.keep ? 'checked' : ''}/> ใช้ชิ้นนี้ <small style="margin-left:auto;color:var(--mute)">${p.canvas.width}×${p.canvas.height}px</small></label><div id="pc${i}"></div>
     <input data-pf="name" value="${esc(p.name)}"/><select data-pf="kind">${Object.entries(KINDS).map(([k, v]) => `<option value="${k}" ${p.kind === k ? 'selected' : ''}>${v}</option>`).join('')}</select>
-    <label style="font-size:12px">กว้าง <input data-pf="tw" type="number" min=".5" step=".5" value="${p.tw}" style="width:60px;display:inline-block"/> ช่อง</label></div>`).join('') || '<p class="help">ไม่พบชิ้นส่วน — ลองเปลี่ยนวิธีลบพื้นหลังหรือวิธีตัดชิ้น</p>';
+    <label class="row">กว้าง <input data-pf="tw" type="number" min=".5" step=".5" value="${p.tw}" style="width:64px"/> ช่อง</label></div>`).join('') || '<p class="help">ไม่พบชิ้นส่วน — ลองเปลี่ยนวิธีลบพื้นหลังหรือวิธีตัดชิ้น</p>';
   imp.pieces.forEach((p, i) => { const c = p.canvas; c.style.width = '100%'; c.style.height = '110px'; c.style.objectFit = 'contain'; $('#pc' + i).appendChild(c); });
 }
 $('#iPieces').addEventListener('input', e => { const el = e.target, i = +el.closest('.piece').dataset.i, f = el.dataset.pf, p = imp.pieces[i]; if (!p) return;
@@ -693,63 +823,55 @@ $('#iAdd').onclick = () => {
   let n = 0;
   for (const p of imp.pieces.filter(p => p.keep)) {
     const c = p.canvas, kind = p.kind, isTile = kind === 'ground' || kind === 'road';
-    // store at most 4 px of source per game px so files stay small; keep pixel art crisp
     const maxW = Math.max(16, Math.round(p.tw * TILE * 4)), k = Math.min(1, maxW / c.width);
     const out = document.createElement('canvas'); out.width = Math.max(1, Math.round(c.width * k)); out.height = Math.max(1, Math.round(c.height * k));
     const og = out.getContext('2d'); og.imageSmoothingEnabled = k < 1; og.drawImage(c, 0, 0, out.width, out.height);
     const hTiles = p.tw * c.height / c.width;
     addAsset({ name: p.name, kind, src: out.toDataURL('image/png'), pw: c.width, ph: c.height, tw: p.tw,
-      fw: isTile ? 1 : kind === 'tree' ? 1 : Math.max(1, Math.round(p.tw * .8)), fh: isTile ? 1 : kind === 'tree' || kind === 'bush' || kind === 'rock' || kind === 'prop' ? 1 : Math.max(1, Math.round(hTiles * .45)) });
+      fw: isTile ? 1 : kind === 'tree' ? 1 : Math.max(1, Math.round(p.tw * .8)), fh: isTile ? 1 : ['tree', 'bush', 'rock', 'prop'].includes(kind) ? 1 : Math.max(1, Math.round(hTiles * .45)) });
     n++;
   }
   $('#mImport').classList.remove('open'); imp.files = []; imp.pieces = [];
-  save(); setTool('place'); toast(`เพิ่ม ${n} รูปเข้าคลังแล้ว`);
+  save(); ui.kindFilter = imp.lastKind || ui.kindFilter; setTool('place'); toast(`เพิ่ม ${n} รูปเข้าคลังแล้ว`);
 };
 
-// ------------------------------------------------------------------ file ops
-function serialize() { const f = toFile(); return f; }
-function save() {
-  try { const f = serialize(); localStorage.setItem(LS, JSON.stringify(f)); } catch (e) { if (!save.warned) { save.warned = true; toast('บันทึกในเครื่องไม่ได้ (ไฟล์ใหญ่เกิน) — กด 💾 เพื่อดาวน์โหลดเก็บไว้'); } }
+// ------------------------------------------------------------------ files (browser + Android app bridge)
+const NATIVE = window.AndroidBridge; // set by the Android app (V2N Map Maker APK)
+function save() { try { localStorage.setItem(LS, JSON.stringify(toFile())); } catch (e) { if (!save.warned) { save.warned = true; toast('บันทึกในเครื่องไม่ได้ (ไฟล์ใหญ่เกิน) — กด ☰ → บันทึก เพื่อเก็บเป็นไฟล์'); } } }
+const fname = ext => `${(P.name || 'map').replace(/[^\p{L}\p{N}_-]+/gu, '_')}.${ext}`;
+function deliver(name, mime, text, dataUrl) {
+  if (NATIVE?.saveFile) { const b64 = dataUrl ? dataUrl.split(',')[1] : btoa(unescape(encodeURIComponent(text))); NATIVE.saveFile(name, mime, b64); return; }
+  const a = document.createElement('a'); a.href = dataUrl || URL.createObjectURL(new Blob([text], { type: mime })); a.download = name; a.click(); if (!dataUrl) setTimeout(() => URL.revokeObjectURL(a.href), 3000);
 }
-function download() {
-  const f = serialize(), blob = new Blob([JSON.stringify(f, null, 1)], { type: 'application/json' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${(P.name || 'map').replace(/[^\p{L}\p{N}_-]+/gu, '_')}.v2nmap.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  toast('ดาวน์โหลดแล้ว — ส่งไฟล์ .v2nmap.json นี้ให้ Claude ในแชทได้เลย');
+function download() { deliver(fname('v2nmap.json'), 'application/json', JSON.stringify(toFile(), null, 1)); toast('บันทึกไฟล์แล้ว — ส่งไฟล์ .v2nmap.json ให้ Claude ในแชทได้เลย'); }
+function exportPng() {
+  refreshBase(); const c = document.createElement('canvas'); c.width = P.w * TILE; c.height = P.h * TILE; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(wbase, 0, 0); g.drawImage(base, 0, 0);
+  const keep = { ctx }; void keep;
+  for (const o of [...P.objects].sort((a, b) => (a.y + a.fh) - (b.y + b.fh))) { const a = assetById(o.asset), im = img.get(a?.id), b = spriteBox(o, a); if (!im?.complete) continue; g.save(); if (o.rot) { const px = (o.x + o.fw / 2) * TILE, py = (o.y + o.fh / 2) * TILE; g.translate(px, py); g.rotate(o.rot * Math.PI / 180); g.translate(-px, -py); } if (o.flip) { g.translate(b.x * 2 + b.w, 0); g.scale(-1, 1); } g.drawImage(im, b.x, b.y, b.w, b.h); g.restore(); }
+  deliver(fname('png'), 'image/png', null, c.toDataURL('image/png')); toast('บันทึกรูปแมพแล้ว');
 }
-async function exportPng() {
-  refreshBase(); const c = document.createElement('canvas'); c.width = P.w * TILE; c.height = P.h * TILE; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(base, 0, 0);
-  const keep = ctx; void keep;
-  for (const o of [...P.objects].sort((a, b) => (a.y + a.fh) - (b.y + b.fh))) { const a = assetById(o.asset), im = img.get(a?.id), b = spriteBox(o, a); if (!im?.complete) continue; if (o.flip) { g.save(); g.translate(b.x + b.w, b.y); g.scale(-1, 1); g.drawImage(im, 0, 0, b.w, b.h); g.restore(); } else g.drawImage(im, b.x, b.y, b.w, b.h); }
-  const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = `${(P.name || 'map').replace(/[^\p{L}\p{N}_-]+/gu, '_')}.png`; a.click();
-}
-$('#bSave').onclick = download; $('#bPng').onclick = exportPng; $('#bGameArt').onclick = loadGameArt;
-$('#bOpen').onclick = () => $('#fileOpen').click();
-$('#fileOpen').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; try { P = fromFile(JSON.parse(await f.text())); afterLoad(); toast(`เปิด "${P.name}" แล้ว`); } catch (err) { toast('เปิดไม่ได้: ' + err.message); } };
-$('#bNew').onclick = () => { $('#nFill').innerHTML = P.terrains.map((t, i) => `<option value="${i}">${esc(t.name)}</option>`).join(''); $('#mNew').classList.add('open'); };
+function openFile() { $('#fileOpen').click(); }
+$('#fileOpen').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; try { P = fromFile(JSON.parse(await f.text())); undoStack = []; redoStack = []; afterLoad(); toast(`เปิด "${P.name}" แล้ว`); } catch (err) { toast('เปิดไม่ได้: ' + err.message); } };
 $('#nCancel').onclick = () => $('#mNew').classList.remove('open');
 $('#nOk').onclick = () => { const w = Math.max(16, Math.min(512, +$('#nW').value || 144)), h = Math.max(16, Math.min(512, +$('#nH').value || 96)); begin(); const keep = P.assets, terr = P.terrains, rd = P.roads; P = newProject(w, h, +$('#nFill').value, keep); P.terrains = terr; P.roads = rd; $('#mNew').classList.remove('open'); afterLoad(); };
-$('#bUndo').onclick = undo; $('#bRedo').onclick = redo;
-$('#bZoomIn').onclick = () => { const r = cv.getBoundingClientRect(); zoomAt(r.left + r.width / 2, r.top + r.height / 2, Math.min(8, ui.zoom * 1.25)); };
-$('#bZoomOut').onclick = () => { const r = cv.getBoundingClientRect(); zoomAt(r.left + r.width / 2, r.top + r.height / 2, Math.max(.25, ui.zoom / 1.25)); };
-$('#bGrid').onclick = () => { ui.grid = !ui.grid; $('#bGrid').classList.toggle('on', ui.grid); draw(); };
-$('#bFoot').onclick = () => { ui.foot = !ui.foot; $('#bFoot').classList.toggle('on', ui.foot); draw(); };
-$('#bHelp').onclick = () => $('#mHelp').classList.add('open'); $('#hOk').onclick = () => $('#mHelp').classList.remove('open');
-$('#sideToggle').onclick = () => $('#side').classList.toggle('open');
+$('#hOk').onclick = () => $('#mHelp').classList.remove('open');
+$('#bUndo').onclick = undo; $('#bRedo').onclick = redo; $('#bFit').onclick = fitView; $('#bSave').onclick = download;
 $('#pname').oninput = e => { P.name = e.target.value; save(); };
-function toast(t) { const el = $('#toast'); el.textContent = t; el.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(() => el.style.display = 'none', 3200); }
+function toast(t) { const el = $('#toast'); el.textContent = t; el.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(() => el.style.display = 'none', 2600); }
 function afterLoad() {
   img.clear(); for (const a of P.assets) loadImg(a);
   loadGameArt(true);
   base = null; ui.sel = ui.selMarker = null; ui.asset = null; $('#pname').value = P.name;
-  const r = $('#stage').getBoundingClientRect(), d = devicePixelRatio || 1; ui.zoom = Math.max(.25, Math.min(2, Math.min(r.width / (P.w * TILE), r.height / (P.h * TILE)) * .95));
-  ui.ox = (r.width * d - P.w * TILE * ui.zoom * d) / 2; ui.oy = (r.height * d - P.h * TILE * ui.zoom * d) / 2;
-  renderTools(); renderSide(); save(); draw();
+  renderTools(); renderSheet(); save(); fit(); fitView();
 }
 // ------------------------------------------------------------------ boot
 try { const raw = localStorage.getItem(LS); P = raw ? fromFile(JSON.parse(raw)) : null; } catch { P = null; }
 if (!P) P = newProject();
-addEventListener('resize', fit); loadTiles(); fit(); afterLoad();
-window.__MAPMAKER__ = { get P() { return P; }, toFile, fromFile, ui, setTool, addAsset, render };
+addEventListener('resize', fit); new ResizeObserver(fit).observe($('#stage'));
+loadTiles(); fit(); afterLoad();
+if (!localStorage.getItem('v2n-mapmaker-helped')) { try { localStorage.setItem('v2n-mapmaker-helped', '1'); } catch { } $('#mHelp').classList.add('open'); }
+window.__MAPMAKER__ = { get P() { return P; }, toFile, fromFile, ui, setTool, addAsset, render, rotate };
+
 </script>
 </body>
 </html>

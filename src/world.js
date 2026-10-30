@@ -344,7 +344,7 @@ function placePlots(M) {
   mark(LEADER_HOUSE.tx, LEADER_HOUSE.ty - 7, LEADER_HOUSE.w, LEADER_HOUSE.h + 7, 2); // the house sprite is ~8 tiles tall: nothing right behind it
   for (const id of ['camp', 'board', 'study', 'delivery']) mark(POINTS[id].x, POINTS[id].y, 1, 1, 1);
   PLOT_IDS.forEach((id, k) => {
-    const P = POINTS[id], pub = M.publics?.[k];
+    const P = POINTS[id], pub = M.publics?.[k] || null;
     if (pub) { P.x = pub.x + Math.floor(pub.w / 2); P.y = pub.y + Math.floor(pub.h / 2); mark(pub.x, pub.y, pub.w, pub.h, 1); return; }
     let best = null;
     for (let cy = CENTER.y - 30; cy <= CENTER.y + 30; cy++) for (let cx = CENTER.x - 34; cx <= CENTER.x + 34; cx++) {
