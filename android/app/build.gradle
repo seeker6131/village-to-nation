@@ -1,4 +1,5 @@
 plugins { id 'com.android.application' }
+def runNo = (System.getenv('GITHUB_RUN_NUMBER') ?: '1') as Integer
 android {
     namespace 'th.seafishingclub.v2nmapmaker'
     compileSdk 34
@@ -6,8 +7,8 @@ android {
         applicationId 'th.seafishingclub.v2nmapmaker'
         minSdk 24
         targetSdk 34
-        versionCode (System.getenv('GITHUB_RUN_NUMBER') ?: '1').toInteger()
-        versionName "1.${System.getenv('GITHUB_RUN_NUMBER') ?: '0'}"
+        versionCode runNo
+        versionName "1." + runNo
     }
     // fixed key so a new APK installs over the old one (personal tool; the key is not a secret)
     signingConfigs { v2n { storeFile file('../v2n.keystore'); storePassword 'v2nmapmaker'; keyAlias 'v2n'; keyPassword 'v2nmapmaker' } }
