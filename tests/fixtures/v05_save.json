@@ -1,0 +1,99 @@
+{
+ "schema": 1,
+ "day": 1,
+ "gameTime": 21600,
+ "tickMultiplier": 1,
+ "player": {
+  "x": 536,
+  "y": 344,
+  "coins": 188,
+  "wood": 7,
+  "stone": 3,
+  "food": 2,
+  "stamina": 100,
+  "knowledge": 0,
+  "civic": 3,
+  "name": "ผู้บุกเบิก",
+  "outfit": 0,
+  "level": 1,
+  "xp": 0,
+  "skillPoints": 0
+ },
+ "projects": {
+  "home": true,
+  "farm": false,
+  "market": false,
+  "hall": false
+ },
+ "stats": {
+  "woodGathered": 0,
+  "stoneGathered": 0,
+  "jobsDone": 0,
+  "deliveries": 0,
+  "cropsHarvested": 0,
+  "crafts": 0
+ },
+ "deliveries": {
+  "holding": false
+ },
+ "examPassed": false,
+ "civilService": {
+  "rank": "ประชาชน",
+  "examPassed": false,
+  "lastShiftDay": 0,
+  "shifts": 0
+ },
+ "election": {
+  "opened": false,
+  "candidate": false,
+  "completed": false,
+  "leader": "npc",
+  "lastResult": ""
+ },
+ "history": [
+  "วันที่ 1: (v0.5 fixture)",
+  "วันที่ 1: เดินทางมาถึงพื้นที่บุกเบิก"
+ ],
+ "log": [
+  "ครูอุ่นรออยู่ที่ศูนย์บุกเบิก พูดคุยกับเธอเพื่อเริ่มต้น"
+ ],
+ "skills": {
+  "gather": 0,
+  "trade": 0,
+  "craft": 0
+ },
+ "inventory": {
+  "seed": 2,
+  "food": 2,
+  "vegetables": 2,
+  "planks": 0,
+  "toolkit": 0
+ },
+ "placed": [
+  {
+   "uid": "p1700000000000_0",
+   "type": "garden",
+   "tx": 60,
+   "ty": 5,
+   "plantedAt": null
+  }
+ ],
+ "town": {
+  "treasury": 0,
+  "policies": []
+ },
+ "market": {
+  "seed": 20,
+  "food": 12,
+  "wood": 15,
+  "stone": 12,
+  "vegetables": 4,
+  "planks": 2,
+  "toolkit": 0
+ },
+ "daily": {
+  "day": 0,
+  "baseline": {},
+  "claimed": []
+ }
+}

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+  <meta name="theme-color" content="#173e3b" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="description" content="Village to Nation (บ้านเรา ประเทศเรา) — 2D top-down 16-bit pixel art life & village builder prototype" />
+  <title>บ้านเรา ประเทศเรา · Village to Nation v0.25</title>
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+<body>
+<main id="app" class="booting">
+  <canvas id="game" aria-label="ฉากเกมมุมสูง หมู่บ้านบุกเบิก"></canvas>
+
+  <!-- HUD -->
+  <section class="hud-card" aria-label="สถานะตัวละคร">
+    <button id="hud-avatar" class="avatar" type="button" title="ห้องแต่งตัว (C)" aria-label="เปิดห้องแต่งตัว"><canvas id="avatar-canvas" width="40" height="40"></canvas></button>
+    <div class="hud-lines">
+      <div class="hud-name"><b id="hud-name">—</b><span class="lv" id="hud-level">Lv.1</span><small id="hud-role">ประชาชน</small></div>
+      <div class="meter-row" title="พลังงาน"><i>⚡</i><div class="meter"><div class="meter-fill energy" id="energy-fill"></div></div><span id="energy-text">100</span></div>
+      <div class="meter-row" title="ค่าประสบการณ์"><i>⭐</i><div class="meter"><div class="meter-fill xp" id="xp-fill"></div></div><span id="xp-text">0/25</span></div>
+    </div>
+  </section>
+  <section class="hud-top" id="hud-top" aria-live="polite"></section>
+  <button id="quest-pin" class="quest-pin" type="button"><span id="quest-icon">🎯</span> <span id="quest-text">ภารกิจของครูอุ่น</span></button>
+
+  <nav class="hud-tools" aria-label="กล้องและระบบ">
+    <button id="zoom-out" type="button" title="ซูมออก (-)" aria-label="ซูมออก">−</button>
+    <button id="zoom-in" type="button" title="ซูมเข้า (+)" aria-label="ซูมเข้า">+</button>
+    <button id="overview" type="button" title="ดูภาพรวมเมือง (V)" aria-label="ดูภาพรวมเมือง">🗺</button>
+    <button id="showcase-btn" type="button" title="ดูเมืองเต็มระดับ (ตัวอย่าง) (P)" aria-label="ดูเมืองเต็มระดับ">🏙</button>
+    <button id="speed-btn" type="button" title="เร่งเวลา (T): 1x → 2x → 5x → 20x" aria-label="เร่งเวลา">⏩</button>
+    <button id="fullscreen" type="button" title="เต็มจอ (F)" aria-label="เต็มจอ">⛶</button>
+    <button id="settings-btn" type="button" title="ตั้งค่ากราฟิกและเสียง" aria-label="ตั้งค่า">⚙</button>
+    <button id="menu-btn" type="button" title="เมนูและบันทึก" aria-label="เมนู">☰</button>
+  </nav>
+  <div id="zoom-label" class="zoom-label" hidden>100%</div>
+  <div id="fps-counter" class="fps-counter" hidden>0 FPS</div>
+  <div id="location" class="location">🌱 ค่ายบุกเบิก</div>
+
+  <!-- movement + action -->
+  <div class="stick" id="stick" aria-label="จอยสติ๊กเดิน"><div class="stick-knob" id="stick-knob"></div></div>
+  <div class="devbar hidden" id="devbar" aria-label="เครื่องมือโหมดทดสอบ">
+    <button type="button" data-dev="down" title="ลดยุค ([)">⏬</button>
+    <span id="dev-era">ยุค</span>
+    <button type="button" data-dev="plan" title="เปลี่ยนผังเมือง 10 แบบ (Y)" id="dev-plan">🗺 ผัง 1/10</button>
+    <button type="button" data-dev="fill" title="พัฒนาระดับนี้จนเต็ม (U)">🏗 พัฒนาจนตัน</button>
+    <button type="button" data-dev="up" title="อัพยุคถัดไป (])">⏫ อัพยุค</button>
+  </div>
+  <div class="kbd-hint" id="kbd-hint">WASD เดิน · E คุย/ใช้ · ล้อเมาส์ซูม · Esc ปิด</div>
+  <button id="action-btn" class="action-btn" type="button"><b>✦</b><span id="action-label">คุย / ใช้</span></button>
+
+  <nav class="dock" aria-label="เมนูเกม">
+    <button data-panel="inventory" title="กระเป๋า (I)"><i>🎒</i><span>กระเป๋า</span></button>
+    <button data-panel="jobs" title="งานและอาชีพ (J)"><i>💼</i><span>งาน</span></button>
+    <button data-panel="home" title="บ้านของฉัน (H)"><i>🏠</i><span>บ้าน</span></button>
+    <button data-panel="build" title="ก่อสร้าง (B)"><i>🏗️</i><span>ก่อสร้าง</span></button>
+    <button data-panel="market" title="ตลาด (M)"><i>🛒</i><span>ตลาด</span></button>
+    <button data-panel="craft" title="ผลิต (K)"><i>🔨</i><span>ผลิต</span></button>
+    <button data-panel="quests" title="ภารกิจ (Q)"><i>📜</i><span>ภารกิจ</span></button>
+    <button data-panel="civil" title="สอบราชการ (R)"><i>📝</i><span>ราชการ</span></button>
+    <button data-panel="leader" title="ผู้นำ (L)"><i>🏛️</i><span>ผู้นำ</span></button>
+    <button data-panel="wardrobe" title="ห้องแต่งตัว (C)"><i>👕</i><span>แต่งตัว</span></button>
+    <button data-panel="shop" title="ร้านค้า OBT (ตัวอย่าง)"><i>🎀</i><span>ร้าน</span></button>
+  </nav>
+
+  <!-- build placement bar -->
+  <section id="buildbar" class="buildbar hidden" aria-live="polite">
+    <div class="bb-info"><b id="bb-name">—</b><small id="bb-status">แตะพื้นที่เพื่อวาง</small></div>
+    <div class="bb-actions"><button id="bb-confirm" class="btn" type="button" disabled>✓ ยืนยันสร้าง</button><button id="bb-cancel" class="btn ghost" type="button">✕ ยกเลิก</button></div>
+  </section>
+
+  <!-- side drawer panel -->
+  <aside id="panel" class="panel hidden" role="dialog" aria-modal="false" aria-labelledby="panel-title">
+    <header class="panel-head"><h2 id="panel-title">เมนู</h2><button id="panel-close" class="icon-btn" type="button" aria-label="ปิด">✕</button></header>
+    <div id="panel-body" class="panel-body"></div>
+  </aside>
+
+  <section id="showcase-bar" class="showcase-bar hidden" aria-label="ดูเมืองเต็มระดับ">
+    <b>🏙 ดูเมืองเต็มระดับ</b><div class="sc-tiers"></div><button id="showcase-exit" type="button" class="btn small">✕ กลับเกมจริง</button>
+    <small id="showcase-info"></small>
+  </section>
+  <div id="toast" class="toast" aria-live="polite"></div>
+  <div id="rotate-hint" class="rotate-hint hidden"><div><b>📱↻ หมุนจอเป็นแนวนอน</b><p>เกมออกแบบสำหรับจอแนวนอนบนมือถือ</p><button id="rotate-dismiss" class="btn" type="button">เล่นต่อแบบแนวตั้ง</button></div></div>
+
+  <!-- start screen (every launch) -->
+  <section id="start-screen" class="start-screen hidden" aria-label="หน้าเริ่มเกม">
+    <canvas id="ss-art" width="960" height="300" aria-hidden="true"></canvas>
+    <div class="ss-box">
+      <h1>บ้านเรา ประเทศเรา <small>Village to Nation · v0.25</small></h1>
+      <p id="ss-continue">เริ่มหมู่บ้านใหม่ในป่า</p>
+      <button id="ss-play" class="ss-play" type="button">▶ เล่นเกม <small>เต็มจอ · แนวนอน</small></button>
+      <button id="ss-window" class="btn ghost small" type="button">เล่นแบบหน้าต่าง (ไม่เต็มจอ)</button>
+      <label class="ss-sandbox"><input type="checkbox" id="ss-sandbox" /> 🧪 โหมดทดสอบ ∞ (เงิน/ของไม่จำกัด · ไม่ต้องตั้งชื่อ · เซฟแยก)</label>
+      <p class="ss-note">PC: WASD เดิน · E ใช้ · F เต็มจอ · Enter = เล่นเกม</p>
+    </div>
+  </section>
+
+  <!-- start path choice (first run, after the dressing room) -->
+  <section id="path-choice" class="path-choice hidden" aria-label="เลือกเส้นทาง">
+    <div class="pc-shell">
+      <h2>เลือกเส้นทางของคุณ</h2>
+      <div class="pc-cards">
+        <button type="button" class="pc-card" data-path="founder">
+          <b>🌲 ผู้ก่อตั้งหมู่บ้าน</b>
+          <span>ได้ป่าผืนใหม่ของคุณเอง เป็น<em>ผู้นำรักษาการ</em>ทันที มี NPC ช่วยพัฒนา</span>
+          <span>⚖️ แต่ถ้าชาวบ้านไม่ชอบ ความนิยมตก → หมดวาระแล้วแพ้เลือกตั้งได้ · จำกัด 2 วาระติด</span>
+          <small>OBT: ที่ดินจะเป็นสินค้า (ได้ที่ดิน + ป้ายผู้ก่อตั้ง) — <b>ไม่ได้ซื้อคะแนนเสียงหรือตำแหน่งถาวร</b> · เวอร์ชันนี้ฟรี ไม่มีการจ่ายเงิน</small>
+        </button>
+        <button type="button" class="pc-card locked" data-path="citizen" disabled>
+          <b>🏘️ ชาวบ้านในหมู่บ้านของผู้เล่นอื่น</b>
+          <span>เล่นฟรี ทำงาน ช่วยสร้าง สอบราชการ ลงเลือกตั้งผู้ใหญ่บ้าน ไต่ถึงระดับประเทศ</span>
+          <small>🔒 ต้องมีระบบออนไลน์ (ยังไม่เปิดในเวอร์ชันออฟไลน์นี้)</small>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- dressing room / character creator -->
+  <section id="creator" class="creator hidden" aria-label="ห้องแต่งตัว">
+    <div class="cr-shell">
+      <header class="cr-head">
+        <div><small class="cr-kicker">VILLAGE TO NATION · <span id="cr-mode">สร้างตัวละคร</span></small><h2 id="cr-title">ห้องแต่งตัว</h2></div>
+        <div class="cr-lang"><button type="button" data-lang="th" class="on">TH</button><button type="button" data-lang="en">EN</button></div>
+      </header>
+      <div class="cr-body">
+        <div class="cr-stage">
+          <canvas id="cr-canvas" width="160" height="160" aria-label="ตัวอย่างตัวละคร"></canvas>
+          <div class="cr-rotate"><button type="button" id="cr-prev" aria-label="หมุนซ้าย">◀</button><span id="cr-dir">ด้านหน้า</span><button type="button" id="cr-next" aria-label="หมุนขวา">▶</button></div>
+          <label class="cr-walk"><input type="checkbox" id="cr-walk" checked /> <span id="cr-walk-label">ดูท่าเดิน</span></label>
+          <div class="cr-strip" id="cr-strip"></div>
+        </div>
+        <div class="cr-form">
+          <label for="cr-name" id="cr-name-label">ชื่อตัวละคร (ไทย / English)</label>
+          <input id="cr-name" type="text" maxlength="24" autocomplete="off" spellcheck="false" placeholder="เช่น ต้นกล้า หรือ River" />
+          <div id="cr-error" class="cr-error" role="status"></div>
+          <div class="cr-group"><span id="cr-hair-label">ทรงผม</span><div class="cr-options" id="cr-hair"></div></div>
+          <div class="cr-group"><span id="cr-haircolor-label">สีผม</span><div class="cr-swatches" id="cr-haircolor"></div></div>
+          <div class="cr-group"><span id="cr-skin-label">สีผิว</span><div class="cr-swatches" id="cr-skin"></div></div>
+          <div class="cr-group"><span id="cr-eyes-label">สีตา</span><div class="cr-swatches" id="cr-eyes"></div></div>
+          <div class="cr-group"><span id="cr-outfit-label">ชุด</span><div class="cr-options outfits" id="cr-outfit"></div></div>
+          <div class="cr-actions"><button type="button" id="cr-random" class="btn ghost">🎲 <span id="cr-random-label">สุ่ม</span></button><button type="button" id="cr-cancel" class="btn ghost hidden">ยกเลิก</button><button type="button" id="cr-confirm" class="btn">✓ <span id="cr-confirm-label">เริ่มใช้ชีวิต</span></button></div>
+          <p class="cr-note" id="cr-note">บันทึกอัตโนมัติ · แก้ไขได้ภายหลังที่เมนู 👕 แต่งตัว</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

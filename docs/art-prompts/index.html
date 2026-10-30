@@ -1,0 +1,262 @@
+<title>V2N Art Prompt Pack</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mitr:wght@500;600&family=Sarabun:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column of prompt "work orders", grouped by asset family; sticky chip bar to jump between families. */
+:root{
+  --bg:#f3efe2; --surface:#fffdf6; --ink:#2b2a1f; --muted:#6c6650; --line:#ddd4ba;
+  --leaf:#3f7a4a; --leaf-ink:#ffffff; --bark:#8a5a34; --sun:#e9b949; --code:#f6f1df; --done:#e6f1df;
+  --display:"Mitr","Sarabun",system-ui,sans-serif; --body:"Sarabun","Leelawadee UI",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#171a14;--surface:#20251c;--ink:#ece6d2;--muted:#a9a38c;--line:#3a4132;--leaf:#79b884;--leaf-ink:#10170f;--bark:#d19a66;--sun:#e9b949;--code:#1a1f17;--done:#22311f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#171a14;--surface:#20251c;--ink:#ece6d2;--muted:#a9a38c;--line:#3a4132;--leaf:#79b884;--leaf-ink:#10170f;--bark:#d19a66;--sun:#e9b949;--code:#1a1f17;--done:#22311f;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:860px;margin:0 auto;padding-block:20px 60px;display:grid;gap:18px}
+header h1{font-family:var(--display);font-weight:600;font-size:clamp(26px,5vw,38px);line-height:1.15;margin:0;text-wrap:balance}
+header p{margin:6px 0 0;color:var(--muted);max-width:65ch}
+.eras{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.era{font-size:13px;border:1px solid var(--line);border-radius:999px;padding:2px 10px;background:var(--surface)}
+.era b{color:var(--bark)}
+.rules{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--sun);border-radius:10px;padding:12px 14px}
+.rules h2{font-family:var(--display);font-size:17px;margin:0 0 4px}
+.rules ol{margin:4px 0 0;padding-left:20px}
+.rules li{margin:2px 0}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:8px;border-bottom:1px solid var(--line);display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin}
+nav a{flex:none;text-decoration:none;color:var(--ink);font-size:14px;border:1px solid var(--line);border-radius:8px;padding:4px 10px;background:var(--surface);white-space:nowrap}
+nav a:focus-visible,button:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.progress{font-size:14px;color:var(--muted);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.bar{flex:1;min-width:120px;height:8px;border-radius:6px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--leaf);width:0}
+section{display:grid;gap:12px;scroll-margin-top:56px}
+section>h2{font-family:var(--display);font-weight:500;font-size:22px;margin:14px 0 0;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+section>h2 small{font-family:var(--body);font-size:14px;color:var(--muted);font-weight:400}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:8px;min-width:0}
+.card.done{background:var(--done)}
+.head{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.head h3{margin:0;font-size:17px;font-weight:700;display:flex;gap:8px;align-items:baseline}
+.num{font-family:var(--mono);font-size:13px;color:var(--bark);min-width:2.2em}
+.meta{font-size:13.5px;color:var(--muted);display:grid;gap:2px}
+.meta b{color:var(--ink);font-weight:600}
+.file{font-family:var(--mono);font-size:12.5px;background:var(--code);border:1px solid var(--line);border-radius:6px;padding:0 6px}
+pre{margin:0;background:var(--code);border:1px solid var(--line);border-radius:8px;padding:10px;font-family:var(--mono);font-size:12.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word;max-height:240px;overflow:auto;user-select:text}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+button{font:inherit;cursor:pointer;border-radius:8px;padding:6px 14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-weight:600}
+button.copy{background:var(--leaf);color:var(--leaf-ink);border-color:var(--leaf)}
+button.copy.ok{background:var(--bark);border-color:var(--bark)}
+button[aria-pressed="true"]{border-color:var(--leaf);color:var(--leaf)}
+.note{font-size:14px;color:var(--muted);max-width:65ch;margin:0}
+footer{color:var(--muted);font-size:13px}
+@media (prefers-reduced-motion:no-preference){button{transition:background .15s}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>คลัง Prompt งานภาพ · บ้านเรา ประเทศเรา</h1>
+    <p>ชุดคำสั่งเจนภาพทั้งเกมที่สเกล สไตล์ และเลย์เอาต์ตรงกันทุกรูป ก๊อปทีละการ์ด วางใน GPT ได้ 1 รูปต่อ 1 การ์ด แล้วส่ง PNG กลับมาตามชื่อไฟล์ที่ระบุ</p>
+    <div class="eras" aria-label="ยุคของหมู่บ้าน">
+      <span class="era"><b>Lv1</b> บุกเบิก · ไม้ซุง หญ้าคา</span>
+      <span class="era"><b>Lv2</b> หมู่บ้าน · เรือนไม้ใต้ถุนสูง</span>
+      <span class="era"><b>Lv3</b> ชุมชน · ปูน อิฐ กระเบื้อง</span>
+      <span class="era"><b>Lv4</b> เมือง · ตึกแถว คอนกรีต</span>
+      <span class="era"><b>Lv5</b> มหานคร · กระจก เหล็ก</span>
+    </div>
+  </header>
+
+  <div class="rules">
+    <h2>กติกาก่อนเจน</h2>
+    <ol>
+      <li>บรรทัด <b>แนบ</b> = รูปที่ต้องแนบไปกับ prompt (ไม่มีบรรทัดนี้ = ไม่ต้องแนบ)</li>
+      <li>ได้รูปแล้วตั้งชื่อตาม <b>ชื่อไฟล์</b> ในการ์ด แล้วส่ง PNG มาตามที่ได้ ไม่ต้องตัดเอง</li>
+      <li>ถ้า GPT ใส่พื้นหลังมา ให้สั่งซ้ำ: "make the background flat magenta #FF00FF" กูลบออกเอง</li>
+      <li>รูปไหนสัดส่วนเพี้ยน หรือมีตัวหนังสือติดมา สั่งเจนใหม่ทั้งรูป อย่าแก้บางส่วน</li>
+      <li>สีผม สีผิว สีตา และสีเสื้อผ้า <b>ไม่ต้องเจนแยก</b> เกมเปลี่ยนสีให้เอง ให้เจนแค่ทรงหรือแบบ</li>
+      <li>กด "เจนแล้ว" เพื่อจำว่าทำรูปไหนไปแล้ว (จำแค่ในเครื่องนี้)</li>
+    </ol>
+  </div>
+
+  <div class="progress"><span id="count">0 / 0 เจนแล้ว</span><div class="bar" aria-hidden="true"><i id="fill"></i></div></div>
+  <nav id="nav" aria-label="หมวด"></nav>
+  <main id="list"></main>
+  <footer>สเปกเดียวกับ <span class="file">docs/ART_PIPELINE_TH.md</span> ในโปรเจกต์ · ทุก prompt ขอ 16-bit pixel art มุมบน 3/4 ผู้ใหญ่สูง 52 px ช่องพื้น 16 px</footer>
+</div>
+
+<script>
+// ---- shared spec (every prompt carries all of it, so each block is self-contained)
+const STYLE = 'Style: 16-bit pixel art for a cozy top-down life-sim RPG (SNES era), 3/4 top-down view, light from the top-left, warm bright palette, crisp hard-edged pixels, 1 px dark warm-brown outlines, no anti-aliasing, no blur, no soft gradients, no text, no letters, no numbers, no watermark, no UI.';
+const BG = 'Background: fully transparent PNG. If transparency is impossible, use ONE flat solid magenta #FF00FF background with no gradient, no shadow and no glow on the background.';
+const SPACE = 'Leave at least 32 px of empty space between items so each one can be cut out separately; nothing touches the image edge.';
+const SCALE = 'Scale reference: an adult villager is 52 px tall from head to feet; one ground tile is 16x16 px.';
+const THAI = 'Setting: a rural Thai village growing into a nation (tropical plants, Thai architecture details), friendly and hopeful mood.';
+const tail = (...x) => [THAI, SCALE, STYLE, BG, SPACE, ...x].join(' ');
+const BASE = 'แนบ: base body ตัวเปล่า 4×4 (หัวโล้น กางเกงในขาว) ที่มึงเคยส่ง';
+const HAIRREF = 'แนบ: ผมหางม้า 4×4 ที่มึงเคยส่ง (ให้ GPT ดูขนาดหัวกับสไตล์)';
+const SHEET = 'Layout: 1024x1024 image, 4 columns x 4 rows. Row 1 = walking toward the viewer (front), row 2 = walking facing LEFT, row 3 = walking facing RIGHT, row 4 = walking away (back view). 4 walk frames per row: right foot forward, passing, left foot forward, passing. Feet on the same ground line in every frame, head the same size in every frame, one character per cell, centered.';
+
+const ERAS = [
+  { lv: 1, th: 'บุกเบิก', en: 'pioneer era: rough logs, bamboo, thatched grass roof, rope lashing, dirt floor, handmade and humble' },
+  { lv: 2, th: 'หมู่บ้าน', en: 'village era: traditional Thai wooden house on stilts (raised floor, open space underneath), teak planks, steep clay tile roof, small veranda, potted plants' },
+  { lv: 3, th: 'ชุมชน', en: 'community era: sturdy two-storey house, ground floor of plastered brick, upper floor wood, glazed terracotta roof tiles, window shutters, small fenced garden' },
+  { lv: 4, th: 'เมือง', en: 'town era: Thai concrete shophouse style, two to three storeys, painted facade, folding metal shop doors, balconies with plants, awnings, small signboard shapes with NO text' },
+  { lv: 5, th: 'มหานคร', en: 'metropolis era: modern building of glass, steel and white concrete, roof garden, solar panels, clean lines, still warm and friendly, not grey' },
+];
+const STAGES = 'Draw 4 separate images of the SAME building at the same scale and same footprint, arranged 2 columns x 2 rows, read left-to-right then top-to-bottom: (1) construction start: cleared ground, stakes and string marking the footprint, a pile of the building materials; (2) frame stage: foundation and structural frame with scaffolding; (3) almost done: walls and half the roof finished, scaffolding still on one side, a ladder; (4) FINISHED building, clean, with small lively details (plants, lamp, mat at the door). Door faces the viewer. Layout: 1536x1536 image.';
+const BUILDINGS = [
+  { id: 'house', th: 'บ้านชาวบ้าน (บ้าน NPC)', w: '4x3 tiles (64x48 px footprint), the finished house about 90 px tall at Lv1 and growing with each era up to about 200 px at Lv5', what: 'a family home for villagers' },
+  { id: 'leader', th: 'บ้านผู้นำ / ผู้ก่อตั้ง', w: '5x3 tiles (80x48 px footprint), noticeably grander than a villager house of the same era, about 110 px tall at Lv1 up to 230 px at Lv5', what: 'the home and office of the village founder/leader, with a small flag pole (plain flag, no symbol)' },
+  { id: 'market', th: 'ตลาด', w: '7x5 tiles (112x80 px footprint)', what: 'the village market: Lv1 a few mats and baskets under bamboo poles; later eras covered stalls, a market hall, then a modern mall-like market, always with produce, fish and fruit visible' },
+  { id: 'hall', th: 'ศาลา → ที่ว่าการ → ศาลากลาง', w: '7x5 tiles (112x80 px footprint)', what: 'the community/government building: Lv1 open-sided Thai sala pavilion, Lv2 wooden meeting hall, Lv3 district office, Lv4 town hall with clock tower, Lv5 grand civic center with steps and columns' },
+  { id: 'farm', th: 'ฟาร์ม / ยุ้งข้าว', w: '7x6 tiles (112x96 px footprint)', what: 'the farm: rice granary on stilts, plots and a scarecrow at Lv1-2, barn with tractor shed at Lv3-4, a clean greenhouse farm at Lv5' },
+  { id: 'workshop', th: 'โรงงานงานฝีมือ → โรงงาน', w: '4x3 tiles (64x48 px footprint) at Lv1 growing to 6x4 tiles at Lv5', what: 'the workshop: open woodcutting shed at Lv1, carpenter workshop, brick workshop with chimney, small factory, clean modern factory at Lv5' },
+];
+
+const S = [];
+// ---------------------------------------------------------------- buildings by era (with construction stages)
+for (const b of BUILDINGS) {
+  S.push({ id: 'b-' + b.id, th: '🏗️ ' + b.th, note: 'ทุกยุค 4 ภาพในรูปเดียว: เริ่มสร้าง → โครง → ใกล้เสร็จ → เสร็จ · ยุคสูงขึ้น = สวยขึ้นและใหญ่ขึ้น', items: ERAS.map(e => ({
+    t: `${b.th} · Lv${e.lv} ${e.th}`, attach: e.lv > 1 ? `แนบ: รูป ${b.id}_lv${e.lv - 1}.png ที่เจนไปแล้ว (ให้ดูว่าเป็นอาคารเดิมที่พัฒนาขึ้น)` : '', file: `${b.id}_lv${e.lv}.png`,
+    p: `Design ${b.what}, ${e.en}. Size: footprint ${b.w}. ${e.lv > 1 ? 'It must clearly be an upgraded version of the attached previous-era building: keep the same footprint position, same door side and similar color identity, but bigger, more refined and more prosperous. ' : ''}${STAGES} ${tail()}`,
+  })) });
+}
+// ---------------------------------------------------------------- characters
+const LAYER = 'Draw ONLY this item as a separate overlay layer: no skin, no head, no face, no body, nothing else. It must sit exactly on the attached base body in every frame (same cell, same pose, same position), as if the body were removed and only the item remained.';
+const SHEET44 = 'Layout: 1024x1024 image, 4 columns x 4 rows matching the attached sheet: row 1 front view, row 2 facing left, row 3 facing right, row 4 back view, 4 walk frames per row in the same order as the reference.';
+// ---- named NPCs: each one keeps the same face, hair, colors and job, only the outfit modernizes with the era
+const NPC_ERA = ['pioneer-era clothes: rough handwoven cotton, rope belt, sandals or barefoot', 'traditional Thai village clothes: mor hom indigo shirt, sarong or fisherman trousers, pha khao ma cloth', 'neat 1970s Thai countryside clothes: buttoned shirts, slacks or skirts, leather sandals', 'modern town clothes: polo shirts, jeans, uniforms, sneakers', 'futuristic-but-friendly metropolis clothes: clean smart-casual with tech details (smart watch, tablet), modern work gear'];
+const NAMED = [
+  ['mentor', 'ครูอุ่น (ที่ปรึกษาผู้ก่อตั้ง)', 'a kind middle-aged woman mentor with ash-grey hair in a ponytail and calm eyes; job: guide and advisor, always carries a notebook'],
+  ['chai', 'ช่างชัย (ช่างไม้)', 'a strong young man carpenter with short spiky black hair and tan skin; job: builder, always carries a hammer'],
+  ['saeng', 'ป้าแสง (แม่ค้า)', 'a cheerful aunt market vendor with black hair in a bun and tan skin; job: trader, always carries a basket of goods'],
+  ['mee', 'ลุงมี (ชาวสวน)', 'a sun-browned old farmer uncle with short grey hair and a thin mustache; job: farmer, always carries a hoe'],
+  ['fah', 'น้องฟ้า (คุณครู)', 'a young woman teacher with chestnut side-swept hair and light skin; job: teacher, always carries books'],
+  ['nid', 'นิด (คนส่งของ)', 'an energetic young woman courier with brown bob hair; job: delivery, always carries a parcel'],
+  ['phian', 'ตาเพียร (ช่างหิน)', 'an old stonemason grandpa with white crew-cut hair and a short white beard; job: stone builder, carries a chisel'],
+  ['mali', 'มะลิ (แม่ครัว)', 'a young woman cook with chestnut ponytail and a jasmine flower hair clip; job: food seller/cook, carries a ladle'],
+  ['win', 'วิน (คนส่งสินค้า/คนขับ)', 'a young man with brown messy hair; job: transport and delivery driver, carries a crate'],
+  ['da', 'ดา (นักสำรวจ)', 'an adventurous young woman with navy blue side-swept hair and blue eyes; job: explorer and map maker, carries a rolled map'],
+];
+S.push({ id: 'npc', th: '🧑‍🌾 NPC ตัวจริง (ตัวใครตัวมัน × 5 ยุค)', note: 'แต่ละคนหน้าเดิม ผมเดิม อาชีพเดิม แต่ชุดเปลี่ยนตามยุค · เจน Lv1 ก่อน แล้วแนบ Lv1 ตอนเจนยุคถัดไป', items: NAMED.flatMap(([id, th, who]) => ERAS.map(e => ({
+  t: `${th} · Lv${e.lv} ${e.th}`, attach: e.lv === 1 ? BASE : `แนบ: npc_${id}_lv1_4x4.png (ให้หน้าตาเหมือนเดิม) + base body`, file: `npc_${id}_lv${e.lv}_4x4.png`,
+  p: `Using the attached sprite sheet as the exact proportion, head size, face style, outline and pixel-size reference, draw a fully dressed NPC: ${who}. ${e.lv > 1 ? 'Keep EXACTLY the same face, hairstyle, hair color, skin tone and personality as the attached earlier version of this character; only the clothes and the held item change for the new era. ' : ''}Outfit for this era: ${NPC_ERA[e.lv - 1]}, still clearly showing the job. Cute chibi proportions with big friendly eyes like the reference. ${SHEET} ${tail()}`,
+}))) });
+const EXTRAS = [
+  ['monk', 'พระสงฆ์', 'a Buddhist monk: shaved head, saffron-orange robe draped over one shoulder, alms bowl, barefoot, calm and respectful depiction'],
+  ['kid_m', 'เด็กผู้ชาย', 'a 9-year-old boy in a white school shirt and navy shorts with a backpack. CHILD proportions: 40 px tall, bigger head, shorter limbs'],
+  ['kid_f', 'เด็กผู้หญิง', 'an 8-year-old girl in a white school blouse and navy pleated skirt with pigtails. CHILD proportions: 38 px tall, bigger head, shorter limbs'],
+  ['elder_m', 'คุณตา', 'an elderly grandfather: grey thin hair, white loose shirt, brown trousers, wooden walking cane, slightly bent'],
+  ['elder_f', 'คุณยาย', 'an elderly grandmother: grey bun, pastel blouse, long sarong, small basket'],
+  ['fisher', 'ชาวประมง', 'a fisherman: bucket hat, striped shirt, rubber boots, fishing rod over the shoulder'],
+  ['headman', 'ผู้ใหญ่บ้าน (NPC รักษาการ)', 'a village headman: khaki civil uniform with pocket flaps, dark trousers, polished shoes, friendly mustache'],
+  ['doctor', 'หมออนามัย', 'a health-clinic nurse: white coat over light blue clothes, stethoscope, small medical bag'],
+];
+S.push({ id: 'npc2', th: '👵 ชาวบ้านทั่วไป', note: 'ตัวประกอบที่ไม่ต้องเปลี่ยนตามยุค', items: EXTRAS.map(([f, th, d]) => ({
+  t: th, attach: BASE, file: `npc_${f}_4x4.png`,
+  p: `Using the attached base body sprite sheet as the exact proportion, head size, face style, outline and pixel-size reference, draw a fully dressed NPC villager: ${d}. Keep the same cute chibi proportions and big friendly eyes as the reference (unless child proportions are stated). ${SHEET} ${tail()}`,
+})) });
+// ---- modular player wardrobe: every item is its own overlay layer on the base body
+const HAIRS = [
+  ['pixie', 'ผมสั้นพิกซี่', 'a short feminine pixie cut'], ['bob', 'ผมบ๊อบ', 'a rounded chin-length bob'], ['long', 'ผมยาวตรง', 'long straight hair past the shoulders with straight bangs'],
+  ['wavy', 'ผมยาวลอน', 'long wavy hair'], ['bun', 'มวยผม', 'a neat top bun with short bangs'], ['twinbuns', 'มวยคู่', 'two buns on top of the head'],
+  ['braids', 'เปียคู่', 'two braids over the shoulders'], ['sidebraid', 'เปียข้างเดียว', 'one side braid'], ['pigtails', 'แกละสองข้าง', 'two short pigtails'],
+  ['hime', 'ผมหน้าม้าตรงยาว', 'long hime cut with blunt bangs and side locks'], ['crew', 'ผมสั้นเกรียน', 'a very short tidy crew cut'], ['twoblock', 'ทูบล็อก', 'a modern two-block cut, short sides, longer top'],
+  ['undercut', 'อันเดอร์คัต', 'an undercut with longer top swept back'], ['messy', 'ผมยุ่ง', 'messy tousled medium hair'], ['middlepart', 'แสกกลาง', 'a curtain middle-part, ear length'],
+  ['slick', 'หวีเรียบ', 'slicked-back neat hair'], ['curly', 'ผมหยิกฟู', 'voluminous curly hair'], ['afro', 'แอฟโฟร', 'a round afro'],
+  ['mohawk', 'โมฮอว์ก', 'a short mohawk'], ['manbun', 'มวยผู้ชาย', 'a man bun with short sides'], ['longmale', 'ผมยาวผู้ชาย', 'shoulder-length straight male hair'],
+  ['elder', 'ผมคนแก่', 'thin side-parted hair, slightly receding'], ['bald_top', 'ศีรษะล้านกลาง', 'balding on top with hair around the sides'], ['buzz', 'ผมเกรียนติดหนัง', 'an almost shaved buzz cut'],
+];
+S.push({ id: 'hair', th: '💇 ทรงผม (24 ทรง)', note: 'ผมอย่างเดียว ซ้อนบน base body · เจนสีน้ำตาลอย่างเดียวพอ สีผมเกมเปลี่ยนเองได้ทุกสี', items: HAIRS.map(([f, th, d]) => ({
+  t: th, attach: HAIRREF, file: `hair_${f}_4x4.png`,
+  p: `Using the attached hair sprite sheet as the exact size, outline and pixel-size reference (hair only, no head, no face, no body), draw a NEW hairstyle: ${d}. Medium brown color with clear light and dark shading (the game recolors it). Hollow where the face is so it fits on top of a bald chibi head. Row 1 front view, row 2 facing left, row 3 facing right, row 4 back view, 4 frames per row with only tiny sway between frames. Layout: 1024x1024 image, 4 columns x 4 rows, one piece per cell, centered. ${tail()}`,
+})) });
+const FACIAL = [['mustache', 'หนวด', 'a thick friendly mustache'], ['thinmustache', 'หนวดบาง', 'a thin pencil mustache'], ['goatee', 'เคราแพะ', 'a small goatee'], ['fullbeard', 'เคราเต็ม', 'a full short beard connected to sideburns'], ['stubble', 'หนวดเคราขึ้น', 'light stubble'], ['longbeard', 'เคราฤๅษียาว', 'a long white elder beard']];
+S.push({ id: 'facial', th: '🧔 หนวดและเครา', note: 'ซ้อนบนหน้า · มุมหลังให้เว้นว่าง', items: FACIAL.map(([f, th, d]) => ({
+  t: th, attach: BASE, file: `facial_${f}_4x4.png`,
+  p: `Facial hair layer: ${d}. ${LAYER} Placed on the face of the attached chibi body; in the back-view row draw nothing or only the tiny sides that would be visible. Dark brown with shading (the game recolors it). ${SHEET44} ${tail()}`,
+})) });
+const TOPS = [['tee', 'เสื้อยืด', 'a plain short-sleeve T-shirt'], ['tank', 'เสื้อกล้าม', 'a tank top'], ['shirt', 'เสื้อเชิ้ต', 'a long-sleeve button shirt with collar'], ['polo', 'เสื้อโปโล', 'a polo shirt'],
+  ['morhom', 'เสื้อม่อฮ่อม', 'a Thai indigo mor hom farmer shirt'], ['hoodie', 'ฮู้ดดี้', 'a hoodie with the hood down'], ['jacket', 'แจ็กเก็ต', 'a zip-up jacket over a tee'], ['blouse', 'เสื้อสตรีลายดอก', 'a flowery puff-sleeve blouse'],
+  ['uniform_civil', 'ชุดข้าราชการ', 'a Thai khaki civil-servant uniform top with pocket flaps and shoulder boards'], ['apron', 'ผ้ากันเปื้อน', 'a cooking apron over a tee'], ['vest_work', 'เสื้อกั๊กช่าง', 'a high-visibility work vest over a tee'], ['school', 'เสื้อนักเรียน', 'a white school shirt']];
+const BOTTOMS = [['shorts', 'กางเกงขาสั้น', 'knee shorts'], ['jeans', 'ยีนส์', 'blue jeans'], ['slacks', 'กางเกงสแล็ค', 'dark slacks'], ['fisherman', 'กางเกงเล', 'Thai fisherman wrap trousers'],
+  ['sarong', 'ผ้าถุง', 'a long patterned sarong'], ['skirt', 'กระโปรงพลีท', 'a pleated knee skirt'], ['longskirt', 'กระโปรงยาว', 'a long flowing skirt'], ['cargo', 'กางเกงคาร์โก้', 'cargo work pants']];
+const SHOES = [['sandals', 'รองเท้าแตะ', 'rubber flip-flops'], ['sneakers', 'รองเท้าผ้าใบ', 'white sneakers'], ['boots', 'รองเท้าบู๊ต', 'rubber work boots'], ['leather', 'รองเท้าหนัง', 'polished black leather shoes']];
+const garment = (kind, list, icon, th, extra) => S.push({ id: kind, th: icon + ' ' + th, note: 'ของชิ้นเดียว แยก layer · สีขาว/เทาอ่อน เกมเปลี่ยนสีให้', items: list.map(([f, tth, d]) => ({
+  t: tth, attach: BASE, file: `${kind}_${f}_4x4.png`,
+  p: `Clothing layer: ${d}. ${LAYER} ${extra} Draw it in light grey / off-white with clear shading so the game can recolor it to any color; keep patterns (if any) as darker grey. Natural folds that follow each walking pose. ${SHEET44} ${tail()}`,
+})) });
+garment('top', TOPS, '👕', 'เสื้อ (12 แบบ)', 'Cover the torso and the arms as far as the sleeves go; do not draw pants.');
+garment('bottom', BOTTOMS, '👖', 'กางเกง / กระโปรง (8 แบบ)', 'Cover from the waist down as far as the garment goes; do not draw shirts or shoes.');
+garment('shoes', SHOES, '👟', 'รองเท้า (4 แบบ)', 'Only the feet.');
+const HATS = [['straw', 'หมวกฟาง', 'a wide farmer straw hat'], ['hardhat', 'หมวกนิรภัย', 'a yellow builder hard hat'], ['cap', 'หมวกแก๊ป', 'a baseball cap'], ['bucket', 'หมวกบักเก็ต', 'a bucket hat'],
+  ['beanie', 'หมวกไหมพรม', 'a knitted beanie'], ['civil', 'หมวกข้าราชการ', 'a Thai civil-servant peaked cap'], ['flower', 'กิ๊บดอกไม้', 'a big flower hair clip'], ['headband', 'ผ้าคาดหัว', 'a pha khao ma headband tied at the back'],
+  ['glasses', 'แว่นตา', 'round glasses (face layer)'], ['sunglasses', 'แว่นกันแดด', 'dark sunglasses (face layer)']];
+S.push({ id: 'hats', th: '🎩 หมวกและเครื่องประดับ (10 แบบ)', note: 'ชิ้นเดียวต่อรูป ซ้อนบนหัว/หน้า', items: HATS.map(([f, th, d]) => ({
+  t: th, attach: HAIRREF + ' + base body', file: `hat_${f}_4x4.png`,
+  p: `Head accessory layer: ${d}. ${LAYER} It must fit on the attached chibi head with hair on (sit on top of the hair volume). Natural colors. ${SHEET44} ${tail()}`,
+})) });
+// ---------------------------------------------------------------- animals
+const ANIMALS = [
+  ['cow', 'วัว', 'a cow, white with brown patches, about 40 px long'], ['buffalo', 'ควาย', 'a Thai water buffalo, dark grey with curved horns, about 46 px long'],
+  ['chicken', 'ไก่', 'a rooster and a hen side by side counts as one cell, each about 14 px tall (draw the hen only in each cell; rooster in a separate sheet is not needed)'],
+  ['chick', 'ลูกเจี๊ยบ', 'a small yellow chick, about 8 px tall'], ['duck', 'เป็ด', 'a white duck, about 14 px tall'],
+  ['dog', 'หมา', 'a friendly tan Thai village dog, about 22 px long'], ['cat', 'แมว', 'an orange tabby cat, about 16 px long'],
+  ['pig', 'หมู', 'a pink pig, about 24 px long'], ['goat', 'แพะ', 'a small white goat with little horns, about 24 px long'],
+];
+S.push({ id: 'animals', th: '🐄 สัตว์ (เดิน 4 ทิศ)', note: 'แถว 1 หันหน้า · 2 หันซ้าย · 3 หันขวา · 4 หันหลัง · แถวละ 4 เฟรม', items: [
+  ...ANIMALS.map(([f, th, d]) => ({ t: th, attach: '', file: `animal_${f}_4x4.png`, p: `Draw ${d}, as a walking sprite sheet. Row 1 walking toward the viewer, row 2 walking facing left, row 3 walking facing right, row 4 walking away. 4 smooth walk frames per row, feet/hooves on the same ground line, same size in every frame. Layout: 1024x1024 image, 4 columns x 4 rows, one animal per cell, centered. ${tail()}` })),
+  { t: 'ปลา (ว่ายน้ำ + กระโดด + ของที่จับได้)', attach: '', file: 'fish_sheet.png', p: `Draw a FISH sheet. Row 1: a small fish shadow/silhouette swimming seen from above in 4 animation frames (for ponds and rivers). Row 2: a fish jumping out of the water with a splash in 4 frames. Row 3: 4 caught-fish item icons, each 24 px: tilapia, catfish, snakehead, giant river prawn. Row 4: 4 more item icons: carp, mackerel, a fishing rod, a fish basket. Layout: 1024x1024 image, 4 columns x 4 rows, one item per cell, centered. ${tail()}` },
+] });
+// ---------------------------------------------------------------- nature
+S.push({ id: 'nature', th: '🌳 ธรรมชาติ', note: 'ต้นไม้ทุกต้นต้องมี "ตอไม้" คู่กันในแถวล่าง เพราะในเกมตัดได้', items: [
+  { t: 'ต้นไม้เขตร้อน ชุด A', attach: '', file: 'trees_a.png', p: `Draw 6 different TREES, each standing alone with its trunk base at the bottom: 1 mango tree with green mangoes, 2 banana plant with a hanging bunch, 3 coconut palm, 4 tall rain tree (Samanea) with a wide umbrella canopy, 5 bamboo clump, 6 tamarind tree. Height 70 to 110 px. Row 2: the matching CUT STUMP for each tree in the same column, about 14 px wide. Layout: 1536x1024 image, 6 columns x 2 rows. ${tail()}` },
+  { t: 'ต้นไม้ป่า ชุด B', attach: '', file: 'trees_b.png', p: `Draw 6 different FOREST TREES, each standing alone with its trunk base at the bottom: 1 large round broadleaf tree, 2 teak tree with big leaves, 3 tall pine, 4 rubber tree, 5 flowering golden shower tree (yellow blossoms), 6 pink flowering tree. Height 70 to 110 px. Row 2: the matching CUT STUMP for each tree in the same column. Layout: 1536x1024 image, 6 columns x 2 rows. ${tail()}` },
+  { t: 'พุ่มไม้ หญ้า และดอกไม้', attach: '', file: 'plants_decor.png', p: `Draw 24 small separate PLANT DECORATIONS for the ground, each 12 to 32 px: tall grass tufts (3 kinds), short grass tufts (3), reeds (2), ferns (2), round bushes (3), flowering bushes (2), lotus flowers on lily pads (2), white flowers, yellow flowers, pink flowers, purple flowers, sunflowers, marigolds, orchids on a small stump, a fallen log. Layout: 1536x1024 image, 6 columns x 4 rows, one item per cell, centered. ${tail()}` },
+  { t: 'หินและแร่', attach: '', file: 'rocks.png', p: `Draw 12 separate ROCKS: row 1 four full mineable rocks (grey boulder, mossy rock, copper ore rock, blue crystal rock) about 32 px wide; row 2 the same four rocks cracked after two hits; row 3 the four rubble remains, small and flat. Layout: 1024x1024 image, 4 columns x 3 rows. ${tail()}` },
+  { t: 'ลำธารและแม่น้ำ (ชุดพื้นน้ำ)', attach: '', file: 'water_tiles.png', p: `Draw a WATER AUTOTILE set for a top-down map on a strict 16x16 px grid, scaled up 4x so each tile is 64x64 px with clear grid alignment: center water, 4 straight grass-to-water edges (top, bottom, left, right), 4 outer corners, 4 inner corners, plus 4 extras: stepping stones in water, lily pads, a small water ripple, shallow ford with pebbles. Tiles must connect seamlessly. Layout: 1024x1024 image, 4 columns x 5 rows of 64x64 tiles with 64 px gaps not required; keep them in a clean grid. ${STYLE} ${BG}` },
+  { t: 'น้ำตกและลำธาร (ภาพเคลื่อนไหว)', attach: '', file: 'waterfall_anim.png', p: `Draw a small WATERFALL falling down a rocky ledge into a stream, about 64 px wide and 128 px tall, in 4 animation frames that loop smoothly (only the water stripes, foam and splash move; rocks identical). Below it, a separate 4-frame loop of a 64x32 px flowing stream segment. Layout: 1536x1024 image, 4 columns x 2 rows. ${tail()}` },
+  { t: 'รั้วตามยุค', attach: '', file: 'fences_eras.png', p: `Draw FENCES for 5 eras, one era per row: row 1 bamboo and rope, row 2 wooden picket, row 3 low stone wall, row 4 painted brick wall with tiles on top, row 5 modern metal railing. In each row: a straight horizontal piece 32 px wide, a straight vertical piece, a corner piece, and a gate. Layout: 1024x1536 image, 4 columns x 5 rows. ${tail()}` },
+  { t: 'พืชผลเติบโต 4 ขั้น', attach: '', file: 'crops.png', p: `Draw a CROP GROWTH sheet: 6 rows = rice, cabbage, chili, corn, pumpkin, mango sapling. 4 columns = seed in tilled soil, sprout, half grown, ripe and ready to harvest. Each cell shows one 32x32 px square of tilled brown soil with the plant. Layout: 1024x1536 image, 4 columns x 6 rows. ${tail()}` },
+] });
+// ---------------------------------------------------------------- ground
+S.push({ id: 'ground', th: '🟩 พื้นแผนที่ (tileset)', note: 'ช่องละ 16 px ขยาย 4 เท่าให้ GPT วาดง่าย ต้องต่อกันได้ไร้รอยต่อ', items: [
+  { t: 'หญ้า + ดิน', attach: '', file: 'tiles_grass_dirt.png', p: `Draw a GROUND AUTOTILE set on a strict 16x16 px grid, scaled up 4x so each tile is 64x64 px: 3 plain grass variations, 2 forest-floor variations (darker grass with leaves), 3 dirt path variations, then grass-to-dirt transitions: 4 edges, 4 outer corners, 4 inner corners. Tiles must connect seamlessly. Layout: 1024x1536 image, 4 columns x 6 rows of 64x64 tiles in a clean grid. ${STYLE} ${BG}` },
+  { t: 'ถนนตามยุค', attach: '', file: 'tiles_roads.png', p: `Draw ROAD tiles on a strict 16x16 px grid scaled up 4x (64x64 px each), one era per row: row 1 dirt trail, row 2 packed gravel, row 3 cobblestone, row 4 concrete road with curb, row 5 asphalt with lane line. In each row: straight horizontal, straight vertical, crossroad, corner. Tiles connect seamlessly. Layout: 1024x1536 image, 4 columns x 5 rows. ${STYLE} ${BG}` },
+  { t: 'ทราย หิน และทุ่งดอกไม้', attach: '', file: 'tiles_sand_rock.png', p: `Draw GROUND tiles on a strict 16x16 px grid scaled up 4x (64x64 px each): 3 sand variations, 3 rocky ground variations, 3 flower meadow variations, 3 tilled farm soil variations, then sand-to-grass transitions: 4 edges. Tiles connect seamlessly. Layout: 1024x1536 image, 4 columns x 5 rows. ${STYLE} ${BG}` },
+] });
+
+// ---------------------------------------------------------------- render
+const KEY = 'v2n-prompts-done';
+let done = {}; try { done = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch { done = {}; }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(done)); } catch {} };
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const total = S.reduce((n, s) => n + s.items.length, 0);
+document.getElementById('nav').innerHTML = S.map(s => `<a href="#${s.id}">${s.th} <small>${s.items.length}</small></a>`).join('');
+document.getElementById('list').innerHTML = S.map(s => `<section id="${s.id}"><h2>${s.th} <small>${s.note}</small></h2>${s.items.map((it, i) => {
+  const k = s.id + ':' + i;
+  return `<article class="card ${done[k] ? 'done' : ''}" data-k="${k}">
+    <div class="head"><h3><span class="num">${String(i + 1).padStart(2, '0')}</span>${esc(it.t)}</h3></div>
+    <div class="meta">${it.attach ? `<span><b>แนบ:</b> ${esc(it.attach.replace(/^แนบ: /, ''))}</span>` : '<span>ไม่ต้องแนบรูป</span>'}<span><b>ชื่อไฟล์:</b> <span class="file">${it.file}</span></span></div>
+    <pre id="p-${k.replace(':', '-')}">${esc(it.p)}</pre>
+    <div class="actions"><button type="button" class="copy" data-copy="${k}">ก๊อป prompt</button><button type="button" class="mark" data-mark="${k}" aria-pressed="${!!done[k]}">${done[k] ? '✓ เจนแล้ว' : 'เจนแล้ว'}</button></div>
+  </article>`; }).join('')}</section>`).join('');
+const prompts = Object.fromEntries(S.flatMap(s => s.items.map((it, i) => [s.id + ':' + i, it.p])));
+function progress() { const n = Object.values(done).filter(Boolean).length; document.getElementById('count').textContent = `${n} / ${total} เจนแล้ว`; document.getElementById('fill').style.width = (n / total * 100) + '%'; }
+progress();
+document.addEventListener('click', async e => {
+  const c = e.target.closest('[data-copy]');
+  if (c) {
+    const k = c.dataset.copy;
+    try { await navigator.clipboard.writeText(prompts[k]); c.textContent = 'ก๊อปแล้ว ✓'; }
+    catch { const pre = document.getElementById('p-' + k.replace(':', '-')); const r = document.createRange(); r.selectNodeContents(pre); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); c.textContent = 'เลือกข้อความแล้ว กดก๊อปเอง'; }
+    c.classList.add('ok'); setTimeout(() => { c.textContent = 'ก๊อป prompt'; c.classList.remove('ok'); }, 1800);
+    return;
+  }
+  const m = e.target.closest('[data-mark]');
+  if (m) {
+    const k = m.dataset.mark; done[k] = !done[k]; save();
+    m.setAttribute('aria-pressed', String(done[k])); m.textContent = done[k] ? '✓ เจนแล้ว' : 'เจนแล้ว';
+    m.closest('.card').classList.toggle('done', done[k]); progress();
+  }
+});
+</script>
