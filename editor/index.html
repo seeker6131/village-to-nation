@@ -59,6 +59,8 @@ button.on{background:var(--acc);color:#1d2321;border-color:var(--acc);font-weigh
 .piece input:not([type=checkbox]),.piece select{width:100%;margin-top:4px}
 .srcprev{max-width:100%;max-height:220px;image-rendering:pixelated;background:repeating-conic-gradient(#2a332f 0 25%,#232b28 0 50%) 0 0/12px 12px;border-radius:8px}
 kbd{background:#111;border:1px solid var(--line);border-radius:4px;padding:0 4px;font-size:11px}
+#rndbar{position:absolute;left:6px;right:6px;top:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:#111d;border:1px solid var(--line);border-radius:12px;padding:6px;z-index:5}
+#rndbar[hidden]{display:none}#rndbar select{max-width:150px}.rndchk{display:inline-flex;gap:4px;align-items:center;font-size:13px}#rndInfo{font-size:12px;opacity:.75;flex-basis:100%}
 #toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:#111e;border:1px solid var(--line);padding:8px 14px;border-radius:12px;display:none;z-index:30;max-width:90vw;text-align:center}
 @media (min-width:900px){
   #app{grid-template-columns:minmax(0,1fr) 340px;grid-template-rows:auto 1fr auto}
@@ -77,6 +79,7 @@ kbd{background:#111;border:1px solid var(--line);border-radius:4px;padding:0 4px
     <button id="bSave" title="บันทึกไฟล์">💾</button>
   </header>
   <main id="stage"><canvas id="view"></canvas><div id="status"></div>
+    <div id="rndbar" hidden><select id="rndStyle"></select><button id="rndRoll" class="on">🎲 สุ่มอีก</button><label class="rndchk"><input type="checkbox" id="rndMirror"> กลับซ้าย-ขวา</label><label class="rndchk"><input type="checkbox" id="rndKeepWater"> เก็บน้ำเดิม</label><button id="rndOk">✓ ใช้อันนี้</button><button id="rndX">✕</button><span id="rndInfo"></span></div>
     <div id="selbar" hidden><button data-sa="l">⟲</button><span id="selRot">0°</span><button data-sa="r">⟳</button><button data-sa="r90">↻90</button><button data-sa="small">−</button><span id="selSize" style="align-self:center;font-size:12px;min-width:30px;text-align:center">1×1</span><button data-sa="big">＋</button><button data-sa="flip">↔</button><button data-sa="dup">⧉</button><button data-sa="del">🗑</button><button data-sa="done">✓</button></div>
   </main>
   <aside id="sheet"><div id="sheetHead"><span id="sheetTitle"></span></div><div id="sheetBody"></div></aside>
@@ -800,12 +803,13 @@ $('#sheetBody').addEventListener('input', e => {
 });
 
 // ------------------------------------------------------------------ menu
-const MENU = [['tiers', '🗺️ แสดงสีระดับ เปิด/ปิด'], ['new', '🆕 แมพใหม่'], ['open', '📂 เปิดไฟล์แมพ'], ['save', '💾 บันทึก / ส่งออกไฟล์ (ส่งให้ Claude)'], ['png', '🖼️ บันทึกเป็นรูป PNG'], ['import', '📥 นำเข้ารูปจาก GPT'], ['grid', '# เส้นตาราง เปิด/ปิด'], ['foot', '▢ แสดงฐานของทุกชิ้น'], ['help', '❓ วิธีใช้']];
+const MENU = [['random', '🎲 สุ่มแมพจากแมพนี้ (เปลี่ยนสไตล์)'], ['tiers', '🗺️ แสดงสีระดับ เปิด/ปิด'], ['new', '🆕 แมพใหม่'], ['open', '📂 เปิดไฟล์แมพ'], ['save', '💾 บันทึก / ส่งออกไฟล์ (ส่งให้ Claude)'], ['png', '🖼️ บันทึกเป็นรูป PNG'], ['import', '📥 นำเข้ารูปจาก GPT'], ['grid', '# เส้นตาราง เปิด/ปิด'], ['foot', '▢ แสดงฐานของทุกชิ้น'], ['help', '❓ วิธีใช้']];
 $('#bMenu').onclick = () => { $('#menuList').innerHTML = MENU.map(([k, n]) => `<button data-menu="${k}">${n}</button>`).join(''); $('#mMenu').classList.add('open'); };
 $('#mMenu').addEventListener('click', e => {
   if (e.target === $('#mMenu')) return $('#mMenu').classList.remove('open');
   const k = e.target.closest('[data-menu]')?.dataset.menu; if (!k) return; $('#mMenu').classList.remove('open');
   if (k === 'new') { $('#nFill').innerHTML = P.terrains.map((t, i) => `<option value="${i}">${esc(t.name)}</option>`).join(''); $('#mNew').classList.add('open'); }
+  if (k === 'random') rndStart();
   if (k === 'open') openFile();
   if (k === 'save') download();
   if (k === 'png') exportPng();
@@ -947,13 +951,178 @@ function afterLoad() {
   base = null; tierDirty = true; ui.sel = ui.selMarker = null; ui.asset = null; $('#pname').value = P.name;
   renderTools(); renderSheet(); save(); fit(); fitView();
 }
+
+// ------------------------------------------------------------------ 🎲 random maps from a template
+// The map on screen is the TEMPLATE: roads, plots/markers, buildings and level painting are kept (the playable plan);
+// everything natural away from them (ground, water, trees, bushes, rocks) is regenerated from a style + seed.
+const STYLES = {
+  forest: { name: '🌲 ป่าทึบ', trees: .55, water: 'ponds', meadow: .1, rocky: .06, species: ['tree_broadleaf', 'tree_rubber', 'tree_bamboo'], bush: .04, rock: .015 },
+  river: { name: '🏞️ ริมแม่น้ำ', trees: .32, water: 'river', meadow: .15, rocky: .03, species: ['tree_broadleaf', 'tree_rubber', 'tree_bamboo'], bush: .05, rock: .01 },
+  farm: { name: '🌾 ทุ่งนา', trees: .12, water: 'ponds', fields: true, meadow: .12, rocky: 0, species: ['tree_broadleaf', 'tree_rubber'], bush: .03, rock: .005 },
+  coast: { name: '🏖️ ชายทะเล', trees: .22, water: 'coast', meadow: .06, rocky: .04, species: ['tree_broadleaf', 'tree_rubber'], bush: .03, rock: .02 },
+  rocky: { name: '⛰️ เขาหิน', trees: .26, water: 'none', meadow: .04, rocky: .5, species: ['tree_pine', 'tree_pinesmall'], bush: .02, rock: .07 },
+  meadow: { name: '🌼 ทุ่งดอกไม้', trees: .1, water: 'ponds', meadow: .55, rocky: 0, species: ['tree_broadleaf', 'tree_rubber'], bush: .12, rock: .01 },
+  lakes: { name: '💧 บึงหลายบึง', trees: .28, water: 'lakes', meadow: .15, rocky: .02, species: ['tree_broadleaf', 'tree_bamboo', 'tree_rubber'], bush: .05, rock: .01 },
+};
+const RND = { tpl: null, seed: 0, style: 'random' };
+const NATURE = new Set(['tree', 'bush', 'rock']);
+function rngOf(seed) { let s = (seed >>> 0) || 1; return () => (s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296; }
+function vnoise(seed, sc) {
+  const sm = t => t * t * (3 - 2 * t);
+  return (x, y) => { const X = x / sc, Y = y / sc, xi = Math.floor(X), yi = Math.floor(Y), u = sm(X - xi), v = sm(Y - yi);
+    const a = hash(xi, yi, seed), b = hash(xi + 1, yi, seed), c = hash(xi, yi + 1, seed), d = hash(xi + 1, yi + 1, seed);
+    return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v; };
+}
+function fbm(seed, sc) { const a = vnoise(seed, sc), b = vnoise(seed + 77, sc / 2), c = vnoise(seed + 151, sc / 4); return (x, y) => a(x, y) * .6 + b(x, y) * .28 + c(x, y) * .12; }
+function quantile(vals, f) { if (!vals.length || f <= 0) return Infinity; const v = Float32Array.from(vals).sort(); return v[Math.max(0, Math.min(v.length - 1, Math.floor(v.length * (1 - f))))]; }
+function tIdx(id) { let i = P.terrains.findIndex(t => t.id === id); if (i < 0) { const d = DEF_TERRAIN.find(t => t.id === id); if (!d) return 0; P.terrains.push({ ...d }); i = P.terrains.length - 1; } return i; }
+function tplOf() { return { name: P.name, ground: P.ground.slice(), road: P.road.slice(), tier: P.tier.slice(), objects: JSON.stringify(P.objects), markers: JSON.stringify(P.markers) }; }
+function tplApply(t) { P.ground = t.ground.slice(); P.road = t.road.slice(); P.tier = t.tier.slice(); P.objects = JSON.parse(t.objects); P.markers = JSON.parse(t.markers); P.name = t.name; }
+function mirrorX() {
+  const W = P.w, flipArr = a => { const o = a.slice(); for (let y = 0; y < P.h; y++) for (let x = 0; x < W; x++) o[y * W + x] = a[y * W + (W - 1 - x)]; return o; };
+  P.ground = flipArr(P.ground); P.road = flipArr(P.road); P.tier = flipArr(P.tier);
+  for (const o of P.objects) { o.x = W - o.x - o.fw; o.flip = !o.flip; if (o.rot) o.rot = (360 - o.rot) % 360; }
+  for (const m of P.markers) { const [w] = markerSize(m); m.x = W - m.x - w; }
+}
+function generate(styleKey, seed, { mirror = false, keepWater = false } = {}) {
+  const S = STYLES[styleKey], W = P.w, H = P.h, N = W * H, rnd = rngOf(seed);
+  if (mirror) mirrorX();
+  const T = P.terrains, isWaterT = i => !!T[i]?.water || /water|deep|sea/.test(T[i]?.id || '');
+  // 1) protected = the plan (roads, markers, buildings) + a margin; its ground is kept as drawn
+  const prot = new Uint8Array(N), mark = (x0, y0, w, h, m) => { for (let y = Math.max(0, y0 - m); y < Math.min(H, y0 + h + m); y++) for (let x = Math.max(0, x0 - m); x < Math.min(W, x0 + w + m); x++) prot[y * W + x] = 1; };
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (P.road[y * W + x]) mark(x, y, 1, 1, 2);
+  for (const m of P.markers) { const [w, h] = markerSize(m); mark(m.x, m.y, w, h, 2); }
+  const assetOf = o => assetById(o.asset);
+  for (const o of P.objects) if (!NATURE.has(assetOf(o)?.kind)) mark(o.x, o.y, o.fw, o.fh, 2);
+  // distance from the plan (for rivers/fields/ponds)
+  const dist = new Float32Array(N).fill(1e9); const q = [];
+  for (let i = 0; i < N; i++) if (prot[i]) { dist[i] = 0; q.push(i); }
+  for (let h = 0; h < q.length; h++) { const i = q[h], x = i % W, y = (i / W) | 0; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const X = x + dx, Y = y + dy; if (X < 0 || Y < 0 || X >= W || Y >= H) continue; const j = Y * W + X; if (dist[j] > dist[i] + 1) { dist[j] = dist[i] + 1; q.push(j); } } }
+  if (!q.length) dist.fill(99);
+  const free = i => !prot[i] && !(keepWater && isWaterT(P.ground[i]));
+  // 2) ground: grass + meadow/rocky patches by noise quantiles
+  const G = tIdx('grass'), M = tIdx('meadow'), Rk = tIdx('rocky'), Wt = tIdx('water'), Sea = tIdx('sea'), F = tIdx('farm');
+  const nM = fbm(seed + 11, 14), nR = fbm(seed + 23, 18), nW = fbm(seed + 37, 11);
+  const cand = []; for (let i = 0; i < N; i++) if (free(i)) cand.push(i);
+  const vM = cand.map(i => nM(i % W, (i / W) | 0)), vR = cand.map(i => nR(i % W, (i / W) | 0));
+  const tM = quantile(vM, S.meadow), tR = quantile(vR, S.rocky);
+  cand.forEach((i, k) => { P.ground[i] = vR[k] >= tR ? Rk : vM[k] >= tM ? M : G; });
+  // 3) water
+  const wet = new Uint8Array(N);
+  const paint = (x, y, t) => { if (x < 0 || y < 0 || x >= W || y >= H) return; const i = y * W + x; if (!free(i)) return; P.ground[i] = t; wet[i] = 1; };
+  if (S.water === 'ponds' || S.water === 'lakes') {
+    // decide on 2x2 cells (what the tiles are drawn on), smooth with a majority filter, drop specks -> round ponds
+    const CW = Math.ceil(W / 2), CH = Math.ceil(H / 2), minD = S.water === 'lakes' ? 3 : 5;
+    const okC = new Uint8Array(CW * CH), vC = [], idC = [];
+    for (let Y = 0; Y < CH; Y++) for (let X = 0; X < CW; X++) {
+      let ok = true; for (let j = 0; j < 2; j++) for (let k = 0; k < 2; k++) { const x = X * 2 + k, y = Y * 2 + j; if (x >= W || y >= H) continue; const i = y * W + x; if (!free(i) || dist[i] < minD) ok = false; }
+      if (ok) { okC[Y * CW + X] = 1; vC.push(nW(X * 2 + 1, Y * 2 + 1)); idC.push(Y * CW + X); }
+    }
+    const t = quantile(vC, S.water === 'lakes' ? .16 : .045);
+    let wc = new Uint8Array(CW * CH); idC.forEach((c, k) => { if (vC[k] >= t) wc[c] = 1; });
+    for (let pass = 0; pass < 3; pass++) {
+      const nx = new Uint8Array(CW * CH);
+      for (let Y = 0; Y < CH; Y++) for (let X = 0; X < CW; X++) { const c = Y * CW + X; if (!okC[c]) continue; let n = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const XX = X + dx, YY = Y + dy; if (XX >= 0 && YY >= 0 && XX < CW && YY < CH) n += wc[YY * CW + XX]; } nx[c] = n >= 5 ? 1 : 0; }
+      wc = nx;
+    }
+    const seen = new Uint8Array(CW * CH);
+    for (let c0 = 0; c0 < CW * CH; c0++) {
+      if (!wc[c0] || seen[c0]) continue; const comp = [c0]; seen[c0] = 1;
+      for (let h = 0; h < comp.length; h++) { const c = comp[h], X = c % CW, Y = (c / CW) | 0; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const XX = X + dx, YY = Y + dy; if (XX < 0 || YY < 0 || XX >= CW || YY >= CH) continue; const d = YY * CW + XX; if (wc[d] && !seen[d]) { seen[d] = 1; comp.push(d); } } }
+      if (comp.length < 5) continue;
+      for (const c of comp) { const X = c % CW, Y = (c / CW) | 0; for (let j = 0; j < 2; j++) for (let k = 0; k < 2; k++) paint(X * 2 + k, Y * 2 + j, Wt); }
+    }
+  }
+  if (S.water === 'river') {
+    // try several meandering paths, keep the one that crosses the plan least
+    let best = null;
+    for (let tr = 0; tr < 14; tr++) {
+      const vert = rnd() < .5, L = vert ? H : W, S2 = vert ? W : H, base = S2 * (.12 + rnd() * .76), amp = 6 + rnd() * 14, per = 30 + rnd() * 50, ph = rnd() * 6.28, n = vnoise(seed + 300 + tr, 12);
+      const pts = []; let hit = 0, near = 0;
+      for (let t = 0; t < L; t++) { const c = base + Math.sin(t / per * 6.28 + ph) * amp + (n(t, 0) - .5) * 14, w = 2.2 + n(t, 5) * 2.6; pts.push([c, w]); for (let o = -w; o <= w; o++) { const a = Math.round(c + o); if (a < 0 || a >= S2) continue; const i = vert ? t * W + a : a * W + t; if (prot[i]) hit++; else if (dist[i] < 4) near++; } }
+      const score = hit * 10 + near; if (!best || score < best.score) best = { score, vert, pts };
+    }
+    best.pts.forEach(([c, w], t) => { for (let o = -w; o <= w; o++) { const a = Math.round(c + o); best.vert ? paint(a, t, Wt) : paint(t, a, Wt); } });
+  }
+  if (S.water === 'coast') {
+    // the side with the least plan near it becomes the sea
+    const sides = ['top', 'bottom', 'left', 'right'].map(sd => { let n = 0; for (let i = 0; i < N; i++) { if (!prot[i]) continue; const x = i % W, y = (i / W) | 0, d = { top: y, bottom: H - 1 - y, left: x, right: W - 1 - x }[sd]; if (d < 26) n += 26 - d; } return { sd, n: n + rnd() }; }).sort((a, b) => a.n - b.n);
+    const sd = sides[0].sd, nC = vnoise(seed + 401, 16), base = 8 + rnd() * 8;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const along = sd === 'top' || sd === 'bottom' ? x : y, d = { top: y, bottom: H - 1 - y, left: x, right: W - 1 - x }[sd]; if (d < base + nC(along, 0) * 10) paint(x, y, Sea); }
+  }
+  // 4) fields (farm style): plots of farmland around the village, on 2x2 cells
+  const field = new Uint8Array(N);
+  if (S.fields) {
+    for (let k = 0; k < 60; k++) {
+      const w = 2 * (3 + Math.floor(rnd() * 4)), h = 2 * (2 + Math.floor(rnd() * 3)), x0 = 2 * Math.floor(rnd() * (W - w) / 2), y0 = 2 * Math.floor(rnd() * (H - h) / 2);
+      let ok = true, nearPlan = false; for (let y = y0; y < y0 + h && ok; y++) for (let x = x0; x < x0 + w; x++) { const i = y * W + x; if (!free(i) || wet[i] || field[i]) { ok = false; break; } if (dist[i] < 14) nearPlan = true; }
+      if (!ok || !nearPlan) continue;
+      for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) { P.ground[y * W + x] = F; field[y * W + x] = 1; }
+    }
+  }
+  // 5) nature objects: drop the template's outside the plan, then grow new ones
+  P.objects = P.objects.filter(o => !NATURE.has(assetOf(o)?.kind) || prot[Math.min(N - 1, (o.y + o.fh - 1) * W + o.x)]);
+  const occ = new Uint8Array(N); const occupy = (o, m) => { for (let y = Math.max(0, o.y - m); y < Math.min(H, o.y + o.fh + m); y++) for (let x = Math.max(0, o.x - m); x < Math.min(W, o.x + o.fw + m); x++) occ[y * W + x] = 1; };
+  for (const o of P.objects) occupy(o, 0);
+  const bySrc = src => P.assets.find(a => a.src === 'game:' + src);
+  let trees = S.species.map(bySrc).filter(Boolean); if (!trees.length) trees = P.assets.filter(a => a.kind === 'tree' && !/stump/.test(a.src || '') && !/stump|ตอ/.test(a.name));
+  const bushes = P.assets.filter(a => a.kind === 'bush'), rocks = P.assets.filter(a => a.kind === 'rock');
+  const nT = fbm(seed + 51, 13), nS = vnoise(seed + 63, 18);
+  const put = (a, cx, cy) => {
+    const o = { id: P.nextId++, asset: a.id, x: cx - Math.floor((a.fw - 1) / 2), y: cy - a.fh + 1, fw: a.fw, fh: a.fh, tw: a.tw, flip: rnd() < .5, rot: 0 };
+    if (o.x < 0 || o.y < 0 || o.x + o.fw > W || o.y + o.fh > H) return false;
+    for (let y = o.y; y < o.y + o.fh; y++) for (let x = o.x; x < o.x + o.fw; x++) { const i = y * W + x; if (prot[i] || occ[i] || wet[i] || field[i] || isWaterT(P.ground[i])) return false; }
+    P.objects.push(o); occupy(o, 1); return true;
+  };
+  for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) {
+    const cx = x + Math.floor(rnd() * 2), cy = y + Math.floor(rnd() * 2), i = cy * W + cx; if (cy >= H || cx >= W || !free(i)) continue;
+    const edge = Math.max(0, 1 - Math.min(cx, cy, W - 1 - cx, H - 1 - cy) / 7) * .5;            // thicker woods at the map border
+    const nearPlan = dist[i] < 3 ? .25 : 1;                                                       // keep the village edge open
+    const pT = Math.min(.95, (S.trees * (.25 + 1.6 * nT(cx, cy)) + edge) * nearPlan);
+    const r = rnd();
+    if (trees.length && r < pT) { put(trees[Math.floor(nS(cx, cy) * trees.length * 1.6 + rnd() * .6) % trees.length], cx, cy); continue; }
+    const onMeadow = P.ground[i] === M, onRock = P.ground[i] === Rk;
+    if (bushes.length && rnd() < S.bush * (onMeadow ? 2.2 : 1)) { put(bushes[Math.floor(rnd() * bushes.length)], cx, cy); continue; }
+    if (rocks.length && rnd() < S.rock * (onRock ? 2.5 : 1)) put(rocks[Math.floor(rnd() * rocks.length)], cx, cy);
+  }
+  return { protectedCells: prot.reduce((a, b) => a + b, 0), trees: P.objects.filter(o => assetOf(o)?.kind === 'tree').length };
+}
+function rndRoll(newSeed = true) {
+  if (!RND.tpl) return;
+  if (newSeed) RND.seed = (Math.random() * 1e9) | 0;
+  const keys = Object.keys(STYLES), st = RND.style === 'random' ? keys[RND.seed % keys.length] : RND.style;
+  tplApply(RND.tpl);
+  const r = generate(st, RND.seed, { mirror: $('#rndMirror').checked, keepWater: $('#rndKeepWater').checked });
+  RND.used = st; P.name = `${RND.tpl.name} · ${STYLES[st].name.replace(/^\S+\s/, '')} #${RND.seed % 10000}`;
+  $('#pname').value = P.name;
+  $('#rndInfo').textContent = `สไตล์: ${STYLES[st].name} · ต้นไม้ ${r.trees} ต้น · ถนน/ที่ดิน/อาคารคงเดิมจากต้นแบบ`;
+  ui.sel = ui.selMarker = null; tierDirty = true; dirtyAll(); draw();
+}
+function rndStart() {
+  if (!P.road.some(v => v) && !P.markers.length) toast('แมพนี้ยังไม่มีถนน/ที่ดิน — สุ่มได้ แต่ทั้งแมพจะเป็นธรรมชาติล้วน');
+  begin(); RND.tpl = tplOf();
+  $('#rndStyle').innerHTML = `<option value="random">🎲 สุ่มสไตล์</option>` + Object.entries(STYLES).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join('');
+  $('#rndStyle').value = RND.style; $('#rndKeepWater').checked = P.ground.some(v => P.terrains[v]?.water) && false;
+  $('#rndbar').hidden = false; rndRoll(true); fitView();
+}
+function rndEnd(keep) {
+  if (!RND.tpl) return;
+  if (!keep) { tplApply(RND.tpl); $('#pname').value = P.name; dirtyAll(); tierDirty = true; draw(); toast('กลับเป็นต้นแบบแล้ว'); }
+  else { save(); toast('ใช้แมพนี้แล้ว — กด 💾 บันทึกไฟล์เก็บไว้ (ต้นแบบยังอยู่ ถ้ากด ↶ ย้อนกลับ)'); }
+  RND.tpl = null; $('#rndbar').hidden = true; renderSheet();
+}
+$('#rndRoll').onclick = () => rndRoll(true);
+$('#rndStyle').onchange = e => { RND.style = e.target.value; rndRoll(true); };
+$('#rndMirror').onchange = () => rndRoll(false); $('#rndKeepWater').onchange = () => rndRoll(false);
+$('#rndOk').onclick = () => rndEnd(true); $('#rndX').onclick = () => rndEnd(false);
+
 // ------------------------------------------------------------------ boot
 try { const raw = localStorage.getItem(LS); P = raw ? fromFile(JSON.parse(raw)) : null; } catch { P = null; }
 if (!P) P = newProject();
 addEventListener('resize', fit); new ResizeObserver(fit).observe($('#stage'));
 loadTiles(); fit(); afterLoad();
 if (!localStorage.getItem('v2n-mapmaker-helped')) { try { localStorage.setItem('v2n-mapmaker-helped', '1'); } catch { } $('#mHelp').classList.add('open'); }
-window.__MAPMAKER__ = { get P() { return P; }, toFile, fromFile, ui, setTool, addAsset, render, rotate, resizeObj, checklist };
+window.__MAPMAKER__ = { generate, rndStart, rndRoll, rndEnd, RND, STYLES, get P() { return P; }, toFile, fromFile, ui, setTool, addAsset, render, rotate, resizeObj, checklist };
 
 </script>
 </body>
