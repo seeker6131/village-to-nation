@@ -22,6 +22,7 @@ jobs:
           cp editor/index.html $W/editor/
           cp -r assets/v10 assets/tiles $W/assets/
           cp src/artManifest.js $W/src/
+          mkdir -p $W/src/maps && cp src/maps/mapArt.js $W/src/maps/
       - name: Build APK
         run: |
           set -o pipefail

@@ -294,14 +294,14 @@ function addAsset(a) {
   return a;
 }
 // every sprite the game has (src/artManifest.js), sorted into kinds; building construction stages go to "ขั้นก่อสร้าง"
-const GAME_KIND = [[/^hz\d[a-d]_s3$/, 'house'], [/_s[012]$/, 'stage'], [/^tree_/, 'tree'], [/^stump_/, 'tree'], [/^pl_/, 'bush'], [/^(rock|ore)_/, 'rock'],
+const GAME_KIND = [[/^map\d+_/, null], [/^pw_br_/, 'bridge'], [/^pf_path_/, 'prop'], [/^hz\d[a-d]_s3$/, 'house'], [/_s[012]$/, 'stage'], [/^tree_/, 'tree'], [/^stump_/, 'tree'], [/^pl_/, 'bush'], [/^(rock|ore)_/, 'rock'],
   [/^(sh|bz)_/, 'shop'], [/^(cb|cd|po)_/, 'civic'], [/^(leader|market|hall|cots|cotm|cotl|house|hs\d)_/, 'building'], [/^(bs|gt)_/, 'building'],
   [/^pw_bridge/, 'bridge'], [/^an_/, 'animal'], [/^fence_/, 'fence'], [/^(crop|pf|pp)_/, 'farm'], [/^(cp|pc|pw)_/, 'prop'], [/^tx_/, null], [/^waterfall/, 'prop'], [/./, 'prop']];
 const OLD_STYLE = /^(cb|cd|leader|market|hall|cots|cotm|cotl|house|hs\d)_/;
 let GAME_ART = null;
 async function loadGameArt(quiet = false) {
   let ART;
-  try { ART = GAME_ART || (GAME_ART = (await import('../src/artManifest.js')).ART10); } catch (e) { return quiet || toast('โหลดรูปในเกมไม่ได้ (ต้องเปิดผ่านเว็บ ไม่ใช่ไฟล์ในเครื่อง)'); }
+  try { ART = GAME_ART || (GAME_ART = { ...(await import('../src/artManifest.js')).ART10, ...((await import('../src/maps/mapArt.js').catch(() => ({}))).MAP_ART || {}) }); } catch (e) { return quiet || toast('โหลดรูปในเกมไม่ได้ (ต้องเปิดผ่านเว็บ ไม่ใช่ไฟล์ในเครื่อง)'); }
   let n = 0;
   for (const [name, [w, h]] of Object.entries(ART)) {
     const k = GAME_KIND.find(([re]) => re.test(name)); if (!k || !k[1]) continue;
@@ -318,6 +318,8 @@ async function loadGameArt(quiet = false) {
 function gameName(n) {
   let m;
   if ((m = n.match(/^hz(\d)([a-d])_s3$/))) return `บ้านระดับ ${m[1]} แบบ ${m[2].toUpperCase()}`;
+  if ((m = n.match(/^pw_br_(log|stone|concrete)_([hv])$/))) return `สะพาน${{ log: 'ไม้ซุง', stone: 'หินโค้ง', concrete: 'คอนกรีต' }[m[1]]} ${m[2] === 'h' ? 'แนวนอน' : 'แนวตั้ง'}`;
+  if ((m = n.match(/^pf_path_(stone|concrete)_(\d)$/))) return `ทางเดินหน้าบ้าน ${m[1] === 'stone' ? 'หิน' : 'คอนกรีต'} ${m[2]}`;
   const tr = { tree_broadleaf: 'ต้นไม้ใหญ่ (ใบกลม)', tree_rubber: 'ต้นไม้เล็ก (ใบกลม)', tree_pine: 'สนใหญ่', tree_pinesmall: 'สนเล็ก' }; if (tr[n]) return tr[n];
   if (n.startsWith('stump_')) return 'ตอไม้ ' + n.slice(6);
   const map = { sh_conv: 'ร้านสะดวกซื้อ', sh_grocery: 'ร้านชำ', sh_rest: 'ร้านอาหาร', bz_bank: 'ธนาคาร', bz_office: 'สำนักงาน', bz_work: 'โรงงาน', leader: 'บ้านผู้นำ', market: 'ตลาด', hall: 'ศาลา',

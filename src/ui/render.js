@@ -190,9 +190,11 @@ export function render() {
       spr(ctx, DECOR_LIST[v - 1], (tx + .5) * TILE + Math.round((hash(tx, ty, 7) - .5) * 6), (ty + 1) * TILE - 1);
     } }
   // v0.25 front yards: a short stepping-stone path from every front door down to the lane (the rest stays lawn)
+  // v0.29 a real path piece (8 stone designs in the camp/village, 8 concrete walkways from อำเภอ up), picked per house
   for (const p of s.placed) if ((p.type === 'cottage' || p.type === 'workshop') && (p.level >= 1 || p.status === 'building')) {
-    const x = (p.tx + 1.5) * TILE, y = (p.ty + 3) * TILE; if (x < vx0 - 20 || x > vx1 + 20 || y < vy0 - 20 || y > vy1 + 20) continue;
-    drawDecal(ctx, 'stones', x, y, 16, 16, (p.tx * 32) % 128);
+    const x = (p.tx + 2) * TILE, y = (p.ty + 3) * TILE; if (x < vx0 - 30 || x > vx1 + 30 || y < vy0 - 20 || y > vy1 + 40) continue;
+    const name = `pf_path_${(s.town?.stage || 0) >= 2 ? 'concrete' : 'stone'}_${1 + Math.floor(hash(p.tx, p.ty, 29) * 8)}`;
+    if (!spr(ctx, name, x, y - 2 + ART10[name]?.[1])) drawDecal(ctx, 'stones', x - 8, y, 16, 16, (p.tx * 32) % 128);
   }
   // plots: stakes + rope (always visible so the player knows where to clear)
   const stakes = (x, y, w, h, open) => {

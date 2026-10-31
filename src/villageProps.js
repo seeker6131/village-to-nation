@@ -51,7 +51,7 @@ export function villageProps(s) {
   if (t <= 1) for (let i = 0; i < TENTS.length; i++) list.push(P(i === 0 ? 'pc_tent' : 'pc_tent_small', TENTS[i].tx + 1, TENTS[i].ty + 2));
   if (t >= 2) list.push(...TIER2);
   for (const p of s.placed || []) if (p.type === 'cottage' && p.level >= 1) list.push(P('pp_mailbox', p.tx + 3.6, p.ty + 3.4));
-  list.push(...bridges());
+  list.push(...bridges(t));
   // 🚌 travel to the other towns: the stop grows with the era (sala -> bus stop -> terminal -> metro station)
   const era = Math.min(3, t - 1);
   list.push(P(['bs_sala', 'bs_stop', 'bs_terminal', 'bs_metro'][era], BUS_STOP.x, BUS_STOP.y, { block: [[Math.floor(BUS_STOP.x) - 1, Math.floor(BUS_STOP.y) - 1], [Math.floor(BUS_STOP.x), Math.floor(BUS_STOP.y) - 1]] }));
@@ -70,6 +70,10 @@ function customProps(s, t) {
   for (const p of s.placed || []) if (p.type === 'cottage' && p.level >= 1) list.push(P('pp_mailbox', p.tx + 3.6, p.ty + 3.4));
   for (const m of WORLD.custom.props) {
     if ((m.tier || 1) > t) continue; // drawn for a later era: the land waits for it
+    if (m.bridge) { // the map's bridge, in this era's style, stretched over its footprint
+      const hz = m.fw >= m.fh, name = bridgeSprite(t, hz), A = ART10[name];
+      if (A) { const sc = hz ? m.fw * 16 / A[0] : m.fh * 16 / A[1]; list.push(P(name, m.x + m.fw / 2, hz ? m.y + m.fh / 2 + A[1] * sc / 32 : m.y + m.fh + .1, { flat: true, scale: sc, city: m.label })); continue; }
+    }
     const blk = []; if (!m.bridge) for (let y = m.y; y < m.y + m.fh; y++) for (let x = m.x; x < m.x + m.fw; x++) blk.push([x, y]);
     list.push(P(m.name, m.x + m.fw / 2, m.y + m.fh + .1, { block: blk, flip: m.flip, rot: m.rot || 0, pivot: m.fh * 8 + 1.6, scale: m.scale || 1, city: m.label, ...(m.bridge ? { flat: true } : {}) })); // pivot: the footprint centre, like the Map Maker
   }
@@ -80,11 +84,13 @@ export function propBlocks(s) { const out = new Set(); for (const p of villagePr
 
 /** v0.18: the map's bridges are fixed (world.BRIDGES, planks over FORD tiles); kept for old callers. */
 export function bridgeSpan() { return BRIDGES[0] || null; }
-function bridges() { // centred on the planked (FORD) span so the deck sits exactly over the walkable tiles
+/** v0.29 bridges change with the era: log footbridge (camp/village) -> stone arch (อำเภอ) -> concrete road bridge (จังหวัด+). */
+export const bridgeSprite = (t, horizontal = true) => `pw_br_${t <= 2 ? 'log' : t === 3 ? 'stone' : 'concrete'}_${horizontal ? 'h' : 'v'}`;
+function bridges(t = 1) { // centred on the planked (FORD) span so the deck sits exactly over the walkable tiles
   return BRIDGES.map(b => { const xs = []; for (let x = b.x0 - 3; x <= b.x1 + 3; x++) for (let y = b.y - 1; y <= b.y + 2; y++) { const g = groundAt(x, y); if (g === T.FORD || ((g === T.WATER) && (y === b.y - 1 || y === b.y + 2))) { xs.push(x); break; } }
     const c = xs.length ? (xs[0] + xs[xs.length - 1] + 1) / 2 : (b.x0 + b.x1 + 1) / 2, span = xs.length ? xs[xs.length - 1] - xs[0] + 1 : 4;
-    const scale = Math.max(1, (span + 2) * 16 / 78);
-    return P('pw_bridge_h', c, b.y + 1.7, { flat: true, walk: b, scale, deck: { x0: c - 39 * scale / 16, x1: c + 39 * scale / 16, row: b.y } }); }); // deck reaches both banks
+    const name = ART10[bridgeSprite(t)] ? bridgeSprite(t) : 'pw_bridge_h', W = ART10[name][0], scale = Math.max(1, (span + 2) * 16 / W);
+    return P(name, c, b.y + 1.7 + (ART10[name][1] - 40) / 32, { flat: true, walk: b, scale, deck: { x0: c - W / 2 * scale / 16, x1: c + W / 2 * scale / 16, row: b.y } }); }); // deck reaches both banks
 }
 /** Water tiles a bridge makes walkable ("x,y"). */
 export function bridgeTiles(s) {
