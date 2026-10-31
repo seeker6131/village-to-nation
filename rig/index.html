@@ -817,6 +817,7 @@ function renderSide() {
     const bt = document.createElement('div'); bt.className = 'btns';
     const mk = (n, f, fps) => () => { pushUndo(); newAnim(n, f, fps); ui.mode = 'anim'; changed(); refresh(); };
     bt.append(btn('＋ ยืน', 'idle', mk('ยืน', 8, 6)), btn('＋ เดิน', 'walk', mk('เดิน', 8, 10)), btn('＋ ทำงาน', 'work', mk('ทำงาน', 6, 8)), btn('＋ ว่าง', 'blank', mk('ท่าใหม่', 8, 8)));
+    if (AUTO_LAST[ui.view]) bt.append(btn('📐 สัดส่วน', 'หัวโต/ปกติ/ตัวสูง — ประกอบร่างใหม่จากรูปเดิม', reproportion, 'pri'));
     el.append(bt);
     for (const a of list) {
       const r = document.createElement('div'); r.className = 'row2' + (a.id === ui.anim ? ' sel' : '');
@@ -939,12 +940,12 @@ function refresh() {
 }
 
 // ====================================================================== menu + dialogs
-function ask({ title, text = '', input = null, buttons = ['ตกลง', 'ยกเลิก'], html = '' }) {
+function ask({ title, text = '', input = null, buttons = ['ตกลง', 'ยกเลิก'], html = '', read = null }) {
   return new Promise(res => {
     const m = document.createElement('div'); m.className = 'modal';
     m.innerHTML = `<div class="card"><h3>${esc(title)}</h3>${text ? `<p>${esc(text)}</p>` : ''}${html}${input !== null ? `<input id="askIn" style="width:100%" value="${esc(input)}">` : ''}<div class="btns" style="justify-content:flex-end;margin-top:10px"></div></div>`;
     const bb = m.querySelector('.btns');
-    buttons.forEach((t, i) => { const b = document.createElement('button'); b.textContent = t; if (i === 0) b.className = 'pri'; b.onclick = () => { const v = m.querySelector('#askIn')?.value ?? ''; m.remove(); res(/ยกเลิก|ปิด/.test(t) ? null : { btn: t, value: v }); }; bb.append(b); });
+    buttons.forEach((t, i) => { const b = document.createElement('button'); b.textContent = t; if (i === 0) b.className = 'pri'; b.onclick = () => { const v = m.querySelector('#askIn')?.value ?? '', extra = read ? read(m) : null; m.remove(); res(/ยกเลิก|ปิด/.test(t) ? null : { btn: t, value: v, extra }); }; bb.append(b); });
     m.onclick = e => { if (e.target === m) { m.remove(); res(null); } };
     document.body.append(m); const i = m.querySelector('#askIn'); if (i) { i.focus(); i.select(); i.onkeydown = e => { if (e.key === 'Enter') bb.firstChild.click(); }; }
   });
@@ -1304,6 +1305,12 @@ function resizeTo(c, tw, th) {
   x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(src, 0, 0, tw, th);
   const id = x.getImageData(0, 0, tw, th); for (let i = 3; i < id.data.length; i += 4) id.data[i] = id.data[i] > 127 ? 255 : 0; x.putImageData(id, 0, 0); return o;
 }
+const PROPS = { chibi: { th: 'หัวโต (ชิบิ)', head: .35 }, normal: { th: 'ปกติ', head: .27 }, tall: { th: 'ตัวสูง', head: .21 } };
+let autoProp = 'normal';
+try { autoProp = localStorage.getItem('v2n-rig-prop') || 'normal'; } catch (e) { }
+const propPicker = () => `<p style="margin:10px 0 4px">สัดส่วนตัว (หัวเทียบกับตัว)</p><div class="seg" id="propSeg">${Object.entries(PROPS).map(([k, v]) => `<label style="padding:6px 10px;background:var(--panel2)"><input type="radio" name="prop" value="${k}" ${k === autoProp ? 'checked' : ''}> ${v.th}</label>`).join('')}</div>`;
+const readProp = m => m.querySelector('input[name=prop]:checked')?.value || autoProp;
+function setProp(k) { autoProp = PROPS[k] ? k : 'normal'; try { localStorage.setItem('v2n-rig-prop', autoProp); } catch (e) { } }
 const AUTO_ORDER = ['head', 'torso', 'pelvis', 'uarm', 'farm', 'thigh', 'shin', 'foot'];
 const PART_TH = { head: 'หัว', torso: 'ลำตัว', pelvis: 'สะโพก', uarm: 'แขนบน', farm: 'แขนล่าง', thigh: 'ต้นขา', shin: 'หน้าแข้ง', foot: 'เท้า' };
 /** which piece is which: the prompt's 4x2 order when there are 8, otherwise by shape/size */
@@ -1347,9 +1354,12 @@ const canvasImg = (name, c) => addImage(name, c.toDataURL('image/png'), c.width,
 function autoFromParts(view, cls) {
   const img = {}, dim = {};
   // GPT draws every part at its own scale -> resize each to the game's body proportions (same boxes as scripts/build-rig.py)
-  const box = PART_BOX[view === 'side' ? 'side' : 'front'];
+  // proportions: the head takes PROPS[..].head of the body; the rest of the body stretches to fill (game rig = chibi .35)
+  const base = PART_BOX[view === 'side' ? 'side' : 'front'], hf = PROPS[autoProp].head, kb = (1 - hf) / (1 - .35), kh = hf / .35;
+  const box = {}; for (const k in base) box[k] = k === 'head' ? [base.head[0] * kh, base.head[1] * kh] : k === 'foot' ? base[k] : [base[k][0] * (.85 + .15 * kb), base[k][1] * kb];
+  // keep the head at its drawn size (it carries the face detail) and build the body around it
   const ref = cls.head ? scaled(cls.head.c).height / box.head[1] : cls.torso ? scaled(cls.torso.c).height / box.torso[1] : 248;
-  const Hb = clamp(ref, 120, 600);
+  const Hb = clamp(ref, 120, 900);
   for (const k of AUTO_ORDER) if (cls[k]) { const c = resizeTo(scaled(cls[k].c), box[k][0] * Hb, box[k][1] * Hb); img[k] = canvasImg(PART_TH[k], c); dim[k] = { w: c.width, h: c.height }; }
   const Hh = Hb;
   const D = (k, w, h) => dim[k] || { w: w * Hh, h: h * Hh };
@@ -1448,6 +1458,17 @@ function autoFromBody(view, piece) {
   }
   return { armsFound };
 }
+const AUTO_LAST = {}; // view -> the classified pieces of the last ⚡ parts sheet (to redo with other proportions)
+async function reproportion() {
+  const L = AUTO_LAST[ui.view]; if (!L) return;
+  const v = await ask({ title: '📐 สัดส่วนตัว', text: 'ประกอบร่างใหม่จากรูปเดิม (ท่าเดิน/ยืนจะทำใหม่ให้ด้วย)', html: propPicker(), read: readProp, buttons: ['ทำใหม่', 'ยกเลิก'] });
+  if (!v) return; setProp(v.extra);
+  pushUndo(); const sc = IMP.scale, px = IMP.pixel; IMP.scale = L.scale; IMP.pixel = L.pixel;
+  autoFromParts(ui.view, L.cls); IMP.scale = sc; IMP.pixel = px;
+  const walk = newAnim('เดิน', 8, 10); autoWalk(walk, true); autoIdle(newAnim('ยืน', 8, 6));
+  ui.anim = walk.id; ui.mode = 'anim'; ui.frame = 0; ui.playing = true; changed(); refresh(); refit();
+  toast('สัดส่วน' + PROPS[autoProp].th + ' แล้ว');
+}
 async function autoRigDialog() {
   const pieces = extractPieces(false);
   if (!pieces.length) { toast('ไม่เจอตัวละครในรูป — ลองเลื่อน "ลบพื้น" หรือ 💧 เลือกสีพื้น'); return; }
@@ -1461,15 +1482,18 @@ async function autoRigDialog() {
     ['front', 'side', 'back'].forEach((view, i) => { ui.view = view; autoFromBody(view, bodies[i]); const w = newAnim('เดิน', 8, 10); autoWalk(w, true); autoIdle(newAnim('ยืน', 8, 6)); });
     ui.view = 'front'; return autoDone(P.anims.find(a => a.view === 'front'), 'ใส่กระดูกครบ 3 มุมแล้ว — เปลี่ยนมุมดูที่ปุ่ม "มุม" ด้านบน');
   }
-  const v = await ask({ title: '⚡ รูปนี้เป็นมุมไหน?', text: 'แอปจะหาตำแหน่งกระดูก ตัดชิ้น และทำท่าเดินให้เอง', buttons: ['ข้าง (หันซ้าย)', 'หน้า', 'หลัง', 'ยกเลิก'] });
+  const partsMode = pieces.length >= 5 && Math.max(...pieces.map(p => p.c.width * p.c.height)) < pieces.reduce((t, p) => t + p.c.width * p.c.height, 0) * .5;
+  const v = await ask({ title: '⚡ รูปนี้เป็นมุมไหน?', text: 'แอปจะหาตำแหน่งกระดูก ตัดชิ้น และทำท่าเดินให้เอง', html: partsMode ? propPicker() : '', read: partsMode ? readProp : null, buttons: ['ข้าง (หันซ้าย)', 'หน้า', 'หลัง', 'ยกเลิก'] });
   if (!v) return;
+  if (v.extra) setProp(v.extra);
   const view = v.btn.startsWith('ข้าง') ? 'side' : v.btn === 'หน้า' ? 'front' : 'back';
   pushUndo(); ui.view = view;
   const big = pieces.slice().sort((a, b) => b.c.width * b.c.height - a.c.width * a.c.height);
   const total = pieces.reduce((t, p) => t + p.c.width * p.c.height, 0);
   let msg;
   if (pieces.length >= 5 && big[0].c.width * big[0].c.height < total * .5) {
-    autoFromParts(view, classifyPieces(pieces)); msg = `เจอ ${pieces.length} ชิ้นส่วน → ประกอบร่าง + ใส่กระดูกแล้ว`;
+    AUTO_LAST[view] = { cls: classifyPieces(pieces), scale: IMP.scale, pixel: IMP.pixel };
+    autoFromParts(view, AUTO_LAST[view].cls); msg = `เจอ ${pieces.length} ชิ้นส่วน → ประกอบร่าง (สัดส่วน${PROPS[autoProp].th}) · ไม่ชอบสัดส่วน กด 📐 ในแท็บ 🎬 ท่า`;
   } else {
     const r = autoFromBody(view, big[0]);
     msg = view === 'side' ? 'รูปทั้งตัวมุมข้าง: แขนติดตัว (ไม่แกว่ง) — อยากได้แขนแกว่ง ใช้รูปแยกชิ้น' : r.armsFound ? 'ตัดชิ้นจากรูปทั้งตัว + ใส่กระดูกแล้ว' : 'แขนชิดตัว ตัดแยกได้ไม่เป๊ะ — ลากปรับได้ หรือใช้รูปแยกชิ้นจะดีกว่า';
@@ -1617,7 +1641,7 @@ new ResizeObserver(() => { resize(); }).observe($('#stage'));
   if (ok) toast('เปิดงานล่าสุดแล้ว');
   setTimeout(fitView, 50);
   requestAnimationFrame(loop);
-  window.__w2s = w2s; window.__RIG__ = { autoRigDialog, extractPieces, P: () => P, ui, loadDemo, autoWalk, buildSheet, bakeFrame, locals, boneMats, rigFile, loadProject, IMP, rekey, finishImport, nextImport };
+  window.__w2s = w2s; window.__RIG__ = { reproportion, setProp, autoRigDialog, extractPieces, P: () => P, ui, loadDemo, autoWalk, buildSheet, bakeFrame, locals, boneMats, rigFile, loadProject, IMP, rekey, finishImport, nextImport };
 })();
 </script>
 </body>
