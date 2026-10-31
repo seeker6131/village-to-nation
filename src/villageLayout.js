@@ -4,7 +4,7 @@
 // "ยกระดับ" and the plan expands (new slots + roads, a bigger village area, a new title on the road to PM).
 // Requirements are things that exist in the world — never money. s.town.stage = tier - 1.
 import { addHistory } from './gameState.js';
-import { TREES, CENTER, TILE, nodeOnTile, nodeStatus, setNode, plotObstacles, plotRect, WORLD, WORLD_W, WORLD_H, groundAt, T, zoneAt, zoneById } from './world.js';
+import { TREES, CENTER, TILE, nodeOnTile, nodeStatus, setNode, plotObstacles, plotRect, LEADER_HOUSE, WORLD, WORLD_W, WORLD_H, groundAt, T, zoneAt, zoneById } from './world.js';
 import { cityPlan } from './cityPlan.js';
 import { ART10 } from './artManifest.js';
 
@@ -315,10 +315,20 @@ const EMPTY = new Set();
  *  and the transition to grass is the soft autotile edge instead of the sprite's hard rectangle. Tile keys "x,y". */
 let yardMemo = { key: '', set: EMPTY };
 export function yardTiles(s) {
-  const t = tierOf(s), key = `${t}:${WORLD.version}:${(s.placed || []).filter(p => p.type === 'cottage' || p.type === 'workshop').map(p => p.tx + '.' + p.ty + '.' + p.level).join(',')}:${Object.values(s.publicSites || {}).map(o => o.status).join('')}`;
+  const t = tierOf(s), key = `${t}:${WORLD.version}:${WORLD.custom?.id || ''}:${(s.placed || []).filter(p => p.type === 'cottage' || p.type === 'workshop').map(p => p.tx + '.' + p.ty + '.' + p.level + p.status).join(',')}:${Object.values(s.publicSites || {}).map(o => o.status).join('')}`;
   if (yardMemo.key === key) return yardMemo.set;
   const out = new Set(), rect = (x0, y0, x1, y1) => { for (let y = Math.floor(y0); y <= Math.floor(y1); y++) for (let x = Math.floor(x0); x <= Math.floor(x1); x++) out.add(x + ',' + y); };
-  // v0.25: village buildings stand on lawn (no dirt/concrete blobs under them); only the big city buildings get a forecourt
+  // v0.29 every building stands on a ground base (owner: "they look dropped on the grass"): dirt yards in the camp/village,
+  // paved forecourts from อำเภอ up (terrain.js draws YARD as dirt below stage 2, pavers above) with soft autotile edges
+  rect(LEADER_HOUSE.tx - 1, LEADER_HOUSE.ty - 1, LEADER_HOUSE.tx + LEADER_HOUSE.w, LEADER_HOUSE.ty + LEADER_HOUSE.h);
+  const town = (s.town?.stage || 0) >= 2; // camp/village: small packed-earth pads; อำเภอ+: paved forecourts and driveways
+  for (const id of ['home', 'market', 'hall']) if (s.publicSites?.[id] && s.publicSites[id].status !== 'none') { const r = plotRect(id); if (town) rect(r.tx, r.ty + 1, r.tx + r.w - 1, r.ty + r.h); else rect(r.tx + 1, r.ty + r.h - 3, r.tx + r.w - 2, r.ty + r.h); }
+  for (const p of s.placed || []) if ((p.type === 'cottage' || p.type === 'workshop') && (p.level >= 1 || p.status === 'building')) { if (town) rect(p.tx - 1, p.ty, p.tx + 4, p.ty + 3); else rect(p.tx, p.ty + 1, p.tx + 3, p.ty + 3); }
+  if (WORLD.custom) for (const m of WORLD.custom.props) {
+    if ((m.tier || 1) > t || m.bridge || /^(pl_|rock_|ore_|cp_|pp_|pf_|an_|fence_|crop_)/.test(m.name)) continue; // buildings only (not bushes, lamps, animals)
+    const sz = ART10[m.name], w = sz ? Math.max(m.fw, sz[0] * (m.scale || 1) / 16) : m.fw, cx = m.x + m.fw / 2;
+    rect(cx - w / 2 - 1, m.y - 1, cx + w / 2, m.y + m.fh);
+  }
   if (t >= 3) for (const p of cityPlan(t, ART10).props) if (p.big) { const sz = ART10[p.name] || [64, 64], w = sz[0] / 16; rect(p.x - w / 2 - 1, p.y - Math.min(4, sz[1] / 16 * .3) - 1, p.x + w / 2, p.y + .5); }
   yardMemo = { key, set: out };
   return out;

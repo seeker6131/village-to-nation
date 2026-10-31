@@ -196,7 +196,7 @@ function buildChunkOrganic(cx, cy, stage) {
     const t = LAYERS[top], tx = Math.floor(wx / TILE), ty = Math.floor(wy / TILE);
     let name;
     const dPlaza = Math.hypot(wx + .5 - villageCx, wy + .5 - villageCy) + n * 6;
-    const plaza = stage >= 1 && dPlaza < plazaR;
+    const plaza = stage >= 1 && !WORLD.custom && dPlaza < plazaR;
     if (plaza) name = 'tx_road_cobble';
     else if (t === T.DIRT && stage >= 1 && Math.hypot(tx - CENTER.x, ty - CENTER.y) < 30) name = roadTexture(stage);
     else if (t === T.WATER) name = 'tx_water_0';
@@ -331,7 +331,7 @@ function cellGrid(stage) {
       if (lv >= 1) r++; else if (lv === 0) d++; else if (isW(t)) w++; else if (road(x, y)) r++; else if (PAVED.has(x + ',' + y)) pv++; else if (YARD.has(x + ',' + y)) { if (stage >= 2) pv++; else d++; } else if (t === T.DIRT) d++;
       if (t === T.MEADOW) me++; if (t === T.ROCKY) ro++;
     }
-    const i = Y * CW + X, plaza = stage >= 1 && Math.hypot(X * CELL + 1 - CENTER.x - .5, Y * CELL + 1 - CENTER.y - .5) < PLAZA_R + .6;
+    const i = Y * CW + X, plaza = stage >= 1 && !WORLD.custom && Math.hypot(X * CELL + 1 - CENTER.x - .5, Y * CELL + 1 - CENTER.y - .5) < PLAZA_R + .6;
     cellT[i] = mn >= 2 ? K.M : r >= 2 ? K.R : w >= 2 ? K.W : plaza || pv >= 2 ? K.P : d >= 2 ? K.D : K.G;
     cellSub[i] = me >= 2 ? K.MEADOW : ro >= 2 ? K.ROCKY : K.G;
     if (cellT[i] === K.W) { // narrow water = flowing stream frames, wide water = lake ripples
