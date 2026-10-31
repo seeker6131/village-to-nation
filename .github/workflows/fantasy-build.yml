@@ -29,6 +29,19 @@ jobs:
           Path('/tmp/fantasy.patch').write_bytes(zlib.decompress(Path('/tmp/patch.deflate').read_bytes()))
           PY
           patch -p1 < /tmp/fantasy.patch
+          # Keep visible creator direction synchronous even while an atlas is baking.
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/ui/creator.js')
+          s = p.read_text()
+          for d, v in [('3', 'prev'), ('1', 'next')]:
+              before = "dirIndex = (dirIndex + " + d + ") % 4; });"
+              after = "dirIndex = (dirIndex + " + d + ") % 4; $('#cr-dir').textContent = T[lang].dirs[DIRS[dirIndex]]; });"
+              if before not in s: raise RuntimeError('creator direction anchor missing: ' + v)
+              s = s.replace(before, after, 1)
+          p.write_text(s)
+          PY
+          cat scripts/fantasy-qa-append.txt >> tests/e2e/browser.e2e.mjs
       - name: Generate five maps, terrain and sprites from original images
         run: |
           python scripts/build-fantasy-maps.py
@@ -64,6 +77,7 @@ jobs:
           path: qa/screens
       - name: Commit completed and tested sources to staging branch
         run: |
+          rm -f scripts/fantasy-qa-append.txt
           rm -f scripts/bootstrap_patch.part*.txt
           rm -f .github/workflows/fantasy-build.yml
           git add -A
