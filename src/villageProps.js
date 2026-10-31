@@ -69,8 +69,9 @@ function customProps(s, t) {
   if (t >= 2) list.push(P('pp_board', POINTS.board.x + .5, POINTS.board.y + 1.1));
   for (const p of s.placed || []) if (p.type === 'cottage' && p.level >= 1) list.push(P('pp_mailbox', p.tx + 3.6, p.ty + 3.4));
   for (const m of WORLD.custom.props) {
-    const blk = []; for (let y = m.y; y < m.y + m.fh; y++) for (let x = m.x; x < m.x + m.fw; x++) blk.push([x, y]);
-    list.push(P(m.name, m.x + m.fw / 2, m.y + m.fh + .1, { block: blk, flip: m.flip, rot: m.rot || 0, pivot: m.fh * 8 + 1.6, scale: m.scale || 1, city: m.label })); // pivot: the footprint centre, like the Map Maker
+    if ((m.tier || 1) > t) continue; // drawn for a later era: the land waits for it
+    const blk = []; if (!m.bridge) for (let y = m.y; y < m.y + m.fh; y++) for (let x = m.x; x < m.x + m.fw; x++) blk.push([x, y]);
+    list.push(P(m.name, m.x + m.fw / 2, m.y + m.fh + .1, { block: blk, flip: m.flip, rot: m.rot || 0, pivot: m.fh * 8 + 1.6, scale: m.scale || 1, city: m.label, ...(m.bridge ? { flat: true } : {}) })); // pivot: the footprint centre, like the Map Maker
   }
   return list;
 }
@@ -88,6 +89,7 @@ function bridges() { // centred on the planked (FORD) span so the deck sits exac
 /** Water tiles a bridge makes walkable ("x,y"). */
 export function bridgeTiles(s) {
   const out = new Set(); for (const b of BRIDGES) for (let x = b.x0 - 3; x <= b.x1 + 3; x++) if (groundAt(x, b.y) === T.FORD) out.add(x + ',' + b.y); // only the deck row: you walk ON the bridge, not in the water under it
+  if (WORLD.custom) for (const m of WORLD.custom.props) if (m.bridge && (m.tier || 1) <= tierOf(s)) for (let y = m.y; y < m.y + m.fh; y++) for (let x = m.x; x < m.x + m.fw; x++) { const g = groundAt(x, y); if (g === T.WATER || g === T.FORD) out.add(x + ',' + y); } // a bridge drawn in the Map Maker
   if (tierOf(s) >= 3) for (const k of roadTiles(s)) { const [x, y] = k.split(',').map(Number); const g = groundAt(x, y); if (g === T.WATER || g === T.FORD) out.add(k); } // city streets bridge the river
   return out;
 }
@@ -104,7 +106,7 @@ export function clearPropTiles(s) {
   }
   // a city is not a village in the woods: from อำเภอ up the forest is cleared (parks keep their trees)
   const t = tierOf(s);
-  if (t >= 3) {
+  if (t >= 3 && !WORLD.custom) { // (a Map Maker map keeps its own trees and the leftover groves — the leader hires a crew for those)
     const plan = cityPlan(t, ART10);
     for (const nd of [...TREES, ...ROCKS]) if (nodeStatus(s, nd) !== 'gone' && !cityKeepsTree(t, nd.x, nd.y, plan)) { setNode(s, nd.id, 'x'); n++; }
   }

@@ -324,10 +324,24 @@ export function yardTiles(s) {
   return out;
 }
 /** Villagers clear trees/rocks standing on the roads of unlocked tiers. Returns how many were removed. */
+/** v0.29 when an area opens its forest is cleared, but ~1/4 stays as scattered groves (chop them for wood, or the
+ *  leader hires a crew from the treasury — hireClearing). Deterministic per tile so saves agree. */
+const gh = (x, y, k) => (((Math.imul(x, 73856093) ^ Math.imul(y, 19349663) ^ Math.imul(k, 83492791)) >>> 0) % 1000) / 1000;
+export const CLEAR_COST = 4; // coins per tree for a hired crew
+export const keepsTree = n => gh(Math.floor(n.x / 6), Math.floor(n.y / 6), 7) < .42 && gh(n.x, n.y, 3) < .62; // groves, not lone dots
+export function leftoverTrees(s) { if (!WORLD.custom?.tiers) return []; const t = tierOf(s); return TREES.filter(n => n.lockTier && n.lockTier <= t && keepsTree(n) && nodeStatus(s, n) !== 'gone'); }
+export function hireClearing(s, isLeader) {
+  if (!isLeader) return { ok: false, msg: 'ต้องเป็นผู้นำถึงจะจ้างคนถางป่าได้' };
+  const left = leftoverTrees(s), cost = left.length * CLEAR_COST;
+  if (!left.length) return { ok: false, msg: 'ไม่มีป่าเหลือในพื้นที่ที่เปิดแล้ว' };
+  if ((s.town.treasury || 0) < cost) return { ok: false, msg: `งบคลังไม่พอ (ต้องใช้ ${cost} มี ${Math.floor(s.town.treasury || 0)})` };
+  s.town.treasury -= cost; for (const n of left) setNode(s, n.id, 'x');
+  return { ok: true, msg: `🪓 จ้างคนถางป่า ${left.length} ต้น · −${cost} จากคลัง`, n: left.length, cost };
+}
 export function openRoads(s) {
   let n = 0;
-  // v0.28 maps with levels: the forest of every area that is now open is cleared (villagers and the development fund)
-  if (WORLD.custom?.tiers) { const t = tierOf(s); for (const node of TREES) if (node.lockTier && node.lockTier <= t && nodeStatus(s, node) !== 'gone') { setNode(s, node.id, 'x'); n++; } }
+  // v0.28 maps with levels: the forest of every area that is now open is cleared (villagers and the development fund) — v0.29 groves stay
+  if (WORLD.custom?.tiers) { const t = tierOf(s); for (const node of TREES) if (node.lockTier && node.lockTier <= t && !keepsTree(node) && nodeStatus(s, node) !== 'gone') { setNode(s, node.id, 'x'); n++; } }
   for (const k of roadTiles(s)) {
     const [x, y] = k.split(',').map(Number), node = nodeOnTile(x, y);
     if (node && nodeStatus(s, node) !== 'gone') { setNode(s, node.id, 'x'); n++; }

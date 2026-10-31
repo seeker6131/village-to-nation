@@ -10,6 +10,7 @@
 export const TILE = 16, WORLD_W = 144, WORLD_H = 96;
 import { LAYOUTS, ZONE_SHAPES } from './worldLayouts.js';
 import { MAPS } from './maps/index.js';
+import { ART10 } from './artManifest.js';
 export const T = { GRASS: 0, FOREST: 1, DIRT: 2, WATER: 3, SAND: 4, ROCKY: 5, FORD: 6, MEADOW: 7 };
 export const BIOMES = {
   forest:    { th: 'ป่าทึบ', treeDensity: 0.62, rockChance: 0.02, rivers: 1, lakes: 1, rocky: 0.18, pines: 0.25, fruit: 0.05, meadow: 0.12 },
@@ -345,7 +346,10 @@ function placePlots(M) {
   const used = new Set(), mark = (x0, y0, w, h, pad = 0) => { for (let y = y0 - pad; y < y0 + h + pad; y++) for (let x = x0 - pad; x < x0 + w + pad; x++) used.add(x + ',' + y); };
   for (const sl of [...M.npcSlots, ...M.lots]) mark(sl.tx, sl.ty, 4, 3, 1);
   if (M.workshop) mark(M.workshop.tx, M.workshop.ty, 4, 3, 1);
-  for (const p of M.props) mark(p.x, p.y - 3, p.fw, p.fh + 3, 1);
+  for (const p of M.props) { // the whole picture, not just its base: a palace / tower is far taller than its footprint
+    const a = ART10[p.name], sc = p.scale || 1, hT = a ? Math.ceil(a[1] * sc / 16) + 1 : p.fh + 3, wT = a ? Math.ceil(a[0] * sc / 16) : p.fw;
+    mark(Math.floor(p.x + p.fw / 2 - Math.max(wT, p.fw) / 2), p.y + p.fh - Math.max(hT, p.fh), Math.max(wT, p.fw), Math.max(hT, p.fh), 1);
+  }
   if (M.workshop) mark(M.workshop.tx, M.workshop.ty - 3, 4, 6, 1);
   mark(LEADER_HOUSE.tx, LEADER_HOUSE.ty - 7, LEADER_HOUSE.w, LEADER_HOUSE.h + 7, 2); // the house sprite is ~8 tiles tall: nothing right behind it
   for (const id of ['camp', 'board', 'study', 'delivery']) mark(POINTS[id].x, POINTS[id].y, 1, 1, 1);
@@ -356,7 +360,7 @@ function placePlots(M) {
     for (let cy = CENTER.y - 30; cy <= CENTER.y + 30; cy++) for (let cx = CENTER.x - 34; cx <= CENTER.x + 34; cx++) {
       const x0 = cx - Math.floor(P.w / 2), y0 = cy - Math.floor(P.h / 2); let ok = true, trees = 0;
       for (let y = y0; y < y0 + P.h && ok; y++) for (let x = x0; x < x0 + P.w; x++) {
-        if (!inside(x, y) || x < 2 || y < 2 || used.has(x + ',' + y) || WORLD.ground[idx(x, y)] === T.WATER || (M.roads[y]?.[x] || '.') !== '.') { ok = false; break; }
+        if (!inside(x, y) || x < 2 || y < 2 || used.has(x + ',' + y) || WORLD.ground[idx(x, y)] === T.WATER || (M.roads[y]?.[x] || '.') !== '.' || +(M.tiers?.[y]?.[x] || 1) > 1) { ok = false; break; } // only land that is open from the start
         if (nodeAt.has(idx(x, y))) trees++;
       }
       if (!ok) continue;
@@ -364,6 +368,7 @@ function placePlots(M) {
       if (!best || score < best.score) best = { cx, cy, x0, y0, score };
     }
     if (best) { P.x = best.cx; P.y = best.cy; mark(best.x0, best.y0, P.w, P.h, 1); }
+    else console.warn(`map ${M.id}: no free land for the ${id} plot — pin it with a public marker`);
   });
 }
 function addNode(list, n) { if (nodeAt.has(idx(n.x, n.y))) return; list.push(n); nodeAt.set(idx(n.x, n.y), n); }
