@@ -56,6 +56,9 @@ export function drawLighting(ctx, W, H, hour, lights, quality) {
     if (!L.warm) continue; const r = L.r * .7; if (L.x < -r || L.y < -r || L.x > W + r || L.y > H + r) continue;
     ctx.globalAlpha = Math.min(1, .38 * L.a * k); ctx.drawImage(glowSprite(), L.x - r, L.y - r, r * 2, r * 2);
   }
+  // window panes: a tiny bright pane at each window light (the twinkle)
+  ctx.globalCompositeOperation = 'source-over';
+  for (const L of lights) { if (!L.dot) continue; const d = Math.max(2, L.r * .12); if (L.x < 0 || L.y < 0 || L.x > W || L.y > H) continue; ctx.globalAlpha = Math.min(1, L.a * k * 1.1); ctx.fillStyle = '#ffe9a8'; ctx.fillRect(Math.round(L.x - d / 2), Math.round(L.y - d / 2), Math.round(d), Math.round(d * 1.3)); }
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   return sky;
 }

@@ -82,7 +82,7 @@ const LOT_ZONES = { 3: ['hill', 'temple'], 4: ['quarter', 'hill'], 5: ['newtown'
 const LOT_TH = { 2: 'หมู่บ้าน', 3: 'อำเภอ', 4: 'จังหวัด', 5: 'ประเทศ' };
 const VILLAGE_ROWS = [[60, [15, 20, 25, 30, 35, 42, 57]], [66, [15, 20, 25, 30, 35, 42, 47, 52, 57]]]; // lanes at y 64 / 70 (tier 2 roads)
 let lotMemo = { key: '', all: [], lanes: [] };
-function allLots() {
+export function allLots() {
   const key = `${WORLD.seed}:${WORLD.plan}:${WORLD.version}`;
   if (lotMemo.key === key) return lotMemo;
   syncPlan();

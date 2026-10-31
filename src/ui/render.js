@@ -383,9 +383,20 @@ export function render() {
   // day/night: sky tint + light map (lamps, campfire, lit windows, player lantern) — src/ui/lighting.js
   const hour = s.gameTime / 3600, lights = [];
   if (prof.nightLights && skyAt(hour).dark > .01) {
-    const L = (wx, wy, r, a, warm = true) => { const p = toScreen(wx, wy); lights.push({ x: p.x, y: p.y, r: r * scale, a, warm }); };
+    const L = (wx, wy, r, a, warm = true, dot = false) => { const p = toScreen(wx, wy); lights.push({ x: p.x, y: p.y, r: r * scale, a, warm, dot }); };
     const flick = 1 + Math.sin(G.now * 11) * .05 + Math.sin(G.now * 17.3) * .04;
-    for (const p of villageProps(s)) if (p.light) p.anim ? L(p.x * TILE, (p.y - .5) * TILE, 80 * flick, 1) : L(p.x * TILE, (p.y - 2.6) * TILE, 52, .95);
+    for (const p of villageProps(s)) {
+      if (p.light) { p.anim ? L(p.x * TILE, (p.y - .5) * TILE, 80 * flick, 1) : L(p.x * TILE, (p.y - (p.name === 'cp_lamp' ? 1.6 : 2.6)) * TILE, p.street ? 64 : 52, .95); continue; }
+      // v0.29 lit windows: a few on a house, many on a tower; they come on through the evening and twinkle
+      const A = ART10[p.name]; if (!A || p.flat || !/^(cb_|cd_|bz_|sh_|po_|hz|hs|market_|hall_|house_|leader_|bs_|gt_)/.test(p.name)) continue;
+      const sc = p.scale || 1, w = A[0] * sc, h = A[1] * sc, n = Math.max(1, Math.min(16, Math.round(w * h / 1500))), cx = p.x * TILE, by = p.y * TILE;
+      for (let i = 0; i < n; i++) {
+        const seed = Math.floor(p.x * 7 + p.y * 13) * 31 + i;
+        if (!windowLit(hour + (n > 6 ? .6 : 0), seed)) continue; // offices / towers stay lit a little later
+        const wx = cx + (hash(seed, 1, 3) - .5) * w * .7, wy = by - h * (.22 + hash(seed, 2, 5) * .6), tw = .55 + .3 * Math.sin(G.now * (1.3 + hash(seed, 4, 7) * 2.2) + seed);
+        L(wx, wy, 16 + hash(seed, 5, 9) * 10, tw, true, true);
+      }
+    }
     for (const p of s.placed) {
       if (p.type === 'lamp' && p.level >= 1) L((p.tx + .5) * TILE, p.ty * TILE - 16, 56 + p.level * 14, .95);
       if (p.type === 'cottage' && p.level >= 1 && windowLit(hour, p.tx * 31 + p.ty)) L((p.tx + 2) * TILE, (p.ty + 2.2) * TILE, 34, .75);

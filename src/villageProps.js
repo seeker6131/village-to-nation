@@ -2,8 +2,8 @@
 // benches, farm tools, animal pens, a bridge over the river) placed by hand like the reference village map.
 // Pure: returns a list the renderer draws and the game uses for collision. Positions are in TILES; (x, y) is the
 // bottom-centre of the sprite. `block` = tiles that become solid.
-import { CENTER, TENTS, POINTS, WORLD_W, groundAt, T, nodeOnTile, nodeStatus, setNode, TREES, ROCKS, BRIDGES, WORLD, ORIGIN } from './world.js';
-import { tierOf, slotState, TIERS, roadTiles } from './villageLayout.js';
+import { CENTER, TENTS, POINTS, WORLD_W, WORLD_H, groundAt, T, nodeOnTile, nodeStatus, setNode, TREES, ROCKS, BRIDGES, WORLD, ORIGIN, LEADER_HOUSE, plotRect, hash } from './world.js';
+import { tierOf, slotState, TIERS, roadTiles, openSlots, allLots } from './villageLayout.js';
 import { cityPlan, cityKeepsTree } from './cityPlan.js';
 import { ART10 } from './artManifest.js';
 
@@ -46,7 +46,7 @@ export function villageProps(s) {
   const key = `${t}|${built}|${s.world?.seed}|${s.world?.ver}|${WORLD.plan}`;
   if (memo.key === key) return memo.list;
   const list = [];
-  if (WORLD.custom) { memo = { key, list: customProps(s, t) }; return memo.list; }
+  if (WORLD.custom) { const l = customProps(s, t); streetLamps(s, t, l); memo = { key, list: l }; return memo.list; }
   for (const p of TIER1) if (!p.only || t <= p.only) list.push(p);
   if (t <= 1) for (let i = 0; i < TENTS.length; i++) list.push(P(i === 0 ? 'pc_tent' : 'pc_tent_small', TENTS[i].tx + 1, TENTS[i].ty + 2));
   if (t >= 2) list.push(...TIER2);
@@ -58,8 +58,38 @@ export function villageProps(s) {
   // entrance arch over the south road (bamboo -> village arch -> district gate -> city gateway)
   list.push(P(['gt_bamboo', 'gt_village', 'gt_district', 'gt_city'][era], GATE.x, GATE.y, { block: [[GATE.x - 2, GATE.y - 1], [GATE.x + 1, GATE.y - 1]].map(([x, y]) => [Math.floor(x), Math.floor(y)]) }));
   if (t >= 3) list.push(...cityPlan(t, ART10).props);
+  streetLamps(s, t, list);
   memo = { key, list };
   return list;
+}
+
+/** v0.29 street lights along every open road from the village era: lantern posts in the village, modern lamps from
+ *  อำเภอ up. One on the verge every ~8 tiles, alternating sides, never on a road, plot, door, tree, water or prop. */
+function streetLamps(s, t, list) {
+  if (t < 2) return;
+  const R = roadTiles(s), name = t >= 3 ? 'cp_lamp' : 'pp_lamp', busy = new Set(), mark = (x0, y0, w, h, pad = 1) => { for (let y = y0 - pad; y < y0 + h + pad; y++) for (let x = x0 - pad; x < x0 + w + pad; x++) busy.add(x + ',' + y); };
+  for (const p of list) { for (const [x, y] of p.block || [[Math.floor(p.x), Math.floor(p.y - .01)]]) busy.add(x + ',' + y); if (/lamp/.test(p.name)) mark(Math.floor(p.x), Math.floor(p.y), 1, 1, 5); }
+  for (const sl of [...openSlots(s), ...(WORLD.custom ? allLots().all : [])]) mark(sl.tx, sl.ty - 2, 4, 6, 1); // house + roof + yard
+  for (const id of ['home', 'farm', 'market', 'hall']) { const r = plotRect(id); mark(r.tx, r.ty - 4, r.w, r.h + 4, 1); }
+  mark(LEADER_HOUSE.tx, LEADER_HOUSE.ty - 6, LEADER_HOUSE.w, LEADER_HOUSE.h + 9, 1);
+  for (const id of ['camp', 'board', 'study', 'delivery']) mark(POINTS[id].x, POINTS[id].y, 1, 1, 2);
+  const out = [], near = (x, y) => out.some(([a, b]) => Math.abs(a - x) + Math.abs(b - y) < 7);
+  for (const k of R) {
+    const [x, y] = k.split(',').map(Number);
+    const horiz = R.has(x - 1 + ',' + y) || R.has(x + 1 + ',' + y), vert = R.has(x + ',' + (y - 1)) || R.has(x + ',' + (y + 1));
+    if (horiz === vert) continue; // straight stretches only (no lamps in the middle of crossings)
+    if ((horiz ? x : y) % 8) continue;
+    const side = hash(horiz ? x : y, 3, 41) < .5 ? -1 : 1;
+    for (const d of [side, -side]) {
+      let cx = horiz ? x : x + d, cy = horiz ? y + d : y;
+      while (R.has(cx + ',' + cy)) { if (horiz) cy += d; else cx += d; if (Math.abs(cx - x) + Math.abs(cy - y) > 4) break; } // wide roads: walk to the verge
+      if (R.has(cx + ',' + cy) || cx < 1 || cy < 2 || cx >= WORLD_W - 1 || cy >= WORLD_H - 1 || busy.has(cx + ',' + cy) || near(cx, cy)) continue;
+      const g = groundAt(cx, cy); if (g === T.WATER || g === T.FORD) continue;
+      const n = nodeOnTile(cx, cy); if (n && nodeStatus(s, n) !== 'gone') continue;
+      out.push([cx, cy]); busy.add(cx + ',' + cy); break;
+    }
+  }
+  for (const [x, y] of out) list.push(P(name, x + .5, y + 1, { light: true, block: [[x, y]], street: true }));
 }
 /** v0.27 a Map Maker map: its own props (solid footprints) + the camp essentials in front of the leader house. */
 function customProps(s, t) {
