@@ -91,7 +91,7 @@ test('village land: buildable only on cleared ground inside the village circle, 
 
 test('pixel-perfect zoom: rendered zoom * canvas scale is always a whole number', () => {
   for (const k of [1, 1.5, 2, 2.6, 3, 0.75, 0.5]) for (const z of [1.1, 1.73, 2.4, 3.9]) {
-    const v = snapZoom(z, k) * k; assert.ok(Math.abs(v - Math.round(v)) < 1e-9 && v >= 1, `${z}@${k}`);
+    const v = snapZoom(z, k) * k; assert.ok((Math.abs(v - Math.round(v)) < 1e-9 && v >= 1) || [1 / 2, 1 / 3, 1 / 4].some(f => Math.abs(v - f) < 1e-9), `${z}@${k}`); // far out: whole fractions only
   }
   const c = createCamera(); c.k = 2.6; setZoom(c, 2.31, 844, 390);
   assert.ok(Math.abs(c.zoom * 2.6 - Math.round(c.zoom * 2.6)) < 1e-9);

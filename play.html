@@ -268,6 +268,7 @@ body.force-land #app{inset:auto;top:0;left:0;transform-origin:0 0}
 /* showcase ("ดูเมืองเต็มระดับ") */
 .showcase-bar{position:absolute;left:50%;top:calc(52px + var(--safe-t));transform:translateX(-50%);z-index:8;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;max-width:calc(100% - 20px);background:#1d3b31f2;border:2px solid var(--gold);border-radius:12px;padding:6px 10px;color:#fff6da}
 .showcase-bar .sc-tiers{display:flex;gap:4px;flex-wrap:wrap}
+.showcase-bar.min>*:not(#sc-min):not(b){display:none}.showcase-bar #sc-min{border:2px solid #7fae86;background:#2f6b4f;color:#fff6da;border-radius:9px;padding:2px 8px;font-weight:700;font-size:12px}.showcase-bar.min{padding:3px 6px;gap:4px}
 .showcase-bar .sc-map{display:flex;gap:4px;align-items:center}.showcase-bar .sc-map button{border:2px solid #7fae86;background:#2f6b4f;color:#fff6da;border-radius:9px;padding:4px 8px;font-weight:700;font-size:12px}.showcase-bar #sc-map-name{font-weight:700;font-size:12px;max-width:190px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .showcase-bar .sc-tiers button{border:2px solid #7fae86;background:#2f6b4f;color:#fff6da;border-radius:9px;padding:4px 9px;font-weight:700;font-size:12px}
 .showcase-bar .sc-tiers button.on{background:var(--gold);color:#3a2814;border-color:#fff3c4}
@@ -277,7 +278,8 @@ body.force-land #app{inset:auto;top:0;left:0;transform-origin:0 0}
 .ss-sandbox{display:flex;gap:6px;align-items:center;font-size:12.5px;color:#ffe9a8;background:#0006;padding:5px 10px;border-radius:10px;cursor:pointer}.ss-sandbox input{width:18px;height:18px}
 
 /* very short landscape phones: shrink the HUD so the world gets the screen */
-#app.tiny .hud-card,#app.tiny .quest-pin,#app.tiny .hud-top,#app.tiny .hud-tools,#app.tiny .dock,#app.tiny .action-btn,#app.tiny .stick,#app.tiny .kbd-hint,#app.tiny .showcase-bar,#app.tiny .buildbar{zoom:.78}
+#app .hud-card,#app .quest-pin,#app .hud-top,#app .hud-tools,#app .dock,#app .action-btn,#app .stick,#app .kbd-hint,#app .showcase-bar,#app .buildbar,#app .devbar,#app .location{zoom:var(--ui,1)}
+#app.tiny .hud-card,#app.tiny .quest-pin,#app.tiny .hud-top,#app.tiny .hud-tools,#app.tiny .dock,#app.tiny .action-btn,#app.tiny .stick,#app.tiny .kbd-hint,#app.tiny .showcase-bar,#app.tiny .buildbar{zoom:calc(var(--ui,1) * .78)}
 #app.tiny .toast{zoom:.85}
 
 /* v0.19 test-mode bar: develop the current level to the max, then step the era up/down to review each one */
@@ -287,7 +289,7 @@ body.force-land #app{inset:auto;top:0;left:0;transform-origin:0 0}
 .devbar button:hover{background:#a76b34;border-color:var(--gold)}
 .devbar span{font-weight:800;font-size:13px;min-width:92px;text-align:center}
 #app.showcasing .devbar{display:none}
-#app.tiny .devbar{zoom:.78}
+#app.tiny .devbar{zoom:calc(var(--ui,1) * .78)}
 
 .designs{display:flex;gap:6px;flex-wrap:wrap}.designs .design{width:84px;padding:4px;border-radius:10px;border:2px solid var(--hud-line);background:#0003;display:flex;flex-direction:column;align-items:center}.designs .design.on{border-color:var(--gold);background:#a76b3455}.designs img{width:72px;height:60px;object-fit:contain;image-rendering:pixelated}
 </style>
@@ -361,7 +363,7 @@ body.force-land #app{inset:auto;top:0;left:0;transform-origin:0 0}
   </aside>
 
   <section id="showcase-bar" class="showcase-bar hidden" aria-label="ดูเมืองเต็มระดับ">
-    <b>🏙 ดูเมืองเต็มระดับ</b><div class="sc-map"><button type="button" data-map="-1" title="แมพก่อนหน้า">◀</button><span id="sc-map-name">แมพ</span><button type="button" data-map="1" title="แมพถัดไป">▶</button><button type="button" id="sc-overview" title="ซูมออกดูภาพรวม (ลากเลื่อนดูส่วนอื่น)">🗺 ซูมออก</button></div><div class="sc-tiers"></div><button id="showcase-exit" type="button" class="btn small">✕ กลับเกมจริง</button>
+    <button type="button" id="sc-min" title="ย่อ/ขยายแถบนี้">▾</button><b>🏙 ดูเมืองเต็มระดับ</b><div class="sc-map"><button type="button" data-map="-1" title="แมพก่อนหน้า">◀</button><span id="sc-map-name">แมพ</span><button type="button" data-map="1" title="แมพถัดไป">▶</button><button type="button" id="sc-overview" title="ซูมออกดูภาพรวม (ลากเลื่อนดูส่วนอื่น)">🗺 ซูมออก</button></div><div class="sc-tiers"></div><button id="showcase-exit" type="button" class="btn small">✕ กลับเกมจริง</button>
     <small id="showcase-info"></small>
   </section>
   <div id="toast" class="toast" aria-live="polite"></div>
@@ -440,7 +442,8 @@ __mod["src/performance.js"] = (() => {
 const SETTINGS_KEY = 'v2n-visual-settings-v1';
 const FPS_OPTIONS = Object.freeze([30, 60, 120]);
 const GRAPHICS_OPTIONS = Object.freeze(['low', 'medium', 'high']);
-const DEFAULT_SETTINGS = Object.freeze({ fps: 60, quality: 'medium', showFps: false, sfx: 0.6, ambience: 0.3, muted: false });
+const DEFAULT_SETTINGS = Object.freeze({ fps: 60, quality: 'medium', showFps: false, sfx: 0.6, ambience: 0.3, muted: false, uiScale: 1 });
+const UI_SCALES = [0.6, 0.7, 0.8, 0.9, 1, 1.15];
 
 /**
  * Real rendering behaviour per quality level (read by src/ui/render.js every frame):
@@ -465,7 +468,7 @@ function normalizeSettings(input) {
   const obj = input && typeof input === 'object' ? input : {};
   const fps = FPS_OPTIONS.includes(Number(obj.fps)) ? Number(obj.fps) : 60;
   const quality = GRAPHICS_OPTIONS.includes(obj.quality) ? obj.quality : 'medium';
-  return { fps, quality, showFps: obj.showFps === true, sfx: vol(obj.sfx, DEFAULT_SETTINGS.sfx), ambience: vol(obj.ambience, DEFAULT_SETTINGS.ambience), muted: obj.muted === true };
+  return { fps, quality, showFps: obj.showFps === true, sfx: vol(obj.sfx, DEFAULT_SETTINGS.sfx), ambience: vol(obj.ambience, DEFAULT_SETTINGS.ambience), muted: obj.muted === true, uiScale: UI_SCALES.includes(Number(obj.uiScale)) ? Number(obj.uiScale) : 1 };
 }
 
 function loadSettings(storage) {
@@ -491,7 +494,7 @@ function canvasResolution(cssW, cssH, dpr, quality) {
   return { w, h, k: w / Math.max(1, cssW) };
 }
 
-return { DEFAULT_SETTINGS, FPS_OPTIONS, GRAPHICS_OPTIONS, QUALITY_PROFILES, SETTINGS_KEY, canvasResolution, frameIntervalMs, loadSettings, normalizeSettings, saveSettings };
+return { DEFAULT_SETTINGS, FPS_OPTIONS, GRAPHICS_OPTIONS, QUALITY_PROFILES, SETTINGS_KEY, UI_SCALES, canvasResolution, frameIntervalMs, loadSettings, normalizeSettings, saveSettings };
 })();
 // ==== src/worldLayouts.js ====
 __mod["src/worldLayouts.js"] = (() => {
@@ -3673,20 +3676,22 @@ function createCamera() { return { x: 40 * TILE, y: 50 * TILE, zoom: 2, zoomTarg
 // the far-out overview.
 // v0.16: every whole canvas px per world px is allowed (more zoom levels); odd steps make 2x sprite pixels
 // alternate 1/2 px only at tiny zooms, invisible from 3x up.
-const evenStep = v => Math.max(1, Math.round(v));
+const evenStep = v => v >= 1 ? Math.round(v) : 1 / Math.max(1, Math.min(4, Math.round(1 / Math.max(v, .2)))); // v0.29 far out: 1/2, 1/3, 1/4 (overview only)
 function snapZoom(z, k = 1) { return evenStep(z * k) / k; }
+const stepsUp = k => [1 / 4, 1 / 3, 1 / 2, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 32].map(v => v / k);
 
 /** Comfortable default: about 15 tiles of height visible, more on big screens. */
 function defaultZoom(cssW, cssH) { const rows = cssH > 600 ? 21 : cssH <= 360 ? 17 : 15; return Math.max(1, Math.min(4, Math.min(cssH / (rows * TILE), cssW / (26 * TILE)))); }
 function zoomLimits(cssW, cssH) {
-  const min = Math.max(cssW / WORLD_PX_W, cssH / WORLD_PX_H); // never show outside the map
+  const min = Math.min(cssW / WORLD_PX_W, cssH / WORLD_PX_H); // v0.29 zoom out until the whole map fits (owner: zoom out further)
   return { min: Math.min(min, 4), max: 8 };
 }
 function setZoom(cam, z, cssW, cssH) {
   const { min, max } = zoomLimits(cssW, cssH), k = cam.k || 1;
   cam.zoomTarget = Math.max(min, Math.min(max, z));
   let snapped = snapZoom(cam.zoomTarget, k);
-  if (snapped < min) snapped = Math.ceil(min * k - 1e-9) / k; // never show outside the map
+  const low = [...stepsUp(k)].reverse().find(v => v <= min + 1e-9) ?? stepsUp(k)[0]; // the step that shows the whole map (a thin margin is fine)
+  if (snapped < low) snapped = low;
   if (snapped > max) snapped = Math.max(1, Math.floor(max * k)) / k;
   cam.zoom = snapped;
   return cam.zoom;
@@ -6410,6 +6415,7 @@ function applySettings() {
   G.applyZoom?.(); // re-snap zoom to whole canvas pixels for the new resolution
   const fc = document.querySelector('#fps-counter'); if (fc) fc.hidden = !G.settings.showFps;
   configureAudio(G.settings);
+  document.querySelector('#app')?.style.setProperty('--ui', String(G.settings.uiScale || 1)); // HUD size (settings → ขนาดปุ่ม/หน้าจอ)
 }
 
 return { applySettings };
@@ -6430,7 +6436,7 @@ const { ensureLeadership, popularityFactors, termDaysLeft, canRun, roleLabel, vo
 const { plotObstacles, REGIONS, BIOMES, WORLD, TILE } = __mod["src/world.js"];
 const { population, housingCapacity, npcPhrase, allNpcDefs, isDone, officialsCount } = __mod["src/npcs.js"];
 const { OUTFITS } = __mod["src/character/model.js"];
-const { saveSettings } = __mod["src/performance.js"];
+const { saveSettings, UI_SCALES } = __mod["src/performance.js"];
 const { configureAudio, sfx, audioState } = __mod["src/audio.js"];
 const { G, result, saveNow, enterBuild, resetNpcPlans, rebuildNpcs } = __mod["src/ui/game.js"];
 const { PAVE, roadSegments, segmentLevel, paveCost, paveSegment, pavedShare, TIERS, tierOf, tierInfo, officeNeeds, slotState, nextTierCheck, leftoverTrees, hireClearing, CLEAR_COST, upgradeVillage, publicUnlocked, publicTier, SLOT_KINDS, openSlots, slotObstacles } = __mod["src/villageLayout.js"];
@@ -6743,6 +6749,7 @@ function settings() {
   <div class="range"><span>บรรยากาศ</span><input type="range" min="0" max="100" value="${Math.round(st.ambience * 100)}" data-range="ambience" /><b>${Math.round(st.ambience * 100)}</b></div>
   <div class="setting-row"><button class="choice ${st.muted ? 'on' : ''}" data-act="toggleMute">${st.muted ? '🔇 ปิดเสียงอยู่' : '🔈 ปิดเสียงทั้งหมด'}</button>${btn('▶ ทดสอบเสียง', 'testSound', '', { cls: 'btn ghost small' })}</div>
   <p class="help">สถานะเสียง: ${a.ready ? a.state : 'รอการแตะครั้งแรก (ข้อกำหนดของเบราว์เซอร์)'} · เสียงเป็นเสียงสังเคราะห์ชั่วคราว</p>
+  <h3>🔠 ขนาดปุ่มและแถบบนจอ</h3><div class="setting-row">${UI_SCALES.map(v => `<button class="choice ${(st.uiScale || 1) === v ? 'on' : ''}" data-act="setUiScale" data-id="${v}">${Math.round(v * 100)}%</button>`).join('')}</div><p class="help">ปุ่มบังจอ? เลือกเล็กลง จะเห็นหมู่บ้านมากขึ้น</p>
   <h3>🖥️ จอ</h3><div class="setting-row">${btn('⛶ สลับเต็มจอ', 'fullscreen', '', { cls: 'btn ghost small' })} ${btn('🔍 รีเซ็ตซูม', 'resetZoom', '', { cls: 'btn ghost small' })}</div>`;
 }
 function menu() {
@@ -6815,6 +6822,7 @@ function onClick(e) {
     case 'buySku': r = purchase(s, id); break;
     case 'mockGrant': r = grantMockEntitlement(s, id, G.dev); break;
     case 'tryOutfit': return G.openCreator('edit', { tryOutfit: id });
+    case 'setUiScale': G.settings = saveSettings(G.storage, { ...G.settings, uiScale: Number(id) }); applySettings(); r = { ok: true, msg: `ขนาด UI ${Math.round(G.settings.uiScale * 100)}%` }; break;
     case 'setFps': G.settings = saveSettings(G.storage, { ...G.settings, fps: Number(id) }); r = { ok: true, msg: `จำกัด FPS สูงสุด ${G.settings.fps}` }; break;
     case 'setQuality': G.settings = saveSettings(G.storage, { ...G.settings, quality: id }); applySettings(); r = { ok: true, msg: `กราฟิก ${id.toUpperCase()} · ความละเอียด ${G.resolution}` }; break;
     case 'toggleFps': G.settings = saveSettings(G.storage, { ...G.settings, showFps: !G.settings.showFps }); applySettings(); r = { ok: true, msg: G.settings.showFps ? 'แสดง FPS' : 'ซ่อน FPS' }; break;
@@ -7393,6 +7401,7 @@ function initShowcase() {
     const b = e.target.closest('[data-show]'); if (b) enterShowcase(Number(b.dataset.show)); if (e.target.closest('#showcase-exit')) exitShowcase();
     const m = e.target.closest('[data-map]'); if (m && G.preview) { G.preview.plan = (G.preview.plan + Number(m.dataset.map) + PLANS.length) % PLANS.length; enterShowcase(G.preview.id || 2); }
     if (e.target.closest('#sc-overview')) G.toggleOverview?.();
+    if (e.target.closest('#sc-min')) { const bar = $('#showcase-bar'), min = bar.classList.toggle('min'); $('#sc-min').textContent = min ? '▸' : '▾'; }
   });
   G.enterShowcase = enterShowcase; G.exitShowcase = exitShowcase;
   // test mode only: build the current level out completely, then step the era up to review the next one

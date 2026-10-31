@@ -258,6 +258,7 @@ body.force-land #app{inset:auto;top:0;left:0;transform-origin:0 0}
 /* showcase ("ดูเมืองเต็มระดับ") */
 .showcase-bar{position:absolute;left:50%;top:calc(52px + var(--safe-t));transform:translateX(-50%);z-index:8;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;max-width:calc(100% - 20px);background:#1d3b31f2;border:2px solid var(--gold);border-radius:12px;padding:6px 10px;color:#fff6da}
 .showcase-bar .sc-tiers{display:flex;gap:4px;flex-wrap:wrap}
+.showcase-bar.min>*:not(#sc-min):not(b){display:none}.showcase-bar #sc-min{border:2px solid #7fae86;background:#2f6b4f;color:#fff6da;border-radius:9px;padding:2px 8px;font-weight:700;font-size:12px}.showcase-bar.min{padding:3px 6px;gap:4px}
 .showcase-bar .sc-map{display:flex;gap:4px;align-items:center}.showcase-bar .sc-map button{border:2px solid #7fae86;background:#2f6b4f;color:#fff6da;border-radius:9px;padding:4px 8px;font-weight:700;font-size:12px}.showcase-bar #sc-map-name{font-weight:700;font-size:12px;max-width:190px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .showcase-bar .sc-tiers button{border:2px solid #7fae86;background:#2f6b4f;color:#fff6da;border-radius:9px;padding:4px 9px;font-weight:700;font-size:12px}
 .showcase-bar .sc-tiers button.on{background:var(--gold);color:#3a2814;border-color:#fff3c4}
@@ -267,7 +268,8 @@ body.force-land #app{inset:auto;top:0;left:0;transform-origin:0 0}
 .ss-sandbox{display:flex;gap:6px;align-items:center;font-size:12.5px;color:#ffe9a8;background:#0006;padding:5px 10px;border-radius:10px;cursor:pointer}.ss-sandbox input{width:18px;height:18px}
 
 /* very short landscape phones: shrink the HUD so the world gets the screen */
-#app.tiny .hud-card,#app.tiny .quest-pin,#app.tiny .hud-top,#app.tiny .hud-tools,#app.tiny .dock,#app.tiny .action-btn,#app.tiny .stick,#app.tiny .kbd-hint,#app.tiny .showcase-bar,#app.tiny .buildbar{zoom:.78}
+#app .hud-card,#app .quest-pin,#app .hud-top,#app .hud-tools,#app .dock,#app .action-btn,#app .stick,#app .kbd-hint,#app .showcase-bar,#app .buildbar,#app .devbar,#app .location{zoom:var(--ui,1)}
+#app.tiny .hud-card,#app.tiny .quest-pin,#app.tiny .hud-top,#app.tiny .hud-tools,#app.tiny .dock,#app.tiny .action-btn,#app.tiny .stick,#app.tiny .kbd-hint,#app.tiny .showcase-bar,#app.tiny .buildbar{zoom:calc(var(--ui,1) * .78)}
 #app.tiny .toast{zoom:.85}
 
 /* v0.19 test-mode bar: develop the current level to the max, then step the era up/down to review each one */
@@ -277,6 +279,6 @@ body.force-land #app{inset:auto;top:0;left:0;transform-origin:0 0}
 .devbar button:hover{background:#a76b34;border-color:var(--gold)}
 .devbar span{font-weight:800;font-size:13px;min-width:92px;text-align:center}
 #app.showcasing .devbar{display:none}
-#app.tiny .devbar{zoom:.78}
+#app.tiny .devbar{zoom:calc(var(--ui,1) * .78)}
 
 .designs{display:flex;gap:6px;flex-wrap:wrap}.designs .design{width:84px;padding:4px;border-radius:10px;border:2px solid var(--hud-line);background:#0003;display:flex;flex-direction:column;align-items:center}.designs .design.on{border-color:var(--gold);background:#a76b3455}.designs img{width:72px;height:60px;object-fit:contain;image-rendering:pixelated}

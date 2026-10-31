@@ -13,20 +13,22 @@ export function createCamera() { return { x: 40 * TILE, y: 50 * TILE, zoom: 2, z
 // the far-out overview.
 // v0.16: every whole canvas px per world px is allowed (more zoom levels); odd steps make 2x sprite pixels
 // alternate 1/2 px only at tiny zooms, invisible from 3x up.
-export const evenStep = v => Math.max(1, Math.round(v));
+export const evenStep = v => v >= 1 ? Math.round(v) : 1 / Math.max(1, Math.min(4, Math.round(1 / Math.max(v, .2)))); // v0.29 far out: 1/2, 1/3, 1/4 (overview only)
 export function snapZoom(z, k = 1) { return evenStep(z * k) / k; }
+const stepsUp = k => [1 / 4, 1 / 3, 1 / 2, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 32].map(v => v / k);
 
 /** Comfortable default: about 15 tiles of height visible, more on big screens. */
 export function defaultZoom(cssW, cssH) { const rows = cssH > 600 ? 21 : cssH <= 360 ? 17 : 15; return Math.max(1, Math.min(4, Math.min(cssH / (rows * TILE), cssW / (26 * TILE)))); }
 export function zoomLimits(cssW, cssH) {
-  const min = Math.max(cssW / WORLD_PX_W, cssH / WORLD_PX_H); // never show outside the map
+  const min = Math.min(cssW / WORLD_PX_W, cssH / WORLD_PX_H); // v0.29 zoom out until the whole map fits (owner: zoom out further)
   return { min: Math.min(min, 4), max: 8 };
 }
 export function setZoom(cam, z, cssW, cssH) {
   const { min, max } = zoomLimits(cssW, cssH), k = cam.k || 1;
   cam.zoomTarget = Math.max(min, Math.min(max, z));
   let snapped = snapZoom(cam.zoomTarget, k);
-  if (snapped < min) snapped = Math.ceil(min * k - 1e-9) / k; // never show outside the map
+  const low = [...stepsUp(k)].reverse().find(v => v <= min + 1e-9) ?? stepsUp(k)[0]; // the step that shows the whole map (a thin margin is fine)
+  if (snapped < low) snapped = low;
   if (snapped > max) snapped = Math.max(1, Math.floor(max * k)) / k;
   cam.zoom = snapped;
   return cam.zoom;

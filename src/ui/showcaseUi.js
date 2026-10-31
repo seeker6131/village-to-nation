@@ -44,6 +44,7 @@ export function initShowcase() {
     const b = e.target.closest('[data-show]'); if (b) enterShowcase(Number(b.dataset.show)); if (e.target.closest('#showcase-exit')) exitShowcase();
     const m = e.target.closest('[data-map]'); if (m && G.preview) { G.preview.plan = (G.preview.plan + Number(m.dataset.map) + PLANS.length) % PLANS.length; enterShowcase(G.preview.id || 2); }
     if (e.target.closest('#sc-overview')) G.toggleOverview?.();
+    if (e.target.closest('#sc-min')) { const bar = $('#showcase-bar'), min = bar.classList.toggle('min'); $('#sc-min').textContent = min ? '▸' : '▾'; }
   });
   G.enterShowcase = enterShowcase; G.exitShowcase = exitShowcase;
   // test mode only: build the current level out completely, then step the era up to review the next one

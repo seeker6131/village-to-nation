@@ -2,7 +2,8 @@
 export const SETTINGS_KEY = 'v2n-visual-settings-v1';
 export const FPS_OPTIONS = Object.freeze([30, 60, 120]);
 export const GRAPHICS_OPTIONS = Object.freeze(['low', 'medium', 'high']);
-export const DEFAULT_SETTINGS = Object.freeze({ fps: 60, quality: 'medium', showFps: false, sfx: 0.6, ambience: 0.3, muted: false });
+export const DEFAULT_SETTINGS = Object.freeze({ fps: 60, quality: 'medium', showFps: false, sfx: 0.6, ambience: 0.3, muted: false, uiScale: 1 });
+export const UI_SCALES = [0.6, 0.7, 0.8, 0.9, 1, 1.15];
 
 /**
  * Real rendering behaviour per quality level (read by src/ui/render.js every frame):
@@ -27,7 +28,7 @@ export function normalizeSettings(input) {
   const obj = input && typeof input === 'object' ? input : {};
   const fps = FPS_OPTIONS.includes(Number(obj.fps)) ? Number(obj.fps) : 60;
   const quality = GRAPHICS_OPTIONS.includes(obj.quality) ? obj.quality : 'medium';
-  return { fps, quality, showFps: obj.showFps === true, sfx: vol(obj.sfx, DEFAULT_SETTINGS.sfx), ambience: vol(obj.ambience, DEFAULT_SETTINGS.ambience), muted: obj.muted === true };
+  return { fps, quality, showFps: obj.showFps === true, sfx: vol(obj.sfx, DEFAULT_SETTINGS.sfx), ambience: vol(obj.ambience, DEFAULT_SETTINGS.ambience), muted: obj.muted === true, uiScale: UI_SCALES.includes(Number(obj.uiScale)) ? Number(obj.uiScale) : 1 };
 }
 
 export function loadSettings(storage) {

@@ -5,7 +5,10 @@ import { canvasResolution, QUALITY_PROFILES } from '../src/performance.js';
 
 test('camera never shows outside the map and zoom is limited', () => {
   const c = createCamera(); setZoom(c, 0.01, 844, 390);
-  assert.ok(c.zoom * WORLD_PX_W >= 844 - 1e-6 && c.zoom * WORLD_PX_H >= 390 - 1e-6);
+  const k2 = createCamera(); k2.k = 2.6; setZoom(k2, 0.01, 844, 390);
+  assert.ok(k2.zoom < 1 / 2.6, 'a phone can zoom out past 1 canvas px per world px');
+  assert.ok(k2.zoom * WORLD_PX_W <= 844 + 1 && k2.zoom * WORLD_PX_H <= 390 + 1, 'fully zoomed out the whole map is on screen');
+  assert.ok(k2.zoom * WORLD_PX_W >= 844 / 2 || k2.zoom * WORLD_PX_H >= 390 / 2, 'but not a tiny stamp');
   setZoom(c, 99, 844, 390); assert.equal(c.zoom, zoomLimits(844, 390).max);
   c.x = -999; c.y = 99999; clampCamera(c, 844, 390);
   assert.ok(c.x - 844 / c.zoom / 2 >= -1e-6 && c.y + 390 / c.zoom / 2 <= WORLD_PX_H + 1e-6);

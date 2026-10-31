@@ -12,7 +12,7 @@ import { ensureLeadership, popularityFactors, termDaysLeft, canRun, roleLabel, v
 import { plotObstacles, REGIONS, BIOMES, WORLD, TILE } from '../world.js';
 import { population, housingCapacity, npcPhrase, allNpcDefs, isDone, officialsCount } from '../npcs.js';
 import { OUTFITS } from '../character/model.js';
-import { saveSettings } from '../performance.js';
+import { saveSettings, UI_SCALES } from '../performance.js';
 import { configureAudio, sfx, audioState } from '../audio.js';
 import { G, result, saveNow, enterBuild, resetNpcPlans, rebuildNpcs } from './game.js';
 import { PAVE, roadSegments, segmentLevel, paveCost, paveSegment, pavedShare, TIERS, tierOf, tierInfo, officeNeeds, slotState, nextTierCheck, leftoverTrees, hireClearing, CLEAR_COST, upgradeVillage, publicUnlocked, publicTier, SLOT_KINDS, openSlots, slotObstacles } from '../villageLayout.js';
@@ -326,6 +326,7 @@ function settings() {
   <div class="range"><span>บรรยากาศ</span><input type="range" min="0" max="100" value="${Math.round(st.ambience * 100)}" data-range="ambience" /><b>${Math.round(st.ambience * 100)}</b></div>
   <div class="setting-row"><button class="choice ${st.muted ? 'on' : ''}" data-act="toggleMute">${st.muted ? '🔇 ปิดเสียงอยู่' : '🔈 ปิดเสียงทั้งหมด'}</button>${btn('▶ ทดสอบเสียง', 'testSound', '', { cls: 'btn ghost small' })}</div>
   <p class="help">สถานะเสียง: ${a.ready ? a.state : 'รอการแตะครั้งแรก (ข้อกำหนดของเบราว์เซอร์)'} · เสียงเป็นเสียงสังเคราะห์ชั่วคราว</p>
+  <h3>🔠 ขนาดปุ่มและแถบบนจอ</h3><div class="setting-row">${UI_SCALES.map(v => `<button class="choice ${(st.uiScale || 1) === v ? 'on' : ''}" data-act="setUiScale" data-id="${v}">${Math.round(v * 100)}%</button>`).join('')}</div><p class="help">ปุ่มบังจอ? เลือกเล็กลง จะเห็นหมู่บ้านมากขึ้น</p>
   <h3>🖥️ จอ</h3><div class="setting-row">${btn('⛶ สลับเต็มจอ', 'fullscreen', '', { cls: 'btn ghost small' })} ${btn('🔍 รีเซ็ตซูม', 'resetZoom', '', { cls: 'btn ghost small' })}</div>`;
 }
 function menu() {
@@ -398,6 +399,7 @@ function onClick(e) {
     case 'buySku': r = purchase(s, id); break;
     case 'mockGrant': r = grantMockEntitlement(s, id, G.dev); break;
     case 'tryOutfit': return G.openCreator('edit', { tryOutfit: id });
+    case 'setUiScale': G.settings = saveSettings(G.storage, { ...G.settings, uiScale: Number(id) }); applySettings(); r = { ok: true, msg: `ขนาด UI ${Math.round(G.settings.uiScale * 100)}%` }; break;
     case 'setFps': G.settings = saveSettings(G.storage, { ...G.settings, fps: Number(id) }); r = { ok: true, msg: `จำกัด FPS สูงสุด ${G.settings.fps}` }; break;
     case 'setQuality': G.settings = saveSettings(G.storage, { ...G.settings, quality: id }); applySettings(); r = { ok: true, msg: `กราฟิก ${id.toUpperCase()} · ความละเอียด ${G.resolution}` }; break;
     case 'toggleFps': G.settings = saveSettings(G.storage, { ...G.settings, showFps: !G.settings.showFps }); applySettings(); r = { ok: true, msg: G.settings.showFps ? 'แสดง FPS' : 'ซ่อน FPS' }; break;

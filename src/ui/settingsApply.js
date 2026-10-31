@@ -12,4 +12,5 @@ export function applySettings() {
   G.applyZoom?.(); // re-snap zoom to whole canvas pixels for the new resolution
   const fc = document.querySelector('#fps-counter'); if (fc) fc.hidden = !G.settings.showFps;
   configureAudio(G.settings);
+  document.querySelector('#app')?.style.setProperty('--ui', String(G.settings.uiScale || 1)); // HUD size (settings → ขนาดปุ่ม/หน้าจอ)
 }
