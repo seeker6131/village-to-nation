@@ -114,7 +114,37 @@ def fix_inner(tile, nt, corner, e_h, e_v, base):
             out[y, x] = tile[sy, sx]
     return out
 
-def edge_sheet(name, src, key='grass', extra=(12, 13, 14)):
+def symmetric_from_top_left(tiles, kt, key):
+    """tile_water_edges.png: GPT drew the pond's left/top banks on the grid but let the right/bottom banks spill into the
+    next cells (the right-edge tile came out as open water -> a straight cut in game). Rebuild every side from the
+    good top-left corner / top edge / left edge by mirroring, and every inner corner from the two edges it joins."""
+    fx = lambda t: t[:, ::-1].copy(); fy = lambda t: t[::-1].copy()
+    c1, e3, e5 = kt[0], kt[1], kt[4]
+    tiles.update({1: c1, 2: fx(c1), 4: fy(c1), 8: fy(fx(c1)), 3: e3, 12: fy(e3), 5: e5, 10: fx(e5)})
+    h = TS // 2
+    land = (lambda t: t[..., 3] > 0) if key == 'water' else (lambda t: t[..., 3] == 0)
+    def combine(a, b):
+        out = a.copy()
+        out[~land(b)] = b[~land(b)]                       # open in either -> open
+        ga = is_grass(a[..., :3].astype(np.float32)) & land(a)
+        bb = land(b) & ~is_grass(b[..., :3].astype(np.float32))
+        out[ga & bb] = b[ga & bb]                          # a bank pixel of either edge wins over grass
+        return out
+    for g in (8, 4, 2, 1):                                 # g = the one grass corner
+        gy, gx = CORNER_YX[g]
+        H = tiles[12] if gy == 1 else tiles[3]             # edge with the water on the other row
+        V = tiles[10] if gx == 1 else tiles[5]             # edge with the water on the other column
+        t = H.copy()
+        q = lambda T, y, x: T[y * h:(y + 1) * h, x * h:(x + 1) * h]
+        t[gy * h:(gy + 1) * h, gx * h:(gx + 1) * h] = combine(q(H, gy, gx), q(V, gy, gx))
+        t[gy * h:(gy + 1) * h, (1 - gx) * h:(2 - gx) * h] = q(V, gy, 1 - gx)   # same row: the vertical bank
+        t[(1 - gy) * h:(2 - gy) * h, gx * h:(gx + 1) * h] = q(H, 1 - gy, gx)   # same column: the horizontal bank
+        # the open-water quadrant: only where BOTH edges still have bank (the joint near the centre), water elsewhere
+        a, b = q(H, 1 - gy, 1 - gx), q(V, 1 - gy, 1 - gx); o = a.copy(); o[~(land(a) & land(b))] = 0
+        t[(1 - gy) * h:(2 - gy) * h, (1 - gx) * h:(2 - gx) * h] = o
+        tiles[15 ^ g] = t
+
+def edge_sheet(name, src, key='grass', extra=(12, 13, 14), mirror=False):
     keyfn = is_grass if key == 'grass' else is_water
     terrain = (lambda a: ~is_grass(a)) if key == 'grass' else is_water
     cl = cells(os.path.join(SRC, src))
@@ -140,6 +170,7 @@ def edge_sheet(name, src, key='grass', extra=(12, 13, 14)):
         for o, ax in flips[c]:
             if o in found: found[c] = found[o][:, ::-1].copy() if ax == 1 else found[o][::-1].copy(); break
     for c, t in found.items(): tiles[15 ^ c] = t
+    if mirror: symmetric_from_top_left(tiles, kt, key)
     for m in (6, 9): tiles[m] = compose(tiles, m)
     # a side whose two corners are both grass must be pure grass: clear the outer 4 px there (slivers of the next GPT row)
     B = 4
@@ -188,7 +219,7 @@ def main():
                       ('road1', 'tile_dirt_trail.png', (12, 13, 14)), ('road2', 'tile_lane.png', (12, 13, 14)),
                       ('road3', 'tile_road_main.png', ()), ('road4', 'tile_road_main.png', ()), ('road5', 'tile_road_main.png', ())]:
         man[name] = edge_sheet(name, src, extra=extra)
-    man['bank'] = edge_sheet('bank', 'tile_water_edges.png', key='water', extra=(12, 13))
+    man['bank'] = edge_sheet('bank', 'tile_water_edges.png', key='water', extra=(12, 13), mirror=True)
     man['beach'] = edge_sheet('beach', 'tile_beach.png', key='water', extra=(12, 13))
     # paving rows: stepping stones / concrete / brick / garden soil -> plaza1 village square (stones), plaza2 yards+city (concrete),
     # plaza3-4 town squares (brick); soil kept for flower beds
