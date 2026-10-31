@@ -299,7 +299,7 @@ export function render() {
       continue;
     }
     if (p.type === 'cottage') {
-      const cf = cottageFrame(p, progressOf(p)), name = cf.name, [sw, sh] = ART10[name] || [80, 70], cx = x + w / 2;
+      const cap = (s.town?.stage || 0) + 1, cf = cottageFrame(p.level > cap ? { ...p, level: cap, upgradingTo: undefined } : p, progressOf(p)), name = cf.name, [sw, sh] = ART10[name] || [80, 70], cx = x + w / 2;
       add(y + h, () => { if (prof.shadow) groundShadow(cx, y + h, sw * .95, 8); sprFlip(ctx, name, cx, y + h + 3, cf.flip); }, { x0: cx - sw / 2 + 4, x1: cx + sw / 2 - 4, y0: y + h + 3 - sh, y1: y + h - 14 }, { name, cx, by: y + h, flip: cf.flip });
       continue;
     }

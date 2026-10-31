@@ -261,7 +261,8 @@ export function paveLevels(s) {
   const R = roadTiles(s), P = ensurePaving(s), key = `${R.size}:${s.town.pavedVer || 0}:${tierOf(s)}`;
   if (paveMemo.key === key && paveMemo.R === R) return paveMemo.map;
   const map = new Map();
-  for (const k of R) map.set(k, R.auto?.has(k) ? 2 : P[k] || 0);
+  const top = PAVE.reduce((m, p, i) => tierOf(s) >= p.tier ? i : m, 0); // a road never looks newer than its area's era
+  for (const k of R) map.set(k, Math.min(top, R.auto?.has(k) ? 2 : P[k] || 0));
   paveMemo = { key, R, map };
   return map;
 }

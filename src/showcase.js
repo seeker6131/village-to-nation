@@ -1,7 +1,7 @@
 // "ดูเมืองเต็มระดับ": builds a throw-away copy of the save where a village level is completely finished at its
 // highest building era, so the player can see what they are working towards. Never saved, never touches the real state.
 import { deepClone } from './gameState.js';
-import { ensureWorld, setNode, plotObstacles } from './world.js';
+import { ensureWorld, setNode, plotObstacles, TREES } from './world.js';
 import { ensureConstruction, PUBLIC_LEVELS, BUILDINGS, PUBLIC_WORK } from './construction.js';
 import { TIERS, openSlots, openRoads, slotObstacles, paveAll } from './villageLayout.js';
 import { clearPropTiles } from './villageProps.js';
@@ -75,7 +75,18 @@ export function fillLevel(s, era = (s.town?.stage || 0) + 1) {
 }
 /** Test mode "อัพยุค" / "ลดยุค": move the area level directly (bypasses the plan / population / leader checks). */
 export function setLevel(s, stage) {
+  const down = stage < (s.town.stage || 0);
   s.town.stage = Math.max(0, Math.min(4, stage));
+  if (down) { // test tool going back in time: the future comes off the map again
+    const t = s.town.stage + 1, slots = openSlots(s);
+    for (const n of TREES) if (n.lockTier && n.lockTier > t && s.world.n[n.id]) delete s.world.n[n.id]; // locked land is forest again
+    s.world.ver = (s.world.ver || 0) + 1;
+    s.placed = (s.placed || []).filter(p => !['cottage', 'workshop'].includes(p.type) || slots.some(x => x.kind === p.type && x.tx === p.tx && x.ty === p.ty));
+    for (const p of s.placed) { if (p.level > t) p.level = t; delete p.upgradingTo; } // houses back to what this era allows
+    for (const k of Object.keys(s.publicSites || {})) { const o = s.publicSites[k]; if (o.level > t) o.level = Math.max(1, t); delete o.upgradingTo; }
+    if (s.homes) for (const k of Object.keys(s.homes)) if (!slots.some(x => x.id === k)) delete s.homes[k];
+    const top = t >= 3 ? 2 : t >= 2 ? 1 : 0, P = s.town.paved || {}; for (const k of Object.keys(P)) if (P[k] > top) P[k] = top; s.town.pavedVer = (s.town.pavedVer || 0) + 1; // roads back to dirt/concrete
+  }
   openRoads(s); clearPropTiles(s); s.__structVer = (s.__structVer || 0) + 1;
   return s.town.stage;
 }
