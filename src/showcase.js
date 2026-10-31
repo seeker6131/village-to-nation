@@ -17,9 +17,14 @@ export const SHOWCASES = [
   { id: 5, th: 'ประเทศ', title: 'นายกรัฐมนตรี', icon: '🇹🇭', stage: 4, era: 5, preview: true },
 ];
 
-export function buildShowcase(base, id) {
+export function buildShowcase(base, id, plan = null) {
   const sc = SHOWCASES.find(x => x.id === id) || SHOWCASES[0];
   const s = deepClone(base);
+  if (plan !== null && plan !== s.world.plan) { // preview another map: an empty copy of the town on that map
+    s.placed = []; s.homes = {}; s.world.n = {}; s.town.settlers = [];
+    for (const k of Object.keys(s.publicSites || {})) s.publicSites[k] = { ...s.publicSites[k], status: 'none', level: 0, work: 0 };
+    applyPlan(s, plan);
+  }
   s.__showcase = sc.id;
   s.town.stage = sc.stage;
   s.gameTime = 10.5 * 3600;

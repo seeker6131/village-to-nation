@@ -14,8 +14,10 @@ export function enterShowcase(id) {
   if (G.away) return G.toast('ดูเมืองเต็มระดับได้ที่หมู่บ้านของตัวเอง', true);
   if (!G.preview) G.preview = { real: G.state, cam: { x: G.cam.x, y: G.cam.y, zoom: G.cam.zoomTarget, follow: G.cam.follow } };
   G.closePanel?.();
-  const r = buildShowcase(G.preview.real, id);
+  if (G.preview.plan == null) G.preview.plan = G.preview.real.world.plan || 0;
+  const r = buildShowcase(G.preview.real, id, G.preview.plan);
   G.state = r.state; G.preview.id = id;
+  $('#sc-map-name').textContent = `🗺 ${PLANS[G.preview.plan]?.th || 'แมพ'} (${G.preview.plan + 1}/${PLANS.length})${G.preview.plan === (G.preview.real.world.plan || 0) ? ' · แมพของคุณ' : ''}`;
   ensureWorld(G.state); rebuildNpcs(); resetNpcPlans(); rebuildAnimals();
   G.state.player.x = (CENTER.x + 2.5) * TILE; G.state.player.y = (CENTER.y + 4.5) * TILE;
   const f = DISTRICT_FOCUS[r.info.stage + 1] || [CENTER.x - 2, CENTER.y - 1]; // look at the district this level opens
@@ -38,7 +40,11 @@ export function exitShowcase() {
 export function initShowcase() {
   $('#showcase-bar .sc-tiers').innerHTML = SHOWCASES.map(x => `<button type="button" data-show="${x.id}">${x.icon} ${x.th}</button>`).join('');
   $('#showcase-btn').addEventListener('click', () => (G.preview ? exitShowcase() : enterShowcase(Math.min(SHOWCASES.length, (G.state.town?.stage || 0) + 2))));
-  $('#showcase-bar').addEventListener('click', e => { const b = e.target.closest('[data-show]'); if (b) enterShowcase(Number(b.dataset.show)); if (e.target.closest('#showcase-exit')) exitShowcase(); });
+  $('#showcase-bar').addEventListener('click', e => {
+    const b = e.target.closest('[data-show]'); if (b) enterShowcase(Number(b.dataset.show)); if (e.target.closest('#showcase-exit')) exitShowcase();
+    const m = e.target.closest('[data-map]'); if (m && G.preview) { G.preview.plan = (G.preview.plan + Number(m.dataset.map) + PLANS.length) % PLANS.length; enterShowcase(G.preview.id || 2); }
+    if (e.target.closest('#sc-overview')) G.toggleOverview?.();
+  });
   G.enterShowcase = enterShowcase; G.exitShowcase = exitShowcase;
   // test mode only: build the current level out completely, then step the era up to review the next one
   const bar = $('#devbar'); if (!G.sandbox || !bar) return;

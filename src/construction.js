@@ -8,7 +8,7 @@ import { SLOT_KINDS, slotAt, openSlots, TIERS, villageRadius, publicUnlocked, pu
 
 /** Placeable private structures. Footprint in tiles. Work is measured in game-minutes of labour. */
 export const BUILDINGS = {
-  garden:   { name: 'แปลงผัก', icon: '🌱', width: 3, height: 3, wood: 2, stone: 1, coins: 6, work: 60,
+  garden:   { name: 'แปลงผัก', icon: '🌱', hidden: true, width: 3, height: 3, wood: 2, stone: 1, coins: 6, work: 60,
               desc: 'ปลูกเมล็ด รอ 1 วันในเกม แล้วเก็บผักไปขาย', levels: [{ yield: 3 }, { yield: 4, wood: 3, stone: 2, coins: 20, work: 120 }, { yield: 5, wood: 5, stone: 3, coins: 40, work: 180 }] },
   bench:    { name: 'ม้านั่งชุมชน', icon: '🪑', width: 2, height: 1, wood: 2, stone: 0, coins: 4, work: 30,
               desc: 'NPC มานั่งพักช่วงเย็น เพิ่มความสุขของหมู่บ้าน', levels: [{ comfort: 1 }, { comfort: 2, wood: 3, stone: 1, coins: 12, work: 40 }] },

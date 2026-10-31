@@ -268,6 +268,7 @@ body.force-land #app{inset:auto;top:0;left:0;transform-origin:0 0}
 /* showcase ("ดูเมืองเต็มระดับ") */
 .showcase-bar{position:absolute;left:50%;top:calc(52px + var(--safe-t));transform:translateX(-50%);z-index:8;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;max-width:calc(100% - 20px);background:#1d3b31f2;border:2px solid var(--gold);border-radius:12px;padding:6px 10px;color:#fff6da}
 .showcase-bar .sc-tiers{display:flex;gap:4px;flex-wrap:wrap}
+.showcase-bar .sc-map{display:flex;gap:4px;align-items:center}.showcase-bar .sc-map button{border:2px solid #7fae86;background:#2f6b4f;color:#fff6da;border-radius:9px;padding:4px 8px;font-weight:700;font-size:12px}.showcase-bar #sc-map-name{font-weight:700;font-size:12px;max-width:190px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .showcase-bar .sc-tiers button{border:2px solid #7fae86;background:#2f6b4f;color:#fff6da;border-radius:9px;padding:4px 9px;font-weight:700;font-size:12px}
 .showcase-bar .sc-tiers button.on{background:var(--gold);color:#3a2814;border-color:#fff3c4}
 .showcase-bar small{width:100%;text-align:center;font-size:11.5px;color:#cfe8c9}
@@ -360,7 +361,7 @@ body.force-land #app{inset:auto;top:0;left:0;transform-origin:0 0}
   </aside>
 
   <section id="showcase-bar" class="showcase-bar hidden" aria-label="ดูเมืองเต็มระดับ">
-    <b>🏙 ดูเมืองเต็มระดับ</b><div class="sc-tiers"></div><button id="showcase-exit" type="button" class="btn small">✕ กลับเกมจริง</button>
+    <b>🏙 ดูเมืองเต็มระดับ</b><div class="sc-map"><button type="button" data-map="-1" title="แมพก่อนหน้า">◀</button><span id="sc-map-name">แมพ</span><button type="button" data-map="1" title="แมพถัดไป">▶</button><button type="button" id="sc-overview" title="ซูมออกดูภาพรวม (ลากเลื่อนดูส่วนอื่น)">🗺 ซูมออก</button></div><div class="sc-tiers"></div><button id="showcase-exit" type="button" class="btn small">✕ กลับเกมจริง</button>
     <small id="showcase-info"></small>
   </section>
   <div id="toast" class="toast" aria-live="polite"></div>
@@ -1896,7 +1897,7 @@ const { buildableGround, plotObstacles, CENTER, VILLAGE_RADIUS } = __mod["src/wo
 const { SLOT_KINDS, slotAt, openSlots, TIERS, villageRadius, publicUnlocked, publicTier, tierOf } = __mod["src/villageLayout.js"];
 /** Placeable private structures. Footprint in tiles. Work is measured in game-minutes of labour. */
 const BUILDINGS = {
-  garden:   { name: 'แปลงผัก', icon: '🌱', width: 3, height: 3, wood: 2, stone: 1, coins: 6, work: 60,
+  garden:   { name: 'แปลงผัก', icon: '🌱', hidden: true, width: 3, height: 3, wood: 2, stone: 1, coins: 6, work: 60,
               desc: 'ปลูกเมล็ด รอ 1 วันในเกม แล้วเก็บผักไปขาย', levels: [{ yield: 3 }, { yield: 4, wood: 3, stone: 2, coins: 20, work: 120 }, { yield: 5, wood: 5, stone: 3, coins: 40, work: 180 }] },
   bench:    { name: 'ม้านั่งชุมชน', icon: '🪑', width: 2, height: 1, wood: 2, stone: 0, coins: 4, work: 30,
               desc: 'NPC มานั่งพักช่วงเย็น เพิ่มความสุขของหมู่บ้าน', levels: [{ comfort: 1 }, { comfort: 2, wood: 3, stone: 1, coins: 12, work: 40 }] },
@@ -5983,16 +5984,16 @@ function tent(x, y) { // 2x2 tiles, procedural canvas tent
   ctx.fillStyle = '#5a3d22'; ctx.beginPath(); ctx.moveTo(x + 16, y + 12); ctx.lineTo(x + 20, y + 28); ctx.lineTo(x + 12, y + 28); ctx.fill();
   rect(x + 15, y, 2, 4, '#6b4a2a');
 }
-// community farm: tilled soil + crop rows that grow through the day (a fresh crop every game day)
+// community farm ("สวนอาหาร"): a farmyard on the grass — barn, chicken coop, hay, trough (no tilled-soil field: the owner
+// found the veg plots ugly). It still feeds the village through the farmer NPCs (npcs.js), only the look changed.
 function drawFarm(r, site) {
-  const x = r.tx * TILE, y = r.ty * TILE, w = r.w * TILE, h = r.h * TILE, prog = site.status === 'building' && !site.upgradingTo ? progressOf(site) : 1;
-  const soil = art['v10/tx_farm_0'];
-  if (soil?.naturalWidth) { const rows = Math.max(1, Math.round(r.h * prog)); for (let ty = 0; ty < rows; ty++) for (let tx = 0; tx < r.w; tx++) texTile(soil, tx * TILE, ty * TILE, x + tx * TILE, y + ty * TILE); }
-  ctx.strokeStyle = '#6b4426'; ctx.lineWidth = 1; ctx.strokeRect(x + .5, y + .5, w - 1, h - 1);
+  const x = r.tx * TILE, y = r.ty * TILE, prog = site.status === 'building' && !site.upgradingTo ? progressOf(site) : 1;
+  const at = (name, fx, fy) => spr(ctx, name, x + fx * r.w * TILE, y + fy * r.h * TILE);
+  at('pf_sacks', .15, .95); at('pf_hay', .82, .92);
+  if (prog < .5) return;
+  at('fb_shed', .34, .78);
   if (prog < 1) return;
-  const s = G.state, hour = s.gameTime / 3600, stg = Math.min(3, Math.floor(hour / 5));
-  const lv = Math.max(1, site.level), kinds = CROPS.slice(0, 2 + lv);
-  for (let ry = 0; ry < r.h - 1; ry++) for (let rx = 0; rx < r.w; rx++) spr(ctx, `crop_${kinds[ry % kinds.length]}_${stg}`, x + (rx + .5) * TILE, y + (ry + 1.5) * TILE, 0.92);
+  at('fb_coop', .78, .62); at('pf_trough', .62, .97); if (site.level >= 2) at('pf_wheelbarrow', .9, .35);
 }
 /** One 16x16 world tile of a 2x-stored texture, sampled at world position (wx, wy) so neighbours line up. */
 function texTile(img, wx, wy, dx, dy) { const S = img.naturalWidth; ctx.drawImage(img, (wx * 2) % S, (wy * 2) % S, TILE * 2, TILE * 2, dx, dy, TILE, TILE); }
@@ -6566,7 +6567,7 @@ function build() {
       : (() => { const c = { wood: p.wood, stone: p.stone }; const hallLock = id === 'hall' && !(s.projects.home && s.projects.market); const left = plotObstacles(s, id).length; return `<div class="chips">${chipCost(c)}<span class="chip">⏱ ${hrs(PUBLIC_WORK[id])}</span><span class="chip good">ผลงาน +${p.civic}</span><span class="chip ${left ? 'bad' : 'good'}">${left ? `🪓 ต้องถางอีก ${left} จุด` : '✅ ถางที่ดินแล้ว'}</span></div>${hallLock ? '<span class="chip bad">ต้องสร้างบ้านพักและตลาดให้เสร็จก่อน</span>' : hasResources(s, c) ? '' : `<span class="chip bad">${missingText(s, c)}</span>`}<div>${btn('เริ่มก่อสร้าง', 'startPublic', id, { disabled: hallLock || !hasResources(s, c) || left > 0 })} ${btn('📍 ไปที่ดิน', 'goto', id, { cls: 'btn ghost small' })}</div>`; })();
     return `<div class="card ${site.level >= 1 ? 'done' : ''}"><b>${site.level >= 1 ? '✅' : '🏗️'} ${p.name}</b><small>${p.desc} · ${publicEffectText(id, Math.max(1, site.level))}</small>${st}</div>`;
   }).join('');
-  const priv = Object.entries(BUILDINGS).map(([id, b]) => `<div class="card"><div class="row"><div><b>${b.icon} ${b.name}</b><small>${b.desc} · พื้นที่ ${b.width}×${b.height} ช่อง · ใช้แรงงาน ${hrs(b.work)}${SLOT_KINDS.includes(id) ? ` · <b>แปลงว่างในผัง ${openSlots(s).filter(x => x.kind === id && slotState(s, x).state === 'empty').length}</b>` : ''}</small></div>${SLOT_KINDS.includes(id) ? btn('เลือกแปลง', 'placeMode', id, { disabled: !openSlots(s).some(x => x.kind === id && slotState(s, x).state === 'empty') }) : btn('เลือกตำแหน่ง', 'placeMode', id)}</div><div class="chips">${chipCost(b)}${hasResources(s, b) ? '<span class="chip good">ทรัพยากรพอ</span>' : `<span class="chip bad">${missingText(s, b)}</span>`}</div></div>`).join('');
+  const priv = Object.entries(BUILDINGS).filter(([, b]) => !b.hidden).map(([id, b]) => `<div class="card"><div class="row"><div><b>${b.icon} ${b.name}</b><small>${b.desc} · พื้นที่ ${b.width}×${b.height} ช่อง · ใช้แรงงาน ${hrs(b.work)}${SLOT_KINDS.includes(id) ? ` · <b>แปลงว่างในผัง ${openSlots(s).filter(x => x.kind === id && slotState(s, x).state === 'empty').length}</b>` : ''}</small></div>${SLOT_KINDS.includes(id) ? btn('เลือกแปลง', 'placeMode', id, { disabled: !openSlots(s).some(x => x.kind === id && slotState(s, x).state === 'empty') }) : btn('เลือกตำแหน่ง', 'placeMode', id)}</div><div class="chips">${chipCost(b)}${hasResources(s, b) ? '<span class="chip good">ทรัพยากรพอ</span>' : `<span class="chip bad">${missingText(s, b)}</span>`}</div></div>`).join('');
   const mine = s.placed.length ? s.placed.map(p => { const b = BUILDINGS[p.type]; return `<div class="card ${p.status === 'building' ? 'active' : ''}"><div class="row"><div><b>${b.icon} ${b.name}</b><small>${p.status === 'building' ? `🔨 ${p.upgradingTo ? 'อัปเกรด' : 'สร้าง'} ${Math.floor(progressOf(p) * 100)}%` : `ระดับ ${p.level}`} · พิกัด ${p.tx},${p.ty}</small></div>${btn('จัดการ', 'openStructure', p.uid, { cls: 'btn ghost small' })}</div></div>`; }).join('') : '<p class="help">ยังไม่มีสิ่งปลูกสร้างส่วนตัว</p>';
   return `${planSection()}<div class="notice info">ทุกระดับมี<b>ผังสำเร็จรูป</b>: บ้าน ตลาด ศาลา โรงงาน สร้างได้เฉพาะบนแปลงตามผัง (หมุดสีเหลืองในแมพ) · ถางต้นไม้/ตอในแปลงก่อน → สร้าง → ครบทุกแปลง + ประชากรพอ → ผู้นำกดยกระดับ แล้วผังจะขยาย · ของตกแต่ง (แปลงผัก ม้านั่ง โคมไฟ รั้ว ทางเดิน) วางอิสระในเขตหมู่บ้าน</div>
   <h3>🏛️ โครงการสาธารณะ</h3>${pub}<h3>🧱 อาคารและของตกแต่ง</h3>${priv}<h3>📋 ของฉัน</h3>${mine}`;
@@ -7206,7 +7207,7 @@ function initInput() {
   $('#action-btn').addEventListener('click', () => interact(nearestInteractable()));
   $('#zoom-in').addEventListener('click', () => zoomStep(1));
   $('#zoom-out').addEventListener('click', () => zoomStep(-1));
-  $('#overview').addEventListener('click', toggleOverview);
+  $('#overview').addEventListener('click', toggleOverview); G.toggleOverview = toggleOverview;
   $('#fullscreen').addEventListener('click', toggleFullscreen);
   $('#speed-btn').addEventListener('click', cycleSpeed);
   $('#hud-avatar').addEventListener('click', () => G.openCreator('edit'));
@@ -7248,9 +7249,14 @@ const SHOWCASES = [
   { id: 5, th: 'ประเทศ', title: 'นายกรัฐมนตรี', icon: '🇹🇭', stage: 4, era: 5, preview: true },
 ];
 
-function buildShowcase(base, id) {
+function buildShowcase(base, id, plan = null) {
   const sc = SHOWCASES.find(x => x.id === id) || SHOWCASES[0];
   const s = deepClone(base);
+  if (plan !== null && plan !== s.world.plan) { // preview another map: an empty copy of the town on that map
+    s.placed = []; s.homes = {}; s.world.n = {}; s.town.settlers = [];
+    for (const k of Object.keys(s.publicSites || {})) s.publicSites[k] = { ...s.publicSites[k], status: 'none', level: 0, work: 0 };
+    applyPlan(s, plan);
+  }
   s.__showcase = sc.id;
   s.town.stage = sc.stage;
   s.gameTime = 10.5 * 3600;
@@ -7339,8 +7345,10 @@ function enterShowcase(id) {
   if (G.away) return G.toast('ดูเมืองเต็มระดับได้ที่หมู่บ้านของตัวเอง', true);
   if (!G.preview) G.preview = { real: G.state, cam: { x: G.cam.x, y: G.cam.y, zoom: G.cam.zoomTarget, follow: G.cam.follow } };
   G.closePanel?.();
-  const r = buildShowcase(G.preview.real, id);
+  if (G.preview.plan == null) G.preview.plan = G.preview.real.world.plan || 0;
+  const r = buildShowcase(G.preview.real, id, G.preview.plan);
   G.state = r.state; G.preview.id = id;
+  $('#sc-map-name').textContent = `🗺 ${PLANS[G.preview.plan]?.th || 'แมพ'} (${G.preview.plan + 1}/${PLANS.length})${G.preview.plan === (G.preview.real.world.plan || 0) ? ' · แมพของคุณ' : ''}`;
   ensureWorld(G.state); rebuildNpcs(); resetNpcPlans(); rebuildAnimals();
   G.state.player.x = (CENTER.x + 2.5) * TILE; G.state.player.y = (CENTER.y + 4.5) * TILE;
   const f = DISTRICT_FOCUS[r.info.stage + 1] || [CENTER.x - 2, CENTER.y - 1]; // look at the district this level opens
@@ -7363,7 +7371,11 @@ function exitShowcase() {
 function initShowcase() {
   $('#showcase-bar .sc-tiers').innerHTML = SHOWCASES.map(x => `<button type="button" data-show="${x.id}">${x.icon} ${x.th}</button>`).join('');
   $('#showcase-btn').addEventListener('click', () => (G.preview ? exitShowcase() : enterShowcase(Math.min(SHOWCASES.length, (G.state.town?.stage || 0) + 2))));
-  $('#showcase-bar').addEventListener('click', e => { const b = e.target.closest('[data-show]'); if (b) enterShowcase(Number(b.dataset.show)); if (e.target.closest('#showcase-exit')) exitShowcase(); });
+  $('#showcase-bar').addEventListener('click', e => {
+    const b = e.target.closest('[data-show]'); if (b) enterShowcase(Number(b.dataset.show)); if (e.target.closest('#showcase-exit')) exitShowcase();
+    const m = e.target.closest('[data-map]'); if (m && G.preview) { G.preview.plan = (G.preview.plan + Number(m.dataset.map) + PLANS.length) % PLANS.length; enterShowcase(G.preview.id || 2); }
+    if (e.target.closest('#sc-overview')) G.toggleOverview?.();
+  });
   G.enterShowcase = enterShowcase; G.exitShowcase = exitShowcase;
   // test mode only: build the current level out completely, then step the era up to review the next one
   const bar = $('#devbar'); if (!G.sandbox || !bar) return;

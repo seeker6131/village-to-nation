@@ -139,16 +139,16 @@ function tent(x, y) { // 2x2 tiles, procedural canvas tent
   ctx.fillStyle = '#5a3d22'; ctx.beginPath(); ctx.moveTo(x + 16, y + 12); ctx.lineTo(x + 20, y + 28); ctx.lineTo(x + 12, y + 28); ctx.fill();
   rect(x + 15, y, 2, 4, '#6b4a2a');
 }
-// community farm: tilled soil + crop rows that grow through the day (a fresh crop every game day)
+// community farm ("สวนอาหาร"): a farmyard on the grass — barn, chicken coop, hay, trough (no tilled-soil field: the owner
+// found the veg plots ugly). It still feeds the village through the farmer NPCs (npcs.js), only the look changed.
 function drawFarm(r, site) {
-  const x = r.tx * TILE, y = r.ty * TILE, w = r.w * TILE, h = r.h * TILE, prog = site.status === 'building' && !site.upgradingTo ? progressOf(site) : 1;
-  const soil = art['v10/tx_farm_0'];
-  if (soil?.naturalWidth) { const rows = Math.max(1, Math.round(r.h * prog)); for (let ty = 0; ty < rows; ty++) for (let tx = 0; tx < r.w; tx++) texTile(soil, tx * TILE, ty * TILE, x + tx * TILE, y + ty * TILE); }
-  ctx.strokeStyle = '#6b4426'; ctx.lineWidth = 1; ctx.strokeRect(x + .5, y + .5, w - 1, h - 1);
+  const x = r.tx * TILE, y = r.ty * TILE, prog = site.status === 'building' && !site.upgradingTo ? progressOf(site) : 1;
+  const at = (name, fx, fy) => spr(ctx, name, x + fx * r.w * TILE, y + fy * r.h * TILE);
+  at('pf_sacks', .15, .95); at('pf_hay', .82, .92);
+  if (prog < .5) return;
+  at('fb_shed', .34, .78);
   if (prog < 1) return;
-  const s = G.state, hour = s.gameTime / 3600, stg = Math.min(3, Math.floor(hour / 5));
-  const lv = Math.max(1, site.level), kinds = CROPS.slice(0, 2 + lv);
-  for (let ry = 0; ry < r.h - 1; ry++) for (let rx = 0; rx < r.w; rx++) spr(ctx, `crop_${kinds[ry % kinds.length]}_${stg}`, x + (rx + .5) * TILE, y + (ry + 1.5) * TILE, 0.92);
+  at('fb_coop', .78, .62); at('pf_trough', .62, .97); if (site.level >= 2) at('pf_wheelbarrow', .9, .35);
 }
 /** One 16x16 world tile of a 2x-stored texture, sampled at world position (wx, wy) so neighbours line up. */
 function texTile(img, wx, wy, dx, dy) { const S = img.naturalWidth; ctx.drawImage(img, (wx * 2) % S, (wy * 2) % S, TILE * 2, TILE * 2, dx, dy, TILE, TILE); }

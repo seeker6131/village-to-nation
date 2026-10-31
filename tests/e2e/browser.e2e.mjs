@@ -232,7 +232,7 @@ test('construction flow: menu -> preview (red/green) -> cancel -> confirm -> pro
   const { ctx, page, errors } = await open('pc');
   await G(page, G => { Object.assign(G.state.player, { coins: 500, wood: 60, stone: 60 }); G.state.player.x = 44 * 16; G.state.player.y = 54 * 16; });
   await page.keyboard.press('b');
-  await page.click('[data-act=placeMode][data-id=garden]');
+  await page.click('[data-act=placeMode][data-id=bench]');
   assert.ok(await page.isVisible('#buildbar'));
   // invalid: over the public plot -> red & disabled
   await G(page, G => { const m = window.__V2N__; }, null);
@@ -243,8 +243,8 @@ test('construction flow: menu -> preview (red/green) -> cancel -> confirm -> pro
   // cancel: nothing charged
   await page.click('#bb-cancel');
   assert.equal(await G(page, G => G.state.player.coins), 500);
-  await page.keyboard.press('b'); await page.click('[data-act=placeMode][data-id=garden]');
-  const spot = await page.evaluate(() => Promise.all([import('/src/construction.js'), import('/src/ui/game.js')]).then(([C, g]) => { const P = g.G.state.player; for (let y = 30; y < 70; y++) for (let x = 20; x < 60; x++) if (C.canPlace(g.G.state, 'garden', x, y, (a, b) => !g.walkable(a, b)).ok && Math.hypot(x + 1.5 - P.x / 16, y + 1.5 - P.y / 16) > 3) return [x, y]; }));
+  await page.keyboard.press('b'); await page.click('[data-act=placeMode][data-id=bench]');
+  const spot = await page.evaluate(() => Promise.all([import('/src/construction.js'), import('/src/ui/game.js')]).then(([C, g]) => { const P = g.G.state.player; for (let y = 30; y < 70; y++) for (let x = 20; x < 60; x++) if (C.canPlace(g.G.state, 'bench', x, y, (a, b) => !g.walkable(a, b)).ok && Math.hypot(x + 1 - P.x / 16, y + .5 - P.y / 16) > 3) return [x, y]; }));
   await page.evaluate(([x, y]) => import('/src/ui/game.js').then(m => m.setBuildPreview(x, y)), spot);
   assert.equal(await page.isDisabled('#bb-confirm'), false);
   await shot(page, '08_build_valid');
@@ -253,14 +253,12 @@ test('construction flow: menu -> preview (red/green) -> cancel -> confirm -> pro
   await page.keyboard.press('ArrowLeft');
   await page.click('#bb-confirm');
   const g = await G(page, G => ({ ...G.state.placed[0], coins: G.state.player.coins }));
-  assert.equal(g.status, 'building'); assert.equal(g.coins, 494);
+  assert.equal(g.status, 'building'); assert.equal(g.coins, 496);
   await G(page, G => { G.state.tickMultiplier = 20; });
   await page.waitForTimeout(400); await shot(page, '09_build_progress');
   await page.waitForFunction(() => window.__V2N__.G.state.placed[0].status === 'done', null, { timeout: 15000 });
   await G(page, G => { G.state.tickMultiplier = 1; });
   await page.evaluate(() => window.__V2N__.G.openPanel('structure', window.__V2N__.G.state.placed[0].uid));
-  await page.click('[data-act=plant]');
-  assert.notEqual(await G(page, G => G.state.placed[0].plantedAt), null);
   await page.click('[data-act=upgrade]');
   assert.equal(await G(page, G => G.state.placed[0].upgradingTo), 2);
   // public project with timed construction and help action
@@ -438,7 +436,7 @@ test('village plan: build every slot of tier 1, the leader presses ยกระ�
   const { ctx, page, errors } = await open('pc');
   const ok = await page.evaluate(async () => {
     const [C, W, V, N, H] = await Promise.all([import('/src/construction.js'), import('/src/world.js'), import('/src/villageLayout.js'), import('/src/npcs.js'), import('/src/housing.js')]);
-    const G = window.__V2N__.G, s = G.state; s.player.coins = 999; s.player.wood = 300; s.player.stone = 300;
+    const G = window.__V2N__.G, s = G.state; s.player.coins = 999; s.player.wood = 300; s.player.stone = 300; s.player.knowledge = 15; // the village head must have studied (v0.26)
     for (const sl of V.TIERS[0].slots) {
       if (sl.kind === 'public') { for (const n of W.plotObstacles(s, sl.id)) W.setNode(s, n.id, 'x'); C.startPublic(s, sl.id); }
       else H.buildHouseFor(s, sl.id, 'npc_' + sl.id);

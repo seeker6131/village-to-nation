@@ -177,7 +177,7 @@ export function initInput() {
   $('#action-btn').addEventListener('click', () => interact(nearestInteractable()));
   $('#zoom-in').addEventListener('click', () => zoomStep(1));
   $('#zoom-out').addEventListener('click', () => zoomStep(-1));
-  $('#overview').addEventListener('click', toggleOverview);
+  $('#overview').addEventListener('click', toggleOverview); G.toggleOverview = toggleOverview;
   $('#fullscreen').addEventListener('click', toggleFullscreen);
   $('#speed-btn').addEventListener('click', cycleSpeed);
   $('#hud-avatar').addEventListener('click', () => G.openCreator('edit'));
