@@ -32,6 +32,23 @@ jobs:
       - name: Generate five maps, terrain and sprites from original images
         run: |
           python scripts/build-fantasy-maps.py
+          python - <<'PY'
+          from pathlib import Path
+          # Remove repeated generated imports (the patch already registered these five maps).
+          p=Path('src/maps/index.js')
+          lines=p.read_text().splitlines()
+          unique=[];seen=set()
+          for line in lines:
+              if line.startswith('import { MAP as fantasy_'):
+                  if line in seen:continue
+                  seen.add(line)
+              unique.append(line)
+          p.write_text('\n'.join(unique)+'\n')
+          script=Path('scripts/build-fantasy-maps.py')
+          content=script.read_text()
+          content=content.replace("for mid,_ in NAMES:s=s.replace(", "for mid,_ in NAMES:\n if f\"import {{ MAP as {mid} }}\" in s: continue\n s=s.replace(")
+          script.write_text(content)
+          PY
           python scripts/ingest-fantasy-tiles.py
           python scripts/ingest-fantasy-art.py
       - run: npm test
