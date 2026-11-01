@@ -1,11 +1,13 @@
 
 
 // Fantasy regression cases added after the original 18 browser tests.
-test('fantasy: all five new kingdom maps render with central castle, heights and stairs', async () => {
+test('fantasy: browser smoke of a kingdom map with central castle, heights and stairs', async () => {
   // Start a fresh Chromium process for each map. A browser kept alive through the
   // earlier 18 full-game scenarios retains hundreds of decoded sprite textures;
   // opening a second large map in the same process can starve browser page tasks.
-  const ids=['fantasy_valley','fantasy_lake','fantasy_pines','fantasy_meadow','fantasy_pass'];
+  const valid=['fantasy_valley','fantasy_lake','fantasy_pines','fantasy_meadow','fantasy_pass'];
+  const ids=[process.env.V2N_MAP_ONLY || valid[0]];
+  assert.ok(valid.includes(ids[0]),'unknown fantasy map name');
   await browser.close();
   browser=await chromium.launch();
   for (const id of ids) {
