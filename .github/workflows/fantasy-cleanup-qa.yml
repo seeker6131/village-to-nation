@@ -1,0 +1,52 @@
+name: Fantasy visual cleanup QA
+on:
+  push:
+    branches: [work/fantasy-visual-cleanup-20261101]
+permissions:
+  contents: write
+jobs:
+  verify-and-stage:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Reconstruct reviewed source patch
+        run: |
+          cat scripts/.fantasy-cleanup.part0? | base64 -d | xz -d > /tmp/fantasy-cleanup.patch
+          git apply --check /tmp/fantasy-cleanup.patch
+          git apply /tmp/fantasy-cleanup.patch
+      - name: Validate all unit tests and composition regressions
+        run: |
+          npm test
+          node scripts/check-layouts.mjs
+      - name: Build standalone release
+        run: npm run build
+      - name: Install Chromium
+        run: npm i --no-save playwright@1.48.2 && npx playwright install --with-deps chromium
+      - name: Browser smoke check every fantasy map independently
+        run: |
+          for id in fantasy_valley fantasy_lake fantasy_pines fantasy_meadow fantasy_pass; do
+            echo "::group::Map $id"
+            V2N_MAP_ONLY="$id" node --test --test-concurrency=1 --test-name-pattern="fantasy: browser smoke" tests/e2e/browser.e2e.mjs
+            echo "::endgroup::"
+          done
+      - name: Full Chromium play-through including old saves
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fantasy-cleanup-browser-screens
+          path: qa/screens
+          retention-days: 7
+      - name: Commit only verified cleaned-up source
+        run: |
+          rm -f scripts/.fantasy-cleanup.part0? .github/workflows/fantasy-cleanup-qa.yml
+          git add -A
+          git config user.name "vtn-cleanup-ci"
+          git config user.email "actions@users.noreply.github.com"
+          git commit -m "feat: remove modern city art and roads from fantasy world"
+          git push origin HEAD:work/fantasy-visual-cleanup-20261101
