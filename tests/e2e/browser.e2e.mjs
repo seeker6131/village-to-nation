@@ -45,8 +45,10 @@ async function open(device = 'pc', { url = '/index.html?test=1', storage = null,
   // Wait for DOM content, not the heavyweight window load event, then assert game boot.
   await page.goto(base + url, { waitUntil: 'domcontentloaded', timeout: 90_000 });
   await page.waitForFunction(() => window.__V2N__ && !document.querySelector('#app').classList.contains('booting'), { }, { timeout: 90_000 });
-  if (name && await page.isVisible('#creator')) { await page.fill('#cr-name', name); await page.click('#cr-confirm'); await page.waitForTimeout(150); }
-  if (name && await page.isVisible('#path-choice')) { await page.click('#path-choice [data-path=founder]'); await page.waitForTimeout(100); }
+  // Boot overlays are explicitly managed with the .hidden class. Reading that class
+  // avoids forcing a costly full layout during initial canvas/image decoding.
+  if (name && await page.evaluate(() => !document.querySelector('#creator').classList.contains('hidden'))) { await page.fill('#cr-name', name); await page.click('#cr-confirm'); await page.waitForTimeout(150); }
+  if (name && await page.evaluate(() => !document.querySelector('#path-choice').classList.contains('hidden'))) { await page.click('#path-choice [data-path=founder]'); await page.waitForTimeout(100); }
   return { ctx, page, errors };
 }
 const G = (page, fn, arg) => page.evaluate(([f, a]) => { const G = window.__V2N__.G; return new Function('G', 'a', 'return (' + f + ')(G,a)')(G, a); }, [fn.toString(), arg]);
