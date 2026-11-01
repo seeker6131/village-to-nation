@@ -35,9 +35,9 @@ public class MainActivity extends Activity {
     private long lastGameBack = 0;
     private boolean isGame() { return "game".equals(BuildConfig.FLAVOR); }
     private boolean isEngine() { return "engine".equals(BuildConfig.FLAVOR); }
-    private boolean isImmersive() { return isGame() || isEngine(); }
+    private boolean usesImmersiveMode() { return isGame() || isEngine(); }
     private void immersiveGame() {
-        if (!isImmersive()) return;
+        if (!usesImmersiveMode()) return;
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
             | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
@@ -49,7 +49,7 @@ public class MainActivity extends Activity {
         super.onCreate(b);
         immersiveGame();
         web = new WebView(this);
-        if (isImmersive()) { web.setBackgroundColor(android.graphics.Color.BLACK); web.setOverScrollMode(View.OVER_SCROLL_NEVER); }
+        if (usesImmersiveMode()) { web.setBackgroundColor(android.graphics.Color.BLACK); web.setOverScrollMode(View.OVER_SCROLL_NEVER); }
         setContentView(web);
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
