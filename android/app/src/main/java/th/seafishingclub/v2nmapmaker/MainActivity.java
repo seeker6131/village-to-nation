@@ -1,6 +1,9 @@
 package th.seafishingclub.v2nmapmaker;
 
 import android.app.Activity;
+import android.content.pm.ActivityInfo;
+import android.view.View;
+import android.view.WindowManager;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.net.Uri;
@@ -30,9 +33,23 @@ public class MainActivity extends Activity {
     private static final int PICK = 41;
     private WebView web;
     private ValueCallback<Uri[]> fileCb;
+    private long lastBackPress = 0L;
+
+    private void applyGameFullscreen() {
+        if (!BuildConfig.IS_GAME) return;
+        getWindow().getDecorView().setSystemUiVisibility(
+            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_FULLSCREEN |
+            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+            View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+    }
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
+        if (BuildConfig.IS_GAME) {
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            applyGameFullscreen();
+        }
         web = new WebView(this);
         setContentView(web);
         WebSettings s = web.getSettings();
@@ -66,6 +83,22 @@ public class MainActivity extends Activity {
 
     @Override protected void onSaveInstanceState(Bundle out) { super.onSaveInstanceState(out); web.saveState(out); }
 
+    @Override public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) applyGameFullscreen();
+    }
+
+    @Override protected void onPause() {
+        if (web != null) web.onPause();
+        super.onPause();
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        if (web != null) web.onResume();
+        applyGameFullscreen();
+    }
+
     @Override protected void onActivityResult(int req, int res, Intent data) {
         if (req == PICK && fileCb != null) {
             Uri[] out = null;
@@ -82,7 +115,18 @@ public class MainActivity extends Activity {
         super.onActivityResult(req, res, data);
     }
 
-    @Override public void onBackPressed() { if (web.canGoBack()) web.goBack(); else super.onBackPressed(); }
+    @Override public void onBackPressed() {
+        if (BuildConfig.IS_GAME) {
+            // First press is Escape (close dialog/menus); second within 2s exits the app.
+            long now = android.os.SystemClock.elapsedRealtime();
+            if (now - lastBackPress < 2000) { super.onBackPressed(); return; }
+            lastBackPress = now;
+            web.evaluateJavascript("window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',code:'Escape',bubbles:true}));", null);
+            Toast.makeText(this, "กดกลับอีกครั้งเพื่อออกจากเกม", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (web.canGoBack()) web.goBack(); else super.onBackPressed();
+    }
 
     class Bridge {
         @JavascriptInterface public void saveFile(String name, String mime, String b64) {
