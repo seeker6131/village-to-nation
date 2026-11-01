@@ -27,11 +27,18 @@ export function skyAt(hour) {
 /** Window light schedule: on in the evening and before dawn, each house a little different. */
 export function windowLit(hour, seed) { const off = 21.6 + hash(seed, 7, 5) * 1.8, on = 17.6 + hash(seed, 3, 9) * .8; return hour >= on && hour < off || hour >= 4.8 + hash(seed, 1, 2) && hour < 6.3; }
 
+// Multi-sine candle flicker: no per-frame randomness, stable for a given lamp and wall-clock time.
+// Soft, continuous change avoids harsh shimmer on mobile displays.
+export function gentleFlicker(seed, seconds) {
+  const phase = (Number(seed) || 0) * 2.39996;
+  const v = Math.sin(seconds * 2.1 + phase) * .045 + Math.sin(seconds * 3.7 + phase * .63) * .026 + Math.sin(seconds * .74 + phase * 1.7) * .06;
+  return Math.max(.84, Math.min(1.16, 1 + v));
+}
 let lm = null;
 /**
  * ctx: main canvas context (identity transform). lights: [{x, y (screen px), r (screen px), a (0..1), warm:bool}].
  */
-export function drawLighting(ctx, W, H, hour, lights, quality) {
+export function drawLighting(ctx, W, H, hour, lights, quality, seconds = 0) {
   const sky = skyAt(hour);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   if (sky.warm > 0.005) { ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = `rgba(${sky.wc.map(Math.round).join(',')},${sky.warm.toFixed(3)})`; ctx.fillRect(0, 0, W, H); }
@@ -44,8 +51,8 @@ export function drawLighting(ctx, W, H, hour, lights, quality) {
   g.fillStyle = `rgba(${sky.dc.map(Math.round).join(',')},${sky.dark.toFixed(3)})`; g.fillRect(0, 0, w, h);
   g.globalCompositeOperation = 'destination-out';
   for (const L of lights) {
-    const x = L.x / S, y = L.y / S, r = L.r / S; if (x < -r || y < -r || x > w + r || y > h + r) continue;
-    const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(0,0,0,${L.a * .92})`); gr.addColorStop(.4, `rgba(0,0,0,${L.a * .5})`); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    const x = L.x / S, y = L.y / S, r = L.r / S * gentleFlicker(L.seed ?? L.x * 3 + L.y, seconds); const strength = Math.min(1, L.a * gentleFlicker(L.seed ?? L.y, seconds)); if (x < -r || y < -r || x > w + r || y > h + r) continue;
+    const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(0,0,0,${strength * .92})`); gr.addColorStop(.4, `rgba(0,0,0,${strength * .5})`); gr.addColorStop(1, 'rgba(0,0,0,0)');
     g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
   }
   ctx.save(); ctx.imageSmoothingEnabled = true; ctx.drawImage(lm, 0, 0, w * S, h * S); ctx.restore();
@@ -54,11 +61,11 @@ export function drawLighting(ctx, W, H, hour, lights, quality) {
   const k = Math.min(1, sky.dark / .5);
   for (const L of lights) {
     if (!L.warm) continue; const r = L.r * .7; if (L.x < -r || L.y < -r || L.x > W + r || L.y > H + r) continue;
-    ctx.globalAlpha = Math.min(1, .38 * L.a * k); ctx.drawImage(glowSprite(), L.x - r, L.y - r, r * 2, r * 2);
+    ctx.globalAlpha = Math.min(1, .38 * L.a * gentleFlicker(L.seed ?? L.x * 5, seconds) * k); ctx.drawImage(glowSprite(), L.x - r, L.y - r, r * 2, r * 2);
   }
   // window panes: a tiny bright pane at each window light (the twinkle)
   ctx.globalCompositeOperation = 'source-over';
-  for (const L of lights) { if (!L.dot) continue; const d = Math.max(2, L.r * .12); if (L.x < 0 || L.y < 0 || L.x > W || L.y > H) continue; ctx.globalAlpha = Math.min(1, L.a * k * 1.1); ctx.fillStyle = '#ffe9a8'; ctx.fillRect(Math.round(L.x - d / 2), Math.round(L.y - d / 2), Math.round(d), Math.round(d * 1.3)); }
+  for (const L of lights) { if (!L.dot) continue; const d = Math.max(2, L.r * .12); if (L.x < 0 || L.y < 0 || L.x > W || L.y > H) continue; ctx.globalAlpha = Math.min(1, L.a * gentleFlicker(L.seed ?? L.y * 7, seconds) * k * .95); ctx.fillStyle = '#ffe9a8'; ctx.fillRect(Math.round(L.x - d / 2), Math.round(L.y - d / 2), Math.round(d), Math.round(d * 1.3)); }
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   return sky;
 }

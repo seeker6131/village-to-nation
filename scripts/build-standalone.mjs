@@ -54,8 +54,13 @@ const used = (await import(pathToFileURL(path.join(root, 'src/ui/render.js')).hr
 const map = {};
 for (const id of used) map[id] = 'data:image/webp;base64,' + fs.readFileSync(path.join(root, 'assets', id + '.webp')).toString('base64');
 
+const fantasyAssets = {};
+for (const name of ['char_base_walk','hair_short','hair_ponytail','hair_wavy','beards','hats','outfit_poor','outfit_noble','outfit_smith','outfit_soldier','outfit_merchant']) {
+  fantasyAssets[name] = 'data:image/png;base64,' + fs.readFileSync(path.join(root, 'source_art/fantasy', name + '.png')).toString('base64');
+}
 const html = read('index.html')
   .replace('<link rel="stylesheet" href="./src/style.css" />', () => `<style>${read('src/style.css')}</style>`)
-  .replace('<script type="module" src="./src/main.js"></script>', () => `<script>\nwindow.__V2N_ASSET_MAP__=${JSON.stringify(map)};\n(() => {\n${bundle}\n})();\n</script>`);
+  .replace('<script type="module" src="./src/main.js"></script>', () => `<script>\nwindow.__V2N_ASSET_MAP__=${JSON.stringify(map)};
+window.__V2N_FANTASY_MAP__=${JSON.stringify(fantasyAssets)};\n(() => {\n${bundle}\n})();\n</script>`);
 fs.writeFileSync(path.join(root, 'play.html'), html);
 console.log(`play.html: ${order.length} modules, ${used.length} images, ${(Buffer.byteLength(html) / 1024 / 1024).toFixed(2)} MiB`);

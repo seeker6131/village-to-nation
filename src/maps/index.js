@@ -3,5 +3,10 @@ import { ART10 } from '../artManifest.js';
 import { MAP_ART } from './mapArt.js';
 import { MAP as map1 } from './map1.js';
 import { MAP as map2 } from './map2.js';
+import { MAP as fantasy_valley } from './fantasy_valley.js';
+import { MAP as fantasy_lake } from './fantasy_lake.js';
+import { MAP as fantasy_pines } from './fantasy_pines.js';
+import { MAP as fantasy_meadow } from './fantasy_meadow.js';
+import { MAP as fantasy_pass } from './fantasy_pass.js';
 for (const [k, v] of Object.entries(MAP_ART)) if (!ART10[k]) ART10[k] = v; // sprites made from images imported into the Map Maker
-export const MAPS = [map1, map2];
+export const MAPS = [map1, map2, fantasy_valley, fantasy_lake, fantasy_pines, fantasy_meadow, fantasy_pass];

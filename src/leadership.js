@@ -6,7 +6,8 @@
 // Money never adds votes: popularity only comes from how the village is doing.
 import { addHistory, logEvent, PROJECT_ORDER } from './gameState.js';
 import { ensureTown, population, housingCapacity } from './npcs.js';
-import { hash } from './world.js';
+import { hash, PLANS } from './world.js';
+import { ensureKingdom, ROYAL_RANKS } from './fantasyKingdom.js';
 import { tierInfo, tierOf, officeNeeds } from './villageLayout.js';
 import { policyPop, taxPop, ensureEconomy, hasPolicy } from './economy.js';
 import { isCivilServant } from './career.js';
@@ -137,6 +138,7 @@ export function volunteer(s) {
 }
 export function termDaysLeft(s) { const L = ensureLeadership(s); return Math.max(0, TERM_DAYS - (s.day - L.termStart)); }
 export function roleLabel(s) {
+  if (PLANS[s.world?.plan]?.id?.startsWith('fantasy_')) return ROYAL_RANKS[ensureKingdom(s).rank].th;
   const L = ensureLeadership(s);
   const title = tierInfo(s).title; // the leader's title follows the level of the area (หัวหน้าค่าย -> ผู้ใหญ่บ้าน -> กำนัน ...)
   if (L.isLeader && L.pm) return 'นายกรัฐมนตรี';

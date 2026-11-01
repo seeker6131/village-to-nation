@@ -1,6 +1,7 @@
 // Dressing room: first-run character creation (name TH/EN + appearance) and later editing.
-import { HAIR_STYLES, HAIR_STYLE_NAMES, HAIR_COLORS, SKIN_TONES, EYE_COLORS, OUTFITS, DEFAULT_APPEARANCE, validateName, NAME_ERRORS, normalizeAppearance, outfitAvailable } from '../character/model.js';
+import { HAIR_STYLES, HAIR_STYLE_NAMES, HAIR_COLORS, SKIN_TONES, EYE_COLORS, OUTFITS, DEFAULT_APPEARANCE, BEARD_STYLES, HAT_STYLES, validateName, NAME_ERRORS, normalizeAppearance, outfitAvailable } from '../character/model.js';
 import { rigAtlasReady, rigFrameRect, WALK_FRAMES } from '../character/rig.js';
+import { fantasyAtlasReady, fantasyFrameRect } from '../character/fantasy.js';
 import { allUnlocked } from '../save.js';
 import { G, saveNow } from './game.js';
 import { sfx } from '../audio.js';
@@ -48,6 +49,10 @@ function build() {
   // hair styles with mini previews
   $('#cr-hair').innerHTML = HAIR_STYLES.map(h => `<button type="button" data-k="hair" data-v="${h}" class="${a.hair === h ? 'on' : ''}"><canvas width="44" height="44" data-mini="${h}"></canvas><span>${HAIR_STYLE_NAMES[h][lang]}</span></button>`).join('');
   const sw = (key, table) => Object.entries(table).map(([id, c]) => `<button type="button" data-k="${key}" data-v="${id}" title="${c[lang]}" aria-label="${c[lang]}" class="${a[key] === id ? 'on' : ''} ${c.rgb ? '' : 'orig'}" style="--c:rgb(${(c.rgb || [0, 0, 0]).join(',')})"></button>`).join('');
+  $('#cr-beard-label').textContent = lang === 'th' ? 'หนวดเครา' : 'Beard';
+  $('#cr-hat-label').textContent = lang === 'th' ? 'หมวก' : 'Hat';
+  $('#cr-beard').innerHTML = BEARD_STYLES.map(id => `<button type="button" data-k="beard" data-v="${id}" class="${(a.beard || 'none') === id ? 'on' : ''}">${id === 'none' ? '—' : id}</button>`).join('');
+  $('#cr-hat').innerHTML = HAT_STYLES.map(id => `<button type="button" data-k="hat" data-v="${id}" class="${(a.hat || 'none') === id ? 'on' : ''}">${id === 'none' ? '—' : id}</button>`).join('');
   $('#cr-haircolor').innerHTML = sw('hairColor', HAIR_COLORS);
   $('#cr-skin').innerHTML = sw('skin', SKIN_TONES);
   $('#cr-eyes').innerHTML = sw('eyes', EYE_COLORS);
@@ -65,15 +70,17 @@ function build() {
 }
 function allOutfitsUnlocked() { return [...unlocked(), ...(tryOutfit ? [tryOutfit] : []), ...Object.keys(OUTFITS)]; }
 function mini(c, a, yOff = 6) {
-  const sheet = rigAtlasReady(preview(a)); const g = c.getContext('2d');
+  const paper = fantasyAtlasReady(preview(a));
+  const sheet = paper || rigAtlasReady(preview(a)); const g = c.getContext('2d');
   g.imageSmoothingEnabled = false; g.clearRect(0, 0, c.width, c.height);
   if (!sheet) { setTimeout(() => G.creatorOpen && mini(c, a, yOff), 120); return; } // still baking
-  g.drawImage(sheet, 18, yOff + 6, 44, 44, 0, 0, c.width, c.height);
+  g.drawImage(sheet, paper ? 18 : 18, paper ? 10 : yOff + 6, 44, 44, 0, 0, c.width, c.height);
 }
 function drawFrame(c, a, dir, t, walking) {
-  const sheet = rigAtlasReady(preview(a), { urgent: true }); const g = c.getContext('2d');
+  const paper = fantasyAtlasReady(preview(a));
+  const sheet = paper || rigAtlasReady(preview(a), { urgent: true }); const g = c.getContext('2d');
   g.imageSmoothingEnabled = false; g.clearRect(0, 0, c.width, c.height);
-  const r = rigFrameRect(dir, walking ? 1 + Math.floor(t * 10) % WALK_FRAMES : 0);
+  const r = paper ? fantasyFrameRect(dir, walking ? 1 + Math.floor(t * 10) % WALK_FRAMES : 0) : rigFrameRect(dir, walking ? 1 + Math.floor(t * 10) % WALK_FRAMES : 0);
   g.drawImage(sheet, r.x, r.y, r.w, r.h, 0, 0, c.width, c.height);
 }
 function loop() {
@@ -109,14 +116,15 @@ function confirm() {
 
 export function initCreator() {
   G.openCreator = openCreator;
+  document.addEventListener('v2n-fantasy-ready', () => { if (G.creatorOpen) build(); });
   $('#creator').addEventListener('click', e => {
     const b = e.target.closest('[data-k]');
     if (b) { draft.appearance = { ...draft.appearance, [b.dataset.k]: b.dataset.v }; sfx('click'); build(); return; }
     const l = e.target.closest('[data-lang]');
     if (l) { lang = l.dataset.lang; build(); }
   });
-  $('#cr-prev').addEventListener('click', () => { dirIndex = (dirIndex + 3) % 4; });
-  $('#cr-next').addEventListener('click', () => { dirIndex = (dirIndex + 1) % 4; });
+  $('#cr-prev').addEventListener('click', () => { dirIndex = (dirIndex + 3) % 4; $('#cr-dir').textContent = T[lang].dirs[DIRS[dirIndex]]; });
+  $('#cr-next').addEventListener('click', () => { dirIndex = (dirIndex + 1) % 4; $('#cr-dir').textContent = T[lang].dirs[DIRS[dirIndex]]; });
   $('#cr-name').addEventListener('input', () => { draft.name = $('#cr-name').value; validate(true); });
   $('#cr-name').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') confirm(); });
   $('#cr-confirm').addEventListener('click', confirm);
@@ -124,7 +132,7 @@ export function initCreator() {
   $('#cr-random').addEventListener('click', () => {
     const pick = o => { const k = Object.keys(o); return k[Math.floor(Math.random() * k.length)]; };
     const free = Object.keys(OUTFITS).filter(id => outfitAvailable(id, unlocked()));
-    draft.appearance = { hair: HAIR_STYLES[Math.floor(Math.random() * HAIR_STYLES.length)], hairColor: pick(HAIR_COLORS), skin: pick(SKIN_TONES), eyes: pick(EYE_COLORS), outfit: free[Math.floor(Math.random() * free.length)] };
+    draft.appearance = { hair: HAIR_STYLES[Math.floor(Math.random() * HAIR_STYLES.length)], hairColor: pick(HAIR_COLORS), skin: pick(SKIN_TONES), eyes: pick(EYE_COLORS), beard: BEARD_STYLES[Math.floor(Math.random() * BEARD_STYLES.length)], hat: HAT_STYLES[Math.floor(Math.random() * HAT_STYLES.length)], outfit: free[Math.floor(Math.random() * free.length)] };
     build();
   });
 }

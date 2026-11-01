@@ -1,6 +1,6 @@
 // Game controller: owns the shared context `G`, simulation step, movement, NPC behaviour and interaction.
 // UI modules (render, panels, input, creator) read/write G; they register callbacks on G to avoid import cycles.
-import { TILE, WORLD_W, WORLD_H, POINTS, blocked, nodesNear, nodeStatus, SPAWN, ensureWorld, plotRect, CENTER, VILLAGE_RADIUS, hash } from '../world.js';
+import { TILE, WORLD_W, WORLD_H, WORLD, LEADER_HOUSE, canStepElevation, POINTS, blocked, nodesNear, nodeStatus, SPAWN, ensureWorld, plotRect, CENTER, VILLAGE_RADIUS, hash } from '../world.js';
 import { progressTime, study, logEvent } from '../gameState.js';
 import { refreshDaily } from '../systems.js';
 import { tickConstruction, BUILDINGS, canPlace, placeBuilding, ensureConstruction, findStructure } from '../construction.js';
@@ -20,6 +20,8 @@ import { createCamera, clampCamera, defaultZoom } from './camera.js';
 import { loadGame, saveGame as persist } from '../save.js';
 import { sfx } from '../audio.js';
 import { CHARACTER_ATLAS } from '../character/atlasData.js';
+import { awardMerit, kingdomNewDay } from '../fantasyKingdom.js';
+import { PLANS } from '../world.js';
 
 export const CHAR_SCALE = 0.5;           // rig sprite px -> world px (2x art like the buildings; ~31px tall in world)
 export const OLD_CHAR_SCALE = 0.6;       // v0.8 atlas fallback
@@ -32,7 +34,7 @@ export const INTERACT_RANGE = 30;
 export const G = {
   state: null, storage: null, cam: createCamera(), npcs: [], keys: new Set(), stick: { x: 0, y: 0, active: false },
   facing: 'down', walking: false, animDist: 0, route: [], waypoint: null, panel: null, panelArg: null, build: null,
-  creatorOpen: false, now: 0, cssW: 800, cssH: 450, k: 1, dev: false, notes: [], effects: [],
+  creatorOpen: false, indoor: null, enterIndoor: () => {}, leaveIndoor: () => {}, now: 0, cssW: 800, cssH: 450, k: 1, dev: false, notes: [], effects: [],
   toast: () => {}, openPanel: () => {}, closePanel: () => {}, refreshPanel: () => {}, hud: () => {}, syncBuildBar: () => {}, openCreator: () => {},
 };
 
@@ -76,7 +78,11 @@ export function walkable(tx, ty) {
   return !publicAt(tx, ty);
 }
 // feet are a small box, so the player can't squeeze diagonally between two trunks
-function canStand(x, y) { return walkable(Math.floor((x - 4) / TILE), Math.floor((y - 3) / TILE)) && walkable(Math.floor((x + 4) / TILE), Math.floor((y - 3) / TILE)); }
+function canStand(x, y, fromX = x, fromY = y) {
+  const fx = Math.floor(fromX / TILE), fy = Math.floor((fromY - 3) / TILE), nx = Math.floor(x / TILE), ny = Math.floor((y - 3) / TILE);
+  if (WORLD.hasElevation && !canStepElevation(fx, fy, nx, ny)) return false;
+  return walkable(Math.floor((x - 4) / TILE), ny) && walkable(Math.floor((x + 4) / TILE), ny);
+}
 function lineClear(ax, ay, bx, by) {
   const d = Math.hypot(bx - ax, by - ay), steps = Math.ceil(d / 6);
   for (let i = 1; i <= steps; i++) { const x = ax + (bx - ax) * i / steps, y = ay + (by - ay) * i / steps; if (!canStand(x, y)) return false; }
@@ -84,7 +90,7 @@ function lineClear(ax, ay, bx, by) {
 }
 /** Remove grid zig-zags: keep only the waypoints needed for straight, walkable lines. */
 export function smoothRoute(sx, sy, route) {
-  if (route.length < 3) return route;
+  if (WORLD.hasElevation || route.length < 3) return route;
   const out = []; let ax = sx, ay = sy, i = 0;
   while (i < route.length) {
     let j = route.length - 1;
@@ -93,7 +99,7 @@ export function smoothRoute(sx, sy, route) {
   }
   return out;
 }
-function route(ax, ay, bx, by) { return smoothRoute(ax, ay, tileRoute(ax, ay, bx, by, walkable)); }
+function route(ax, ay, bx, by) { return smoothRoute(ax, ay, tileRoute(ax, ay, bx, by, walkable, 1, canStepElevation)); }
 
 // ------------------------------------------------------------- NPC runtime
 // ------------------------------------------------------------- animals (ambient life; not saved)
@@ -225,7 +231,10 @@ function updateNpcs(dt) {
       if (d < 2) { n.waypoint = n.route.shift() || null; if (!n.waypoint) n.arrived = n.slow || Math.hypot((plan.target[0] + .5) * TILE - n.x, (plan.target[1] + .5) * TILE - n.y) < 30; }
       else {
         const v = Math.min(d, n.speed * (n.slow ? 0.55 : n.run ? 1.9 : 1) * dt);
-        n.x += dx / d * v; n.y += dy / d * v; n.animDist += v;
+        const nextX = n.x + dx / d * v, nextY = n.y + dy / d * v;
+        if (canStepElevation(Math.floor(n.x / TILE), Math.floor(n.y / TILE), Math.floor(nextX / TILE), Math.floor(nextY / TILE))) {
+          n.x = nextX; n.y = nextY; n.animDist += v;
+        } else { n.waypoint = null; n.route = []; n.planKey = ''; }
         n.facing = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
       }
       n.walking = !!n.waypoint;
@@ -301,8 +310,8 @@ function updatePlayer(dt) {
     G.facing = Math.abs(vx) > Math.abs(vy) ? (vx > 0 ? 'right' : 'left') : (vy > 0 ? 'down' : 'up');
     const ox = p.x, oy = p.y, step = PLAYER_SPEED * sp * dt;
     // axis-separated collision => slide along trunks and walls instead of sticking
-    if (canStand(p.x + vx * step, p.y)) p.x += vx * step;
-    if (canStand(p.x, p.y + vy * step)) p.y += vy * step;
+    if (canStand(p.x + vx * step, p.y, p.x, p.y)) p.x += vx * step;
+    if (canStand(p.x, p.y + vy * step, p.x, p.y)) p.y += vy * step;
     p.x = Math.max(16, Math.min(WORLD_W * TILE - 16, p.x)); p.y = Math.max(16, Math.min(WORLD_H * TILE - 8, p.y));
     const moved = Math.hypot(p.x - ox, p.y - oy);
     G.animDist += moved;
@@ -333,11 +342,12 @@ export function simulate(dtReal) {
     if (events.length) resetChoppers();
   }
   if (s.day !== dayBefore) {
+    const fantasyDay = kingdomNewDay(s); if (fantasyDay?.kind === 'raid') G.toast(fantasyDay.msg, !fantasyDay.defended);
     { const ed = economyDay(s); for (const e of ed.events) G.toast(e, e.startsWith('⚠️')); if (ed.grew) { clearPropTiles(s); resetNpcPlans(); G.onVillageUpgrade?.(ed.grew); } }
     { const sl = playerNewDay(s, !!s.leadership?.isLeader); G.toast(`😴 นอนที่${sl.where} พลังงาน ${Math.floor(s.player.stamina)}${sl.propertyTax ? ` · ภาษีบ้าน ${sl.propertyTax}` : ''}`); }
     refreshDaily(s); if (regrowDay(s)) G.toast('🌱 ต้นไม้นอกเขตหมู่บ้านงอกขึ้นใหม่');
     for (const e of homesDay(s)) G.toast(e);
-    const el = leadershipDay(s);
+    const el = PLANS[s.world.plan]?.id?.startsWith('fantasy_') ? null : leadershipDay(s);
     if (s.lastScandal) { const sc = s.lastScandal; s.lastScandal = null; G.toast(`🚨 ${sc.by}! ยึดเงิน ${sc.seized} เหรียญ${sc.severe ? ' · ถูกปลดและตัดสิทธิ์ลงเลือกตั้ง' : ' · ความนิยมร่วงหนัก'}`, true); sfx('error'); }
     if (el) { G.toast(el.won ? `🗳️ ชนะเลือกตั้ง! ได้เป็นผู้นำต่อ (${el.player} ต่อ ${el.rivalScore})` : `🗳️ ${el.rival} ได้เป็นผู้นำคนใหม่${el.note ? ' — ' + el.note : ''}`, !el.won); sfx(el.won ? 'level' : 'error'); }
     const settler = settlerArrivals(s);
@@ -355,6 +365,8 @@ const SITE_LABEL = { camp: 'ครูอุ่น · บ้านผู้นำ
 /** Things the player can interact with near (x,y) — trees/rocks come from a spatial query, not a full scan. */
 export function interactables(x = G.state.player.x, y = G.state.player.y) {
   const s = G.state, list = [];
+  const cas = { x: (LEADER_HOUSE.tx + LEADER_HOUSE.w / 2) * TILE, y: (LEADER_HOUSE.ty + LEADER_HOUSE.h + .5) * TILE };
+  list.push({ kind: 'indoor', id: 'castle-entrance', room: 'castle', name: 'เข้าปราสาทพระราชา', ...cas, r: 29 });
   for (const [id, p] of Object.entries(POINTS)) {
     if (p.type === 'project') { const [tx, ty] = structurePos(s, id); list.push({ kind: 'site', id, name: p.name, x: (tx + .5) * TILE, y: (ty - .5) * TILE, r: 44 }); }
     else list.push({ kind: 'point', id, name: SITE_LABEL[id] || p.name, x: (p.x + .5) * TILE, y: (p.y + .5) * TILE, r: INTERACT_RANGE });
@@ -367,7 +379,7 @@ export function interactables(x = G.state.player.x, y = G.state.player.y) {
     if (sl.kind === 'public' || slotState(s, sl).state !== 'empty') continue;
     const b = BUILDINGS[sl.kind], h = s.homes?.[sl.id]; list.push({ kind: 'slot', id: sl.id, name: h ? (h.owner === 'player' ? `บ้านของฉัน: ${sl.name}` : `ที่ดินของ${h.name}`) : `${sl.name} (ว่าง)`, x: (sl.tx + b.width / 2) * TILE, y: (sl.ty + b.height) * TILE, r: 40, slot: sl });
   }
-  for (const p of s.placed) { const b = BUILDINGS[p.type]; list.push({ kind: 'placed', id: p.uid, name: b.name, x: (p.tx + b.width / 2) * TILE, y: (p.ty + b.height) * TILE, r: Math.max(26, b.width * 9) }); }
+  for (const p of s.placed) { const b = BUILDINGS[p.type]; if (p.type === 'cottage' && p.level >= 1) list.push({ kind: 'indoor', id: p.uid + '-door', room: 'cottage', name: 'เข้าบ้าน', x: (p.tx + b.width / 2) * TILE, y: (p.ty + b.height + .5) * TILE, r: 30 }); list.push({ kind: 'placed', id: p.uid, name: b.name, x: (p.tx + b.width / 2) * TILE, y: (p.ty + b.height) * TILE, r: Math.max(26, b.width * 9) }); }
   list.push({ kind: 'travel', id: 'bus', name: '🚌 ป้ายรถ · เดินทางไปเมืองอื่น', x: BUS_STOP.x * TILE, y: BUS_STOP.y * TILE + 8, r: 34 });
   for (const n of G.npcs) {
     if (n.hidden || n.def.special === 'cop') continue;
@@ -390,6 +402,7 @@ export function actionLabel(e) {
   if (e.kind === 'stump') return 'ขุดตอไม้';
   if (e.kind === 'stone') return (G.state.inventory?.pickaxe || 0) > 0 ? 'ขุดหิน' : 'ต้องมีอีเต้อ';
   if (e.kind === 'npc') return 'คุยกับ ' + e.name;
+  if (e.kind === 'indoor') return e.name;
   if (e.kind === 'thief') return 'จับโจร!';
   if (e.kind === 'travel') return 'เดินทาง';
   if (e.kind === 'point') return { camp: 'คุยครูอุ่น', board: 'ดูงาน', study: 'อ่านหนังสือ', delivery: 'ลังแลกของ' }[e.id] || e.name;
@@ -403,13 +416,14 @@ export function interact(e) {
   const s = G.state;
   if (!e) { G.toast('เดินเข้าใกล้คน ต้นไม้ หิน หรืออาคาร แล้วกด ✦', true); return; }
   const job = jobTarget(s);
-  if (job && job.ref === e.id) { const r = workAt(s, e.id); return result(r, r.ok ? 'coin' : 'error'); }
+  if (job && job.ref === e.id) { const r = workAt(s, e.id); if (r.ok) awardMerit(s, 'labor'); return result(r, r.ok ? 'coin' : 'error'); }
   if (e.kind === 'wood' || e.kind === 'stone' || e.kind === 'stump') {
     G.facing = Math.abs(e.x - s.player.x) > Math.abs(e.y - 8 - s.player.y) ? (e.x > s.player.x ? 'right' : 'left') : (e.y - 8 > s.player.y ? 'down' : 'up');
     const r = hitNode(s, e.id);
-    if (r.ok) { G.swing = 0.22; G.effects.push({ kind: e.kind === 'stone' ? 'dust' : 'chip', x: e.x, y: e.y - 14, t: 0.45 }); if (r.felled) G.effects.push({ kind: 'fall', x: e.x, y: e.y, t: 0.6 }); }
+    if (r.ok) { if (r.felled || r.broken) awardMerit(s, 'labor'); G.swing = 0.22; G.effects.push({ kind: e.kind === 'stone' ? 'dust' : 'chip', x: e.x, y: e.y - 14, t: 0.45 }); if (r.felled) G.effects.push({ kind: 'fall', x: e.x, y: e.y, t: 0.6 }); }
     return result(r, r.ok ? (r.felled || r.broken ? 'build' : 'gather') : 'error');
   }
+  if (e.kind === 'indoor') return G.enterIndoor(e.room);
   if (e.kind === 'npc') return G.openPanel('npc', e.id);
   if (e.kind === 'travel') return G.openPanel('travel');
   if (e.kind === 'thief') { const r = arrestThief(s, e.id); G.npcs = G.npcs.filter(n => n.def.crook !== e.id); return result(r, r.ok ? 'level' : 'error'); }
@@ -419,7 +433,10 @@ export function interact(e) {
     if (e.id === 'study') return result(study(s), 'click');
     if (e.id === 'delivery') return G.openPanel('market');
   }
-  if (e.kind === 'site' || e.kind === 'placed') return G.openPanel('structure', e.id);
+  if (e.kind === 'site' || e.kind === 'placed') {
+    if (e.kind === 'site' && G.state.publicSites?.[e.id]?.status === 'done' && ['market', 'home', 'hall'].includes(e.id)) return G.enterIndoor(e.id === 'home' ? 'dorm' : e.id === 'market' ? 'inn' : 'hall');
+    return G.openPanel('structure', e.id);
+  }
   if (e.kind === 'slot') {
     if (e.slot.kind === 'cottage') {
       const owner = ownerOf(s, e.slot.id);

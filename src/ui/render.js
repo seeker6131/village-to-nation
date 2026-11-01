@@ -1,6 +1,7 @@
 // Canvas renderer — layers: ground chunks (terrain + decor) -> y-sorted objects (trees, rocks, buildings, people)
 // with see-through foliage when something covers the player -> night light -> screen-space labels/markers.
 import { MAPS } from '../maps/index.js';
+import { WORLD, elevationAt, stairAt } from '../world.js';
 import { TILE, WORLD_W, WORLD_H, T, groundAt, hash, POINTS, nodeOnTile, nodeStatus, nodeState, LEADER_HOUSE, TENTS, PROPS, CENTER, VILLAGE_RADIUS, plotRect, plotObstacles } from '../world.js';
 import { PROJECTS } from '../gameState.js';
 import { BUILDINGS, progressOf, findStructure } from '../construction.js';
@@ -9,6 +10,7 @@ import { jobTarget } from '../jobs.js';
 import { structurePos } from '../npcs.js';
 import { atlasCanvas, frameRect } from '../character/composer.js';
 import { rigAtlasReady, rigFrameRect, rigWalkColumn, F as RIG_F, RIG_BASELINE } from '../character/rig.js';
+import { fantasyAtlasReady, fantasyFrameRect, FANTASY_FRAME, FANTASY_BASELINE } from '../character/fantasy.js';
 import { allUnlocked } from '../save.js';
 import { villageProps, PASTURE, groundLift } from '../villageProps.js';
 import { drawLighting, skyAt, windowLit } from './lighting.js';
@@ -18,11 +20,12 @@ import { G, CHAR_SCALE, OLD_CHAR_SCALE, HEAD_Y, nearestInteractable, FRAME, walk
 import { worldToScreen } from './camera.js';
 import { drawGround, setTextures, TEXTURE_NAMES, TILE_NAMES, setTileImages, drawDecal } from './terrain.js';
 import { ART10 } from '../artManifest.js';
+import { FANTASY_BUILDINGS, FANTASY_ASSET_NAMES } from '../fantasyManifest.js';
 import { eraHouseFrame as cottageFrame } from '../artMap.js';
 import { treeSpecies, rockSprite, buildingFrame, leaderHouseFrame, decorSprites, DECOR_LIST, waterfallSpot, cropFor, cropStage, CROPS, FENCE_MATERIALS, roadTexture, allReachableSprites } from '../artMap.js';
 
 // v0.9 art still in use (props, workshop) + every v0.10 sprite the art map can ask for (assets/v10, stored at 2x)
-const ART_NAMES = ['workshop', 'log', 'bush_0', 'bush_1', 'bush_2', 'bush_3', 'bush_4', ...allReachableSprites().map(n => 'v10/' + n), ...Object.keys(ART10).filter(n => /^(c[bpd]|po|gt|bs|sh|bz)_/.test(n)).map(n => 'v10/' + n), ...MAPS.flatMap(m => [...new Set([...m.trees.flatMap(([, , sp]) => [sp.replace('stump_', 'tree_'), sp.replace('tree_', 'stump_')]), ...m.props.map(p => p.name)])]).filter(n => ART10[n]).map(n => 'v10/' + n), ...TILE_NAMES];
+const ART_NAMES = ['workshop', 'log', 'bush_0', 'bush_1', 'bush_2', 'bush_3', 'bush_4', ...allReachableSprites().map(n => 'v10/' + n), ...Object.keys(ART10).filter(n => /^(c[bpd]|po|gt|bs|sh|bz)_/.test(n)).map(n => 'v10/' + n), ...MAPS.flatMap(m => [...new Set([...m.trees.flatMap(([, , sp]) => [sp.replace('stump_', 'tree_'), sp.replace('tree_', 'stump_')]), ...m.props.map(p => p.name)])]).filter(n => ART10[n]).map(n => 'v10/' + n), ...TILE_NAMES, ...FANTASY_ASSET_NAMES, 'tiles/cliff'];
 const art = {};
 export function loadArt() {
   return Promise.all(ART_NAMES.map(id => new Promise(res => {
@@ -103,6 +106,19 @@ function spr(g, name, cx, by, scale = 1) {
   return { x0: x, x1: x + w, y0: y, y1: y + h };
 }
 
+/** Fantasy sprites: GPT source is 4x downsampled to a transparent WebP, stored at 2x world resolution. */
+export function fantasyBuildingSize(family, level = 1, scale = 1) {
+  const dims = FANTASY_BUILDINGS[family]?.[Math.max(0, Math.min(2, (level | 0) - 1))];
+  return dims ? [Math.max(1, Math.round(dims[0] * .5 * scale)), Math.max(1, Math.round(dims[1] * .5 * scale))] : null;
+}
+function fantasySpr(g, family, level, cx, by, scale = 1) {
+  const id = `fantasy/${family}_${Math.max(1, Math.min(3, level | 0))}`;
+  const img = art[id], size = fantasyBuildingSize(family, level, scale);
+  if (!img?.naturalWidth || !size) return null;
+  const [w,h] = size; const x = Math.round(cx - w / 2), y = Math.round(by - h);
+  g.drawImage(img, x, y, w, h);
+  return {x0:x,x1:x+w,y0:y,y1:y+h};
+}
 let canvas, ctx, k = 1;
 export function initRenderer(c) { canvas = c; ctx = c.getContext('2d', { alpha: false }); }
 export function setResolution(w, h, scale) { canvas.width = w; canvas.height = h; k = scale; G.k = scale; G.cam.k = scale; ctx.imageSmoothingEnabled = false; }
@@ -112,6 +128,16 @@ function rect(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); }
 function playerAppearance() { return G.state.character?.appearance || { hair: 'pony', outfit: 'cream' }; }
 /** Skeletal-rig character (8-frame walk); the v0.8 sprite sheet is only a fallback while the rig atlas bakes. */
 export function drawCharacter(g, appearance, x, y, dir, walking, dist, unlocked, urgent = false) {
+  const paper = fantasyAtlasReady(appearance);
+  if (paper) {
+    const r = fantasyFrameRect(dir, rigWalkColumn(walking, dist, RIG_STRIDE)), S = CHAR_SCALE;
+    g.imageSmoothingEnabled = false;
+    g.drawImage(paper, r.x, r.y, r.w, r.h,
+      Math.round((x - FANTASY_FRAME / 2 * S) * 2) / 2,
+      Math.round((y - FANTASY_BASELINE * S) * 2) / 2,
+      FANTASY_FRAME * S, FANTASY_FRAME * S);
+    return;
+  }
   const rig = rigAtlasReady(appearance, { urgent });
   if (rig) { // snap to the sprite pixel grid (0.5 world px) so pixels never split
     const r = rigFrameRect(dir, rigWalkColumn(walking, dist, RIG_STRIDE)), S = CHAR_SCALE;
@@ -174,6 +200,25 @@ export function render() {
   const vy0 = cam.y - cssH / 2 / cam.zoom, vy1 = cam.y + cssH / 2 / cam.zoom;
   const stage = s.town?.stage || 0;
   drawGround(ctx, vx0, vy0, vx1, vy1, stage, roadTiles(s), pavedTiles(s), yardTiles(s), paveLevels(s));
+  if (WORLD.hasElevation) {
+    const edge = art['tiles/cliff'];
+    const x0 = Math.max(0, Math.floor(vx0 / TILE) - 1), x1 = Math.min(WORLD_W - 1, Math.ceil(vx1 / TILE) + 1);
+    const y0 = Math.max(0, Math.floor(vy0 / TILE) - 1), y1 = Math.min(WORLD_H - 1, Math.ceil(vy1 / TILE) + 1);
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      const h = elevationAt(x, y), px = x * TILE, py = y * TILE;
+      // Visible south/west walls distinguish plateau from flat ground without blocking the tile beneath.
+      if (h > elevationAt(x, y + 1) && edge?.naturalWidth) {
+        ctx.drawImage(edge, 0, 0, 64, 64, px, py + 8, 16, 12);
+        ctx.fillStyle = '#1c3d38a0'; ctx.fillRect(px, py + 13, 16, 3);
+      }
+      if (h > elevationAt(x + 1, y)) { ctx.fillStyle = '#173d3880'; ctx.fillRect(px + 13, py + 1, 3, 13); }
+      if (stairAt(x, y)) {
+        const n = 'fantasy/cliff_stairs_' + ((x + y * 3) % 16);
+        const img = art[n]; if (img?.naturalWidth) ctx.drawImage(img, px, py - 2, 16, 18);
+        else { ctx.fillStyle = '#d2cbb0'; for (let j = 0; j < 4; j++) ctx.fillRect(px + 2, py + j * 4, 12, 2); }
+      }
+    }
+  }
   if (prof.animatedWater) { // water glints drift over the ground layer
     ctx.fillStyle = '#e4f6ffaa';
     for (let ty = Math.max(0, Math.floor(vy0 / TILE)); ty < Math.min(WORLD_H, vy1 / TILE + 1); ty++) for (let tx = Math.max(0, Math.floor(vx0 / TILE)); tx < Math.min(WORLD_W, vx1 / TILE + 1); tx++) {
@@ -254,8 +299,9 @@ export function render() {
     else add(y - 4, () => { if (ready('log')) ctx.drawImage(art.log, x - 18, y - 14, 36, 18); });
   }
   // leader house, tents and camp props
-  { const r = LEADER_HOUSE, cx = (r.tx + r.w / 2) * TILE, y = (r.ty + r.h) * TILE + 6, name = leaderHouseFrame(stage), [w, h] = ART10[name];
-    add(y - 6, () => { if (prof.shadow) groundShadow(cx, y - 4, w * .95, 9); spr(ctx, name, cx, y); }, { x0: cx - w / 2 + 6, x1: cx + w / 2 - 6, y0: y - h, y1: y - 22 }, { name, cx, by: y - 4 }); }
+  { const r = LEADER_HOUSE, cx = (r.tx + r.w / 2) * TILE, y = (r.ty + r.h) * TILE + 6, name = leaderHouseFrame(stage), [w, h] = fantasyBuildingSize('castle', Math.min(3,1+Math.floor(stage/2))) || ART10[name];
+    const level = Math.min(3,1+Math.floor(stage/2));
+    add(y - 6, () => { if (prof.shadow) groundShadow(cx, y - 4, w * .95, 9); if (!fantasySpr(ctx,'castle',level,cx,y)) spr(ctx,name,cx,y); }, { x0: cx - w / 2 + 6, x1: cx + w / 2 - 6, y0: y - h, y1: y - 22 }, { name, cx, by: y - 4 }); }
   { const wf = waterfallSpot(); if (wf && wf.x * TILE > vx0 - 60 && wf.x * TILE < vx1 + 60 && wf.y * TILE < vy1 + 100) { const f = prof.animatedWater ? Math.floor(G.now * 7) % 4 : 0; add(wf.y * TILE + 8, () => spr(ctx, 'waterfall_' + f, wf.x * TILE, wf.y * TILE + 12)); } }
   // claimed-but-unbuilt house plots: the owner's tent sits on the land while they save up
   for (const sl of openSlots(s)) {
@@ -285,8 +331,12 @@ export function render() {
     const site = s.publicSites[id]; if (site.status === 'none') continue;
     const r = plotRect(id), cx = (r.tx + r.w / 2) * TILE, by = (r.ty + r.h - 1) * TILE;
     if (id === 'farm') { add(-1e9, () => drawFarm(r, site)); continue; }
-    const kind = id === 'home' ? 'house' : id, name = buildingFrame(kind, site, progressOf(site)), [w, h] = ART10[name], bottom = (r.ty + r.h) * TILE + 2;
-    add(by, () => { if (prof.shadow) groundShadow(cx, bottom - 4, w * .95, 10); spr(ctx, name, cx, bottom); }, { x0: cx - w / 2 + 8, x1: cx + w / 2 - 8, y0: bottom - h, y1: bottom - 30 }, { name, cx, by: bottom - 6 });
+    const kind = id === 'home' ? 'house' : id, name = buildingFrame(kind, site, progressOf(site));
+    const fantasyFamily = {home:'dorm',market:'inn',hall:'town_hall'}[id];
+    const fantasyLevel = Math.max(1,Math.min(3,site.upgradingTo||site.level||1));
+    const [w,h] = fantasyFamily ? fantasyBuildingSize(fantasyFamily,fantasyLevel) || ART10[name] : ART10[name];
+    const bottom = (r.ty + r.h) * TILE + 2;
+    add(by, () => { if (prof.shadow) groundShadow(cx, bottom - 4, w * .95, 10); if (!(fantasyFamily && fantasySpr(ctx,fantasyFamily,fantasyLevel,cx,bottom))) spr(ctx, name, cx, bottom); }, { x0: cx - w / 2 + 8, x1: cx + w / 2 - 8, y0: bottom - h, y1: bottom - 30 }, { name, cx, by: bottom - 6 });
   }
   // private buildings
   for (const p of s.placed) {
@@ -299,8 +349,10 @@ export function render() {
       continue;
     }
     if (p.type === 'cottage') {
-      const cap = (s.town?.stage || 0) + 1, cf = cottageFrame(p.level > cap ? { ...p, level: cap, upgradingTo: undefined } : p, progressOf(p)), name = cf.name, [sw, sh] = ART10[name] || [80, 70], cx = x + w / 2;
-      add(y + h, () => { if (prof.shadow) groundShadow(cx, y + h, sw * .95, 8); sprFlip(ctx, name, cx, y + h + 3, cf.flip); }, { x0: cx - sw / 2 + 4, x1: cx + sw / 2 - 4, y0: y + h + 3 - sh, y1: y + h - 14 }, { name, cx, by: y + h, flip: cf.flip });
+      const cap = (s.town?.stage || 0) + 1, cf = cottageFrame(p.level > cap ? { ...p, level: cap, upgradingTo: undefined } : p, progressOf(p)), name = cf.name;
+      const family = ['house_a','house_b','house_c'][Math.floor(hash(p.tx,p.ty,43)*3)];
+      const level = Math.max(1,Math.min(3,p.upgradingTo || p.level || 1)), [sw,sh] = fantasyBuildingSize(family,level) || ART10[name] || [80,70], cx=x+w/2;
+      add(y + h, () => { if (prof.shadow) groundShadow(cx, y + h, sw * .95, 8); if (!fantasySpr(ctx,family,level,cx,y+h+3)) sprFlip(ctx,name,cx,y+h+3,cf.flip); }, { x0: cx - sw / 2 + 4, x1: cx + sw / 2 - 4, y0: y + h + 3 - sh, y1: y + h - 14 }, { name, cx, by: y + h, flip: cf.flip });
       continue;
     }
     add(y + h - (p.type === 'lamp' ? 2 : 0), () => {
@@ -383,7 +435,7 @@ export function render() {
   // day/night: sky tint + light map (lamps, campfire, lit windows, player lantern) — src/ui/lighting.js
   const hour = s.gameTime / 3600, lights = [];
   if (prof.nightLights && skyAt(hour).dark > .01) {
-    const L = (wx, wy, r, a, warm = true, dot = false) => { const p = toScreen(wx, wy); lights.push({ x: p.x, y: p.y, r: r * scale, a, warm, dot }); };
+    const L = (wx, wy, r, a, warm = true, dot = false) => { const p = toScreen(wx, wy); lights.push({ x: p.x, y: p.y, r: r * scale, a, warm, dot, seed: Math.round(wx * 7 + wy * 13) }); };
     const flick = 1 + Math.sin(G.now * 11) * .05 + Math.sin(G.now * 17.3) * .04;
     for (const p of villageProps(s)) {
       if (p.light) { p.anim ? L(p.x * TILE, (p.y - .5) * TILE, 80 * flick, 1) : L(p.x * TILE, (p.y - (p.name === 'cp_lamp' ? 1.6 : 2.6)) * TILE, p.street ? 64 : 52, .95); continue; }
@@ -402,11 +454,14 @@ export function render() {
       if (p.type === 'cottage' && p.level >= 1 && windowLit(hour, p.tx * 31 + p.ty)) L((p.tx + 2) * TILE, (p.ty + 2.2) * TILE, 34, .75);
       if (p.type === 'workshop' && p.level >= 1 && windowLit(hour, 77)) L((p.tx + 2) * TILE, (p.ty + 1.5) * TILE, 44, .7);
     }
-    if (windowLit(hour, 1)) L((LEADER_HOUSE.tx + LEADER_HOUSE.w / 2) * TILE, (LEADER_HOUSE.ty + 1.5) * TILE, 58, .85);
+    if (windowLit(hour, 1)) {
+      const x=(LEADER_HOUSE.tx+LEADER_HOUSE.w/2)*TILE,y=(LEADER_HOUSE.ty+1.5)*TILE;
+      L(x-15,y-7,32,.85,true,true);L(x+14,y-9,38,.86,true,true);L(x,y-22,56,.8);
+    }
     for (const id of ['home', 'market', 'hall']) if (s.publicSites[id]?.level >= 1 && windowLit(hour, id.length * 13)) { const r = plotRect(id); L((r.tx + r.w / 2) * TILE, (r.ty + r.h - 2) * TILE, 64, .8); }
     L(P.x, P.y - 10, 42, .5, false); // the player's own lantern so the way stays visible
   }
-  drawLighting(ctx, canvas.width, canvas.height, hour, lights, prof.nightLights);
+  drawLighting(ctx, canvas.width, canvas.height, hour, lights, prof.nightLights, G.now);
   if (prof.particles && (hour >= 19 || hour < 5)) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     for (let i = 0; i < prof.particles; i++) {
@@ -485,8 +540,9 @@ function drawScreenOverlays(prof) {
 /** Small portrait of the player for the HUD avatar. */
 export function drawPortrait(c, appearance, unlocked) {
   const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, c.width, c.height);
-  const sheet = rigAtlasReady(appearance, { urgent: true }); if (!sheet) return;
-  g.drawImage(sheet, 20, 10, 40, 40, 0, 0, c.width, c.height);
+  const paper = fantasyAtlasReady(appearance);
+  const sheet = paper || rigAtlasReady(appearance, { urgent: true }); if (!sheet) return;
+  g.drawImage(sheet, paper ? 15 : 20, paper ? 8 : 10, 40, 40, 0, 0, c.width, c.height);
 }
 
 /** Start-screen banner: "from forest to nation" — the same sprites the game uses, at native (2x) resolution. */

@@ -49,6 +49,9 @@ export const OUTFITS = {
   night:   { th: 'ชุดราตรีม่วง', en: 'Night violet', top: [96, 64, 140], bottom: [64, 40, 96], shoes: [40, 30, 50], sleeve: 7, pants: 7, collar: [220, 190, 255], source: 'shop', sku: 'outfit_night' },
 };
 
+// Optional paper-doll accessories (kept absent from legacy saved appearances).
+export const BEARD_STYLES = ['none', '1', '2', '3'];
+export const HAT_STYLES = ['none', '1', '2', '3'];
 export const DEFAULT_APPEARANCE = Object.freeze({ hair: 'pony', hairColor: 'brown', skin: 's2', eyes: 'brown', outfit: 'cream' });
 
 /** Count user-perceived characters (Thai combining vowels/tones are part of one grapheme). */
@@ -93,6 +96,8 @@ export function normalizeAppearance(a, unlockedOutfits = []) {
     skin: pick(o.skin, SKIN_TONES, DEFAULT_APPEARANCE.skin),
     eyes: pick(o.eyes, EYE_COLORS, DEFAULT_APPEARANCE.eyes),
     outfit,
+    ...(Object.hasOwn(o, 'beard') ? { beard: BEARD_STYLES.includes(o.beard) ? o.beard : 'none' } : {}),
+    ...(Object.hasOwn(o, 'hat') ? { hat: HAT_STYLES.includes(o.hat) ? o.hat : 'none' } : {}),
   };
 }
 
@@ -111,4 +116,4 @@ export function fromV07Character(c) {
   return { name: v.name, lang: c.lang === 'en' ? 'en' : 'th', appearance: normalizeAppearance({ hair, outfit: c.outfit }) };
 }
 
-export function appearanceKey(a) { return [a.hair, a.hairColor, a.skin, a.eyes, a.outfit].join('|'); }
+export function appearanceKey(a) { return [a.hair, a.hairColor, a.skin, a.eyes, a.outfit, a.beard || 'none', a.hat || 'none'].join('|'); }

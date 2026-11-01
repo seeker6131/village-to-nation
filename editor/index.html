@@ -225,11 +225,11 @@ const img = new Map();
 let undoStack = [], redoStack = [];
 const ui = { tool: 'pan', terrain: 0, road: 1, asset: null, marker: 'lot', plot: 'home', brush: 1, groundMode: 'brush', roadMode: 'brush', zoom: 1, ox: 0, oy: 0,
   grid: true, foot: false, sel: null, selMarker: null, kindFilter: 'house', q: '', density: 35, overlap: false, flip: false, rot: 0, hover: null, scatterSet: [],
-  housePreview: 1, sheet: true, lineStart: null, recent: [], placeScale: 1, tierPaint: 2, viewTier: 5, showTier: false };
+  housePreview: 1, sheet: true, lineStart: null, recent: [], placeScale: 1, tierPaint: 2, heightPaint: 1, viewTier: 5, showTier: false };
 
 function newProject(w = 144, h = 96, fill = 0, keepAssets = null) {
   return { format: FORMAT, name: 'แมพใหม่', tile: TILE, w, h, terrains: DEF_TERRAIN.map(t => ({ ...t })), roads: DEF_ROADS.map(r => ({ ...r })),
-    ground: new Uint8Array(w * h).fill(fill), road: new Uint8Array(w * h), tier: new Uint8Array(w * h).fill(1), objects: [], markers: [], assets: keepAssets || [], nextId: 1 };
+    ground: new Uint8Array(w * h).fill(fill), road: new Uint8Array(w * h), tier: new Uint8Array(w * h).fill(1), height: new Uint8Array(w * h), stairs: new Uint8Array(w * h), objects: [], markers: [], assets: keepAssets || [], nextId: 1 };
 }
 const idx = (x, y) => y * P.w + x, inside = (x, y) => x >= 0 && y >= 0 && x < P.w && y < P.h;
 const assetById = id => P.assets.find(a => a.id === id);
@@ -246,6 +246,7 @@ function toFile() {
     groundKey: gk, terrains: P.terrains.map(t => ({ id: t.id, name: t.name, color: t.color, asset: t.asset || null })),
     roadKey: rk, roadTypes: P.roads.map(r => ({ id: r.id, name: r.name, color: r.color, asset: r.asset || null })),
     groundRows: rows(P.ground, false), roadRows: rows(P.road, true),
+    heightRows: rows(P.height, false).map(r => r.replace(/a/g,'0').replace(/b/g,'1').replace(/c/g,'2')), stairRows: rows(P.stairs, false).map(r => r.replace(/a/g,'.').replace(/b/g,'S')),
     tierRows: Array.from({ length: P.h }, (_, y) => Array.from({ length: P.w }, (_, x) => String(P.tier[idx(x, y)] || 1)).join('')),
     objects: P.objects.map(o => { const a = assetById(o.asset); return { id: o.id, asset: o.asset, assetName: a?.name, kind: a?.kind, x: o.x, y: o.y, fw: o.fw, fh: o.fh, tw: o.tw, flip: !!o.flip, rot: o.rot || 0, tier: objTier(o), label: o.label || '' }; }),
     markers: P.markers.map(m => ({ ...m, w: markerSize(m)[0], h: markerSize(m)[1], tier: mkTier(m), typeName: MARKERS[m.type]?.name })),
@@ -271,6 +272,8 @@ function fromFile(f) {
   f.groundRows.forEach((row, y) => { for (let x = 0; x < p.w; x++) p.ground[y * p.w + x] = Math.max(0, gi[row[x]] ?? 0); });
   f.roadRows.forEach((row, y) => { for (let x = 0; x < p.w; x++) p.road[y * p.w + x] = ri[row[x]] ?? 0; });
   (f.tierRows || []).forEach((row, y) => { for (let x = 0; x < p.w; x++) p.tier[y * p.w + x] = Math.max(1, Math.min(5, +row[x] || 1)); });
+  (f.heightRows || []).forEach((row, y) => { if (y < p.h) for (let x = 0; x < p.w; x++) p.height[y * p.w + x] = Math.max(0, Math.min(2, +row[x] || 0)); });
+  (f.stairRows || []).forEach((row, y) => { if (y < p.h) for (let x = 0; x < p.w; x++) p.stairs[y * p.w + x] = row[x] === 'S' ? 1 : 0; });
   p.assets = f.assets.map(a => ({ ...a }));
   p.objects = f.objects.map(o => ({ id: o.id, asset: o.asset, x: o.x, y: o.y, fw: o.fw, fh: o.fh, tw: o.tw, flip: o.flip, rot: o.rot || 0, label: o.label }));
   p.markers = (f.markers || []).map(m => { const { typeName, tier, ...rest } = m; void typeName; void tier; return rest; });
@@ -430,6 +433,13 @@ function render() {
   ctx.setTransform(s, 0, 0, s, ui.ox, ui.oy);
   ctx.drawImage(wbase, 0, 0); ctx.drawImage(base, 0, 0);
   { const tc = tierOverlay(); ctx.drawImage(tc, 0, 0, P.w * TILE, P.h * TILE); }
+  // Show elevation separately from the economic unlock-tier overlay.
+  for (let y = 0; y < P.h; y++) for (let x = 0; x < P.w; x++) {
+    const i = idx(x, y), h = P.height[i], px = x * TILE, py = y * TILE;
+    if (h) { ctx.fillStyle = h === 1 ? '#213f3a32' : '#152c384e'; ctx.fillRect(px, py, TILE, TILE); }
+    if (h && (y + 1 === P.h || P.height[i + P.w] < h)) { ctx.fillStyle = '#172b28ba'; ctx.fillRect(px, py + 13, TILE, 3); }
+    if (P.stairs[i]) { ctx.fillStyle = '#cbbd9d'; for (let s = 0; s < 4; s++) ctx.fillRect(px + 2, py + s * 4, 12, 2); }
+  }
   const visO = o => ui.viewTier >= 5 || objTier(o) <= ui.viewTier, visM = m => ui.viewTier >= 5 || mkTier(m) <= ui.viewTier;
   for (const m of P.markers) if (visM(m)) drawMarkerBox(m, m === ui.selMarker);
   // objects + building previews of the plots, y-sorted like the game
@@ -509,10 +519,10 @@ function footRect(o, col) { ctx.strokeStyle = col; ctx.lineWidth = 1.5 / scale()
 function normRect([x0, y0, x1, y1]) { const x = Math.min(x0, x1), y = Math.min(y0, y1); return { x, y, w: Math.abs(x1 - x0) + 1, h: Math.abs(y1 - y0) + 1 }; }
 
 // ------------------------------------------------------------------ editing ops
-function snapshot() { return { g: P.ground.slice(), r: P.road.slice(), t: P.tier.slice(), o: JSON.stringify(P.objects), m: JSON.stringify(P.markers) }; }
-function restore(sn) { P.ground = sn.g.slice(); P.road = sn.r.slice(); P.tier = sn.t.slice(); tierDirty = true; P.objects = JSON.parse(sn.o); P.markers = JSON.parse(sn.m); ui.sel = ui.selMarker = null; dirtyAll(); save(); draw(); renderSheet(); }
+function snapshot() { return { g: P.ground.slice(), r: P.road.slice(), t: P.tier.slice(), h: P.height.slice(), s: P.stairs.slice(), o: JSON.stringify(P.objects), m: JSON.stringify(P.markers) }; }
+function restore(sn) { P.ground = sn.g.slice(); P.road = sn.r.slice(); P.tier = sn.t.slice(); P.height = sn.h.slice(); P.stairs = sn.s.slice(); tierDirty = true; P.objects = JSON.parse(sn.o); P.markers = JSON.parse(sn.m); ui.sel = ui.selMarker = null; dirtyAll(); save(); draw(); renderSheet(); }
 function begin() { undoStack.push(snapshot()); if (undoStack.length > 80) undoStack.shift(); redoStack = []; }
-function cancelStroke() { if (undoStack.length) { const sn = undoStack.pop(); P.ground = sn.g.slice(); P.road = sn.r.slice(); P.tier = sn.t.slice(); tierDirty = true; P.objects = JSON.parse(sn.o); P.markers = JSON.parse(sn.m); dirtyAll(); draw(); } }
+function cancelStroke() { if (undoStack.length) { const sn = undoStack.pop(); P.ground = sn.g.slice(); P.road = sn.r.slice(); P.tier = sn.t.slice(); P.height = sn.h.slice(); P.stairs = sn.s.slice(); tierDirty = true; P.objects = JSON.parse(sn.o); P.markers = JSON.parse(sn.m); dirtyAll(); draw(); } }
 function undo() { if (!undoStack.length) return toast('ไม่มีอะไรให้ย้อน'); redoStack.push(snapshot()); restore(undoStack.pop()); }
 function redo() { if (!redoStack.length) return; undoStack.push(snapshot()); restore(redoStack.pop()); }
 function setGround(x, y, v) { if (!inside(x, y)) return; const i = idx(x, y); if (P.ground[i] === v) return; P.ground[i] = v; markDirty(x, y); }
@@ -599,7 +609,7 @@ function startDrag(g, t) {
   if (g.resize) { begin(); g.sizing = g.resize; return; }
   if (g.grab) { begin(); g.move = g.grab; g.dx = tx - g.grab.x; g.dy = ty - g.grab.y; return; }
   if (g.grabM) { begin(); g.moveM = g.grabM; g.dx = tx - g.grabM.x; g.dy = ty - g.grabM.y; return; }
-  if (T === 'tier') { begin(); g.stroke = true; g.last = { x: tx, y: ty }; strokeAt(tx, ty); return; }
+  if (T === 'tier' || T === 'height' || T === 'stairs') { begin(); g.stroke = true; g.last = { x: tx, y: ty }; strokeAt(tx, ty); return; }
   if (PANNING_TOOLS.has(T)) { g.pan = true; g.ox = ui.ox; g.oy = ui.oy; return; }
   if (T === 'marker' || (T === 'ground' && ui.groundMode === 'rect')) { begin(); g.rect = true; ui.drag = { rect: [tx, ty, tx, ty] }; return; }
   if (T === 'ground' && ui.groundMode === 'fill') { g.pan = true; g.ox = ui.ox; g.oy = ui.oy; return; }
@@ -612,6 +622,8 @@ function strokeAt(x, y) {
   else if (T === 'erase') stamp(x, y, (a, b) => { setRoad(a, b, 0); P.objects = P.objects.filter(o => !(a >= o.x && a < o.x + o.fw && b >= o.y && b < o.y + o.fh)); });
   else if (T === 'scatter') scatter(x, y);
   else if (T === 'tier') stamp(x, y, (a, b) => setTier(a, b, ui.tierPaint));
+  else if (T === 'height') stamp(x, y, (a, b) => { if (inside(a, b)) P.height[idx(a, b)] = ui.heightPaint; });
+  else if (T === 'stairs') { if (inside(x, y)) P.stairs[idx(x, y)] = 1; }
 }
 cv.addEventListener('pointermove', e => {
   if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -732,7 +744,7 @@ $('#selbar').addEventListener('click', e => {
 });
 
 // ------------------------------------------------------------------ tools + sheet (only the options of the tool in hand)
-const TOOLS = [['pan', '🖐️', 'เลื่อน/เลือก'], ['ground', '🖌️', 'พื้น'], ['road', '🛣️', 'ถนน'], ['place', '🏠', 'วางของ'], ['scatter', '🌳', 'ต้นไม้'], ['marker', '📍', 'ที่ดิน'], ['tier', '🗺️', 'ระดับ'], ['erase', '🧽', 'ลบ']];
+const TOOLS = [['pan', '🖐️', 'เลื่อน/เลือก'], ['ground', '🖌️', 'พื้น'], ['road', '🛣️', 'ถนน'], ['place', '🏠', 'วางของ'], ['scatter', '🌳', 'ต้นไม้'], ['marker', '📍', 'ที่ดิน'], ['tier', '🗺️', 'ระดับ'], ['height','⛰️','หน้าผา'], ['stairs','🪜','บันได'], ['erase', '🧽', 'ลบ']];
 function renderTools() { $('#tools').innerHTML = TOOLS.map(([id, ic, n]) => `<button data-tool="${id}" class="${ui.tool === id ? 'on' : ''}">${ic}<small>${n}</small></button>`).join(''); }
 function setTool(t) { if (t === 'tier' || ui.tool === 'tier') tierDirty = true; if (t === 'scatter' && !['tree', 'bush', 'rock'].includes(ui.kindFilter)) ui.kindFilter = 'tree'; if (t === 'place' && ui.kindFilter === 'tree' && ui.tool === 'scatter') ui.kindFilter = 'house'; ui.tool = t; ui.lineStart = null; if (t !== 'pan') ui.sel = null; ui.sheet = true; renderTools(); renderSheet(); draw(); }
 $('#tools').addEventListener('click', e => { const b = e.target.closest('[data-tool]'); if (b) setTool(b.dataset.tool); });
@@ -772,7 +784,9 @@ function renderSheet() {
     h += `<div class="seg">${[1, 2, 3, 4, 5].map(t => `<button data-set="tierPaint" data-v="${t}" class="${ui.tierPaint === t ? 'on' : ''}" style="border-color:${TIER[t].c}">${t} ${TIER[t].th}</button>`).join('')}</div>` + brushRow();
     h += `<div class="row">👁 ดูแมพตอนระดับ ${seg('viewTier', [[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, 'ทั้งหมด']])}</div>`;
     h += `<h4 style="margin:8px 0 4px">📋 เช็กลิสต์ (สะสมถึงระดับนั้น)</h4>` + checklist().map(c => `<div class="ck"><b style="color:${TIER[c.t].c}">${c.t}. ${TIER[c.t].th}</b> <span class="${c.lotsOk ? 'ok' : 'no'}">🏠 ที่ดินผู้เล่น ${c.lots}/${NEED[c.t].lots}</span>${c.t === 1 ? ` <span class="${c.npcOk ? 'ok' : 'no'}">🧑 บ้าน NPC ${c.npc}/${NEED[1].npc}</span>` : ''}<br>${c.plots.map(p => `<span class="${p.ok ? 'ok' : 'no'}">${p.ok ? '✅' : '⬜'} ${PLOT_TYPES[p.p].name}</span>`).join(' ')}</div>`).join('');
-  } else if (T === 'erase') h += brushRow() + '<p class="help">ลบถนนและของที่อยู่ใต้แปรง (พื้นไม่ลบ ให้ปูพื้นทับแทน) · ลบที่ดิน/หมุด: ใช้ 🖐 แตะเลือกแล้วกด 🗑</p>';
+  } else if (T === 'height') h += `<p class="help">วาดความสูง 0–2: เดินข้ามหน้าผาไม่ได้ ต้องผ่านบันไดเท่านั้น</p>${seg('heightPaint', [[0, 'พื้นราบ'], [1, 'เนิน'], [2, 'ยอดเขา']])}${brushRow()}`;
+  else if (T === 'stairs') h += `<p class="help">แตะช่องปลายบันได (วางพาดขอบเขตความสูงต่างกัน 1 ขั้น) · บันทึกไฟล์แล้วนำเข้าเกมได้</p>`;
+  else if (T === 'erase') h += brushRow() + '<p class="help">ลบถนนและของที่อยู่ใต้แปรง (พื้นไม่ลบ ให้ปูพื้นทับแทน) · ลบที่ดิน/หมุด: ใช้ 🖐 แตะเลือกแล้วกด 🗑</p>';
   $('#sheetBody').innerHTML = h;
   $('#sheet').classList.toggle('closed', !ui.sheet);
 }

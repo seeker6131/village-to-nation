@@ -8,8 +8,10 @@ import { initCreator } from './ui/creator.js';
 import { initInput } from './ui/input.js';
 import { initShowcase } from './ui/showcaseUi.js';
 import { initTravel } from './ui/travel.js';
+import { initIndoor } from './ui/indoor.js';
 import { applyPlan } from './showcase.js';
 import { PLANS, SPAWN } from './world.js';
+import { MAPS } from './maps/index.js';
 import { sandboxEnabled, sandboxStorage, ensureSandboxCharacter, topUp, setSandbox } from './sandbox.js';
 import { hud, syncBuildBar } from './ui/hud.js';
 import { applySettings } from './ui/settingsApply.js';
@@ -54,7 +56,7 @@ function loop(ms) {
   if (frameBudget + 0.5 >= target || !fpsStart) {
     frameBudget = Math.max(0, frameBudget - target);
     const dt = simBudget / 1000; simBudget = 0; G.now = ms / 1000;
-    const paused = !!G.panel || G.creatorOpen || !G.state.character; // menus pause the world (no missed events while reading)
+    const paused = !!G.panel || G.creatorOpen || !!G.indoor || !G.state.character; // menus pause the world (no missed events while reading)
     if (G.sandbox) topUp(G.state);
     if (!paused) {
       simulate(dt);
@@ -68,7 +70,7 @@ function loop(ms) {
     // camera follows smoothly unless the player is panning / in overview
     if (G.cam.follow && !G.cam.overview) { const k = Math.min(1, dt * 8); G.cam.x += (G.state.player.x - G.cam.x) * k; G.cam.y += (G.state.player.y - 12 - G.cam.y) * k; }
     clampCamera(G.cam, G.cssW, G.cssH);
-    render();
+    if (G.state.character || !G.creatorOpen) render();
     fpsFrames++; if (!fpsStart) fpsStart = ms;
     if (ms - fpsStart >= 1000) { G.measuredFps = Math.round(fpsFrames * 1000 / (ms - fpsStart)); fpsFrames = 0; fpsStart = ms; }
     hudTimer += dt; if (hudTimer > 0.2) { hud(); hudTimer = 0; }
@@ -111,7 +113,7 @@ async function boot() {
   G.applyZoom = () => setZoom(G.cam, G.cam.zoomTarget || G.cam.zoom, G.cssW, G.cssH);
   G.measuredFps = 0;
   initRenderer(G.canvas);
-  initPanels(); initCreator(); initInput(); initShowcase(); initTravel();
+  initPanels(); initCreator(); initInput(); initShowcase(); initTravel(); initIndoor();
   configureAudio(G.settings);
   new ResizeObserver(resize).observe($('#app'));
   window.addEventListener('orientationchange', () => setTimeout(resize, 200));
@@ -123,7 +125,7 @@ async function boot() {
   await startScreen();
   // every new town gets its own layout (one of 10) so no two founders' towns look alike; old saves keep theirs
   if (!G.state.world.planPicked) {
-    if (G.state.day === 1 && !G.state.placed.length && !params.has('test')) { applyPlan(G.state, Math.floor(Math.random() * PLANS.length)); G.state.player.x = SPAWN.x; G.state.player.y = SPAWN.y; }
+    if (G.state.day === 1 && !G.state.placed.length && !params.has('test')) { applyPlan(G.state, PLANS.findIndex(p => p.id === MAPS[2 + Math.floor(Math.random() * 5)].id)); G.state.player.x = SPAWN.x; G.state.player.y = SPAWN.y; }
     G.state.world.planPicked = true; saveNow();
   }
   { // ?map=map1 opens a map drawn in the Map Maker (test link)
@@ -134,6 +136,11 @@ async function boot() {
   if (!G.state.character) {
     G.openCreator('first');
     G.onFirstStart = () => {
+      if (PLANS[G.state.world.plan]?.id?.startsWith('fantasy_')) {
+        G.creatorOpen = false; G.state.leadership.path = 'citizen'; saveNow(); resetNpcPlans();
+        toast('⚔️ เริ่มชีวิตทาสรับใช้ในอาณาจักร · ทำงานเก็บชื่อเสียงและเข้าเฝ้าพระราชาเพื่อรับแต่งตั้ง');
+        return;
+      }
       $('#path-choice').classList.remove('hidden'); G.creatorOpen = true; // keep the world paused while choosing
       $('#path-choice [data-path=founder]').onclick = () => {
         $('#path-choice').classList.add('hidden'); G.creatorOpen = false; G.state.leadership.path = 'founder'; saveNow(); resetNpcPlans();

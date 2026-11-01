@@ -463,3 +463,59 @@ test('village plan: build every slot of tier 1, the leader presses ยกระ�
 });
 
 test('no JavaScript errors were raised in any scenario', () => { assert.deepEqual(allErrors, []); });
+
+
+// Fantasy regression cases added after the original 18 browser tests.
+test('fantasy: browser smoke of a kingdom map with central castle, heights and stairs', async () => {
+  // Start a fresh Chromium process for each map. A browser kept alive through the
+  // earlier 18 full-game scenarios retains hundreds of decoded sprite textures;
+  // opening a second large map in the same process can starve browser page tasks.
+  const valid=['fantasy_valley','fantasy_lake','fantasy_pines','fantasy_meadow','fantasy_pass'];
+  const ids=[process.env.V2N_MAP_ONLY || valid[0]];
+  assert.ok(valid.includes(ids[0]),'unknown fantasy map name');
+  await browser.close();
+  browser=await chromium.launch();
+  for (const id of ids) {
+    console.log('CHECK fantasy map', id);
+    const {ctx,page,errors}=await open('pc',{url:'/index.html?test=1&map='+id,name:'Arin Noble'});
+    const a=await page.evaluate(async()=>{
+      const W=await import('/src/world.js'),G=window.__V2N__.G;
+      return {id:W.PLANS[G.state.world.plan]?.id,x:W.LEADER_HOUSE.tx,y:W.LEADER_HOUSE.ty,
+       high:[...W.WORLD.elevation].filter(n=>n>0).length,stairs:[...W.WORLD.stairs].filter(Boolean).length};
+    });
+    assert.equal(a.id,id);
+    assert.ok(Math.abs(a.x-72)<18 && Math.abs(a.y-48)<14);
+    assert.ok(a.high>100 && a.stairs>=3,'each kingdom must have climbable cliffs');
+    assert.ok(await page.isHidden('#path-choice'));
+    await shot(page,'fantasy_map_'+id);
+    assert.deepEqual(errors,[]);
+    await ctx.close();
+    await browser.close();
+    browser=await chromium.launch();
+  }
+});
+test('fantasy: kingdom castle, royal appointment, night lights, inn sleep and saved progress',async()=>{
+  const {ctx,page,errors}=await open('pc',{url:'/index.html?test=1&map=fantasy_valley',name:'Arin Noble'});
+  await page.evaluate(()=>{window.__V2N__.G.state.gameTime=22*3600;});
+  await page.waitForTimeout(350);await shot(page,'fantasy_night_castle');
+  await page.evaluate(()=>window.__V2N__.G.enterIndoor('castle'));
+  assert.ok(await page.isVisible('#indoor'));
+  assert.match(await page.textContent('#in-room-title'),/พระราชา/);
+  await shot(page,'fantasy_royal_hall');
+  await page.click('#in-royal');
+  assert.match(await page.textContent('#in-host'),/ยศ|ชื่อเสียง|พระราชาแต่งตั้ง/);
+  await page.click('#in-exit');
+  await page.evaluate(()=>window.__V2N__.G.enterIndoor('inn'));
+  assert.ok(await page.isVisible('#in-sleep'));
+  await shot(page,'fantasy_inn');
+  const before=await G(page,G=>G.state.day);
+  await page.click('#in-sleep');
+  const after=await G(page,G=>G.state.day);
+  assert.ok(after>before,'sleep advances the real game day');
+  await page.click('#in-exit');
+  await page.evaluate(()=>window.__V2N__.saveNow());
+  await page.reload();await page.waitForFunction(()=>window.__V2N__);
+  assert.equal(await G(page,G=>G.state.character?.name),'Arin Noble');
+  assert.ok(await G(page,G=>G.state.day)>=after);
+  assert.deepEqual(errors,[]);await ctx.close();
+});
