@@ -42,6 +42,16 @@ jobs:
           p.write_text(s)
           PY
           cat scripts/fantasy-qa-append.txt >> tests/e2e/browser.e2e.mjs
+          # A new character is created in an opaque, separate canvas overlay.
+          # Do not bake the entire world terrain behind it every frame while the
+          # appearance editor is open; on water-heavy maps it can starve UI events.
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/main.js'); s=p.read_text()
+          old='    render();\n    fpsFrames++;'
+          if old not in s: raise RuntimeError('render gating anchor missing')
+          p.write_text(s.replace(old, '    if (G.state.character || !G.creatorOpen) render();\n    fpsFrames++;', 1))
+          PY
       - name: Generate five maps, terrain and sprites from original images
         run: |
           python scripts/build-fantasy-maps.py
