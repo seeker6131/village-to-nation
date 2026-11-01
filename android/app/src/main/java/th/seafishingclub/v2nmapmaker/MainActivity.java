@@ -34,8 +34,10 @@ public class MainActivity extends Activity {
     private ValueCallback<Uri[]> fileCb;
     private long lastGameBack = 0;
     private boolean isGame() { return "game".equals(BuildConfig.FLAVOR); }
+    private boolean isEngine() { return "engine".equals(BuildConfig.FLAVOR); }
+    private boolean usesImmersiveMode() { return isGame() || isEngine(); }
     private void immersiveGame() {
-        if (!isGame()) return;
+        if (!usesImmersiveMode()) return;
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
             | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
@@ -47,7 +49,7 @@ public class MainActivity extends Activity {
         super.onCreate(b);
         immersiveGame();
         web = new WebView(this);
-        if (isGame()) { web.setBackgroundColor(android.graphics.Color.BLACK); web.setOverScrollMode(View.OVER_SCROLL_NEVER); }
+        if (usesImmersiveMode()) { web.setBackgroundColor(android.graphics.Color.BLACK); web.setOverScrollMode(View.OVER_SCROLL_NEVER); }
         setContentView(web);
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
@@ -98,6 +100,13 @@ public class MainActivity extends Activity {
     }
 
     @Override public void onBackPressed() {
+        if (isEngine()) {
+            // The JS UI returns from its selected editor to the project dashboard.
+            web.evaluateJavascript("(function(){return !!(window.v2nEngineBack && window.v2nEngineBack())})()", result -> {
+                if (!"true".equals(result)) runOnUiThread(() -> Toast.makeText(this, "ใช้ปุ่มย้อนกลับหรือปุ่ม Home ใน Engine Studio", Toast.LENGTH_SHORT).show());
+            });
+            return;
+        }
         if (isGame()) {
             long now = System.currentTimeMillis();
             if (now - lastGameBack < 1800) { super.onBackPressed(); return; }
