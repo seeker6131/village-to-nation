@@ -125,7 +125,7 @@ export function decorSprites() {
 export function waterfallSpot() {
   for (let x = 6; x < WORLD_W - 6; x++) {
     if (groundAt(x, 1) !== T.WATER || groundAt(x - 1, 1) === T.WATER) continue;
-    let w = 0; while (groundAt(x + w, 1) === T.WATER) w++;
+    let w = 0; while (x + w < WORLD_W && groundAt(x + w, 1) === T.WATER) w++; // out-of-bounds groundAt returns water
     if (w >= 2 && w <= 5) return { x: x + w / 2, y: 4 };
   }
   return null;
