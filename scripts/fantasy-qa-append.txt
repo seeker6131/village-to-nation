@@ -9,6 +9,7 @@ test('fantasy: all five new kingdom maps render with central castle, heights and
   await browser.close();
   browser=await chromium.launch();
   for (const id of ids) {
+    console.log('CHECK fantasy map', id);
     const {ctx,page,errors}=await open('pc',{url:'/index.html?test=1&map='+id,name:'Arin Noble'});
     const a=await page.evaluate(async()=>{
       const W=await import('/src/world.js'),G=window.__V2N__.G;
