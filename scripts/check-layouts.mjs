@@ -13,7 +13,7 @@ for (let plan = 0; plan < W.PLANS.length; plan++) {
   const wet = (x, y) => { const g = W.groundAt(x, y); return g === W.T.WATER || g === W.T.FORD; };
   const plots = new Set();
   for (const id of ['home', 'farm', 'market', 'hall']) { const r = W.plotRect(id); for (let y = r.ty; y < r.ty + r.h; y++) for (let x = r.tx; x < r.tx + r.w; x++) plots.add(x + ',' + y); }
-  for (const T of TIERS) for (const sl of T.slots) if (sl.tx != null) for (let y = sl.ty; y < sl.ty + 3; y++) for (let x = sl.tx; x < sl.tx + 4; x++) plots.add(x + ',' + y);
+  for (const T of TIERS) for (const sl of T.slots) if (sl.tx != null) for (let y = sl.ty + W.ORIGIN.y; y < sl.ty + W.ORIGIN.y + 3; y++) for (let x = sl.tx + W.ORIGIN.x; x < sl.tx + W.ORIGIN.x + 4; x++) plots.add(x + ',' + y);
   const used = new Map();
   for (const p of c5.props) {
     for (const [x, y] of p.block || []) {

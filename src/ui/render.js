@@ -24,8 +24,11 @@ import { FANTASY_BUILDINGS, FANTASY_ASSET_NAMES } from '../fantasyManifest.js';
 import { eraHouseFrame as cottageFrame } from '../artMap.js';
 import { treeSpecies, rockSprite, buildingFrame, leaderHouseFrame, decorSprites, DECOR_LIST, waterfallSpot, cropFor, cropStage, CROPS, FENCE_MATERIALS, roadTexture, allReachableSprites } from '../artMap.js';
 
-// v0.9 art still in use (props, workshop) + every v0.10 sprite the art map can ask for (assets/v10, stored at 2x)
-const ART_NAMES = ['workshop', 'log', 'bush_0', 'bush_1', 'bush_2', 'bush_3', 'bush_4', ...allReachableSprites().map(n => 'v10/' + n), ...Object.keys(ART10).filter(n => /^(c[bpd]|po|gt|bs|sh|bz)_/.test(n)).map(n => 'v10/' + n), ...MAPS.flatMap(m => [...new Set([...m.trees.flatMap(([, , sp]) => [sp.replace('stump_', 'tree_'), sp.replace('tree_', 'stump_')]), ...m.props.map(p => p.name)])]).filter(n => ART10[n]).map(n => 'v10/' + n), ...TILE_NAMES, ...FANTASY_ASSET_NAMES, 'tiles/cliff'];
+// Fantasy-only active art catalog. Historic sprites can remain on disk for save migration,
+// but are not preloaded by the game or included in the standalone HTML bundle.
+const retired = n => /^(cb_|cd_|po_|bz_|sh_|bs_(stop|terminal|metro)|gt_(district|city)|pw_br_concrete|pf_path_concrete|cot[0-9]|leader_e|house_e|market_e|hall_e|tx_road_(asphalt|slab|gravel|dirt))/.test(n);
+const art10 = ns => ns.filter(n => ART10[n] && !retired(n)).map(n => 'v10/' + n);
+const ART_NAMES = [...new Set(['log', 'bush_0', 'bush_1', 'bush_2', 'bush_3', 'bush_4', ...art10(allReachableSprites()), ...MAPS.flatMap(m => art10([...new Set([...m.trees.flatMap(([, , sp]) => [sp.replace('stump_', 'tree_'), sp.replace('tree_', 'stump_')]), ...m.props.map(p => p.name)])])), ...TILE_NAMES, ...FANTASY_ASSET_NAMES])];
 const art = {};
 export function loadArt() {
   return Promise.all(ART_NAMES.map(id => new Promise(res => {
@@ -33,7 +36,7 @@ export function loadArt() {
     im.onload = () => res(); im.onerror = () => { console.warn('missing art', id); res(); };
     im.src = window.__V2N_ASSET_MAP__?.[id] || `./assets/${id}.webp`;
     art[id] = im;
-  }))).then(() => { const tex = {}; for (const n of [...TEXTURE_NAMES, 'tx_road_dirt', 'tx_road_gravel', 'tx_road_cobble', 'tx_road_slab', 'tx_road_asphalt']) tex[n] = art['v10/' + n]; setTextures(tex); setTileImages(art); });
+  }))).then(() => { const tex = {}; for (const n of [...TEXTURE_NAMES, 'tx_road_cobble']) tex[n] = art['v10/' + n]; setTextures(tex); setTileImages(art); });
 }
 export const ART_USED = ART_NAMES;
 const ready = id => art[id]?.complete && art[id].naturalWidth > 0;
@@ -238,7 +241,7 @@ export function render() {
   // v0.29 a real path piece (8 stone designs in the camp/village, 8 concrete walkways from อำเภอ up), picked per house
   for (const p of s.placed) if ((p.type === 'cottage' || p.type === 'workshop') && (p.level >= 1 || p.status === 'building')) {
     const x = (p.tx + 2) * TILE, y = (p.ty + 3) * TILE; if (x < vx0 - 30 || x > vx1 + 30 || y < vy0 - 20 || y > vy1 + 40) continue;
-    const name = `pf_path_${(s.town?.stage || 0) >= 2 ? 'concrete' : 'stone'}_${1 + Math.floor(hash(p.tx, p.ty, 29) * 8)}`;
+    const name = `pf_path_stone_${1 + Math.floor(hash(p.tx, p.ty, 29) * 8)}`;
     if (!spr(ctx, name, x, y - 2 + ART10[name]?.[1])) drawDecal(ctx, 'stones', x - 8, y, 16, 16, (p.tx * 32) % 128);
   }
   // plots: stakes + rope (always visible so the player knows where to clear)
@@ -301,7 +304,7 @@ export function render() {
   // leader house, tents and camp props
   { const r = LEADER_HOUSE, cx = (r.tx + r.w / 2) * TILE, y = (r.ty + r.h) * TILE + 6, name = leaderHouseFrame(stage), [w, h] = fantasyBuildingSize('castle', Math.min(3,1+Math.floor(stage/2))) || ART10[name];
     const level = Math.min(3,1+Math.floor(stage/2));
-    add(y - 6, () => { if (prof.shadow) groundShadow(cx, y - 4, w * .95, 9); if (!fantasySpr(ctx,'castle',level,cx,y)) spr(ctx,name,cx,y); }, { x0: cx - w / 2 + 6, x1: cx + w / 2 - 6, y0: y - h, y1: y - 22 }, { name, cx, by: y - 4 }); }
+    add(y - 6, () => { if (prof.shadow) groundShadow(cx, y - 4, w * .95, 9); fantasySpr(ctx,'castle',level,cx,y); }, { x0: cx - w / 2 + 6, x1: cx + w / 2 - 6, y0: y - h, y1: y - 22 }, { name, cx, by: y - 4 }); }
   { const wf = waterfallSpot(); if (wf && wf.x * TILE > vx0 - 60 && wf.x * TILE < vx1 + 60 && wf.y * TILE < vy1 + 100) { const f = prof.animatedWater ? Math.floor(G.now * 7) % 4 : 0; add(wf.y * TILE + 8, () => spr(ctx, 'waterfall_' + f, wf.x * TILE, wf.y * TILE + 12)); } }
   // claimed-but-unbuilt house plots: the owner's tent sits on the land while they save up
   for (const sl of openSlots(s)) {
@@ -311,9 +314,10 @@ export function render() {
   // village props (camp, plaza, farm, pens, bridge) — see src/villageProps.js
   for (const p of villageProps(s)) {
     const x = p.x * TILE, y = p.y * TILE; if (x < vx0 - 80 || x > vx1 + 80 || y < vy0 - 20 || y > vy1 + 90) continue;
-    const name = p.anim ? `${p.name}_${Math.floor(G.now * 8 + p.x) % p.anim}` : p.name, sz = ART10[name] || [16, 16];
+    const name = p.anim ? `${p.name}_${Math.floor(G.now * 8 + p.x) % p.anim}` : p.name, sz = p.family ? fantasyBuildingSize(p.family, p.level) : ART10[name] || [16, 16];
     add(p.flat ? y - 40 : y - 1, () => { if (prof.shadow && !p.flat && sz[0] > 18 && !p.rot) groundShadow(x, y - 1, sz[0] * (p.big ? 1.02 : .9), p.big ? 10 : 4);
       if (p.rot || p.flip) { const k = p.scale || 1, pv = p.pivot || 0; ctx.save(); ctx.translate(x, y - pv); if (p.rot) ctx.rotate(p.rot * Math.PI / 180); if (p.flip) ctx.scale(-1, 1); spr(ctx, name, 0, pv, k); ctx.restore(); } // v0.28 rotated / mirrored props from the Map Maker
+      else if (p.family) fantasySpr(ctx, p.family, p.level, x, y, p.scale || 1);
       else spr(ctx, name, x, y, p.scale || 1); },
       sz[1] > 34 && !p.flat ? { x0: x - sz[0] / 2 + 4, x1: x + sz[0] / 2 - 4, y0: y - sz[1], y1: y - 10 } : null, p.flat ? null : { name, cx: x, by: y - (p.big ? 4 : 1) });
   }
@@ -336,13 +340,13 @@ export function render() {
     const fantasyLevel = Math.max(1,Math.min(3,site.upgradingTo||site.level||1));
     const [w,h] = fantasyFamily ? fantasyBuildingSize(fantasyFamily,fantasyLevel) || ART10[name] : ART10[name];
     const bottom = (r.ty + r.h) * TILE + 2;
-    add(by, () => { if (prof.shadow) groundShadow(cx, bottom - 4, w * .95, 10); if (!(fantasyFamily && fantasySpr(ctx,fantasyFamily,fantasyLevel,cx,bottom))) spr(ctx, name, cx, bottom); }, { x0: cx - w / 2 + 8, x1: cx + w / 2 - 8, y0: bottom - h, y1: bottom - 30 }, { name, cx, by: bottom - 6 });
+    add(by, () => { if (prof.shadow) groundShadow(cx, bottom - 4, w * .95, 10); if (fantasyFamily) fantasySpr(ctx,fantasyFamily,fantasyLevel,cx,bottom); }, { x0: cx - w / 2 + 8, x1: cx + w / 2 - 8, y0: bottom - h, y1: bottom - 30 }, { name, cx, by: bottom - 6 });
   }
   // private buildings
   for (const p of s.placed) {
     const b = BUILDINGS[p.type]; if (!b) continue;
     const x = p.tx * TILE, y = p.ty * TILE, w = b.width * TILE, h = b.height * TILE, built = p.level >= 1;
-    if (p.type === 'path') { add(-1e9, () => { const t = art['v10/' + roadTexture(stage)]; if (built && t?.naturalWidth) texTile(t, x, y, x, y); else rect(x, y, w, h, built ? '#b9ad9a' : '#cbb68f88'); }); continue; }
+    if (p.type === 'path') { add(-1e9, () => { if (built) drawDecal(ctx, 'stones', x, y, w, h, (p.tx * 32) % 128); else rect(x, y, w, h, '#78674a88'); }); continue; }
     if (p.type === 'fence') {
       const mat = FENCE_MATERIALS[Math.max(0, Math.min(4, (p.upgradingTo || p.level || 1) - 1))], horiz = fenceAt(p.tx - 1, p.ty) || fenceAt(p.tx + 1, p.ty);
       add(y + h - 2, () => { if (!built || p.status === 'building') ctx.globalAlpha *= .55; spr(ctx, `fence_${mat}_${horiz ? 'line' : 'post'}`, x + TILE / 2, y + TILE + 1, horiz ? 0.85 : 1); ctx.globalAlpha = 1; });
@@ -352,7 +356,7 @@ export function render() {
       const cap = (s.town?.stage || 0) + 1, cf = cottageFrame(p.level > cap ? { ...p, level: cap, upgradingTo: undefined } : p, progressOf(p)), name = cf.name;
       const family = ['house_a','house_b','house_c'][Math.floor(hash(p.tx,p.ty,43)*3)];
       const level = Math.max(1,Math.min(3,p.upgradingTo || p.level || 1)), [sw,sh] = fantasyBuildingSize(family,level) || ART10[name] || [80,70], cx=x+w/2;
-      add(y + h, () => { if (prof.shadow) groundShadow(cx, y + h, sw * .95, 8); if (!fantasySpr(ctx,family,level,cx,y+h+3)) sprFlip(ctx,name,cx,y+h+3,cf.flip); }, { x0: cx - sw / 2 + 4, x1: cx + sw / 2 - 4, y0: y + h + 3 - sh, y1: y + h - 14 }, { name, cx, by: y + h, flip: cf.flip });
+      add(y + h, () => { if (prof.shadow) groundShadow(cx, y + h, sw * .95, 8); fantasySpr(ctx,family,level,cx,y+h+3); }, { x0: cx - sw / 2 + 4, x1: cx + sw / 2 - 4, y0: y + h + 3 - sh, y1: y + h - 14 }, { name, cx, by: y + h, flip: cf.flip });
       continue;
     }
     add(y + h - (p.type === 'lamp' ? 2 : 0), () => {
@@ -368,7 +372,7 @@ export function render() {
         }
         case 'bench': rect(x + 3, y + 3, w - 6, 5, '#9b5f38'); rect(x + 3, y + 9, w - 6, 4, '#c38a56'); rect(x + 5, y + 13, 3, 3, '#5d3a22'); rect(x + w - 8, y + 13, 3, 3, '#5d3a22'); break;
         case 'lamp': rect(x + 7, y - 14, 3, 30, '#5d3a2c'); rect(x + 3, y - 22, 11, 10, '#3d2a22'); rect(x + 4, y - 21, 9, 8, G.state.gameTime / 3600 >= 18 || G.state.gameTime / 3600 < 6 ? '#ffe08a' : '#f0c76a'); break;
-        case 'workshop': if (!spr(ctx, `bz_work_${Math.min(4, (p.level || 0) + 1)}`, x + w / 2, y + h + 2)) { if (ready('workshop')) ctx.drawImage(art.workshop, x - 6, y - h * .75, w + 12, h * 1.75); else rect(x, y, w, h, '#8f6d4f'); } break;
+        case 'workshop': fantasySpr(ctx, 'blacksmith', Math.min(3, p.level || 1), x + w / 2, y + h + 2); break;
       }
       if (p.status === 'building') drawScaffold(x, y - h * .2, w, h, progressOf(p));
     }, ['workshop', 'cottage'].includes(p.type) ? { x0: x, x1: x + w, y0: y - h * .8, y1: y + h - 10 } : null);

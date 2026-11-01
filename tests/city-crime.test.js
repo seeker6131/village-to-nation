@@ -19,12 +19,12 @@ test('city plans: every level adds streets and buildings, civic buildings exist,
   assert.ok(c3.streets.length > 40 && c4.streets.length > c3.streets.length && c5.streets.length > c4.streets.length);
   assert.ok(c5.props.filter(x => x.big).length <= 20, 'a town, not a megacity');
   const names = p => new Set(p.props.filter(x => x.big).map(x => x.name));
-  for (const n of ['cb_district', 'cb_police', 'cb_school', 'cb_temple']) assert.ok(names(c3).has(n), n);
-  for (const n of ['cb_hospital', 'cb_province', 'cb_mall', 'cb_fire']) assert.ok(names(c4).has(n), n);
+  for (const n of ['fantasy/town_hall_1', 'fantasy/barracks_1', 'fantasy/blacksmith_1']) assert.ok(names(c3).has(n), n);
+  for (const n of ['fantasy/market_1', 'fantasy/merchant_guild_1', 'fantasy/inn_1', 'fantasy/bank_1']) assert.ok(names(c4).has(n), n);
   // nothing on the village plan: public plots and house slots stay free
   const used = new Set(c5.props.flatMap(p => (p.block || []).map(([x, y]) => x + ',' + y)));
   for (const id of ['home', 'farm', 'market', 'hall']) { const r = W.plotRect(id); for (let y = r.ty; y < r.ty + r.h; y++) for (let x = r.tx; x < r.tx + r.w; x++) { assert.ok(!used.has(x + ',' + y), 'building on plot ' + id); assert.ok(!c5.streets.includes(x + ',' + y), 'street through plot ' + id); } }
-  assert.ok(names(c5).has('cb_parliament')); assert.ok([...names(c5)].some(n => n.startsWith('bz_office') || n.startsWith('cb_tower')), 'offices in the nation district');
+  assert.ok(names(c5).has('fantasy/town_hall_3')); assert.ok([...names(c5)].some(n => n.startsWith('fantasy/house_c')), 'noble residences in the kingdom district');
   const streets = new Set(c5.streets);
   for (const p of c5.props) for (const [x, y] of p.block || []) {
     assert.ok(!streets.has(x + ',' + y), `${p.name} blocks a street at ${x},${y}`);

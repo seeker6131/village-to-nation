@@ -216,36 +216,17 @@ function buildChunkOrganic(cx, cy, stage) {
       if (below > .42 && below <= .5 && top < LAYERS.length - 1) k *= .84; // shadow cast by the higher layer next to it
       if ((t === T.SAND || t === T.DIRT) && fields[1] && sample(fields[1], wx + .5, wy + .5) + n < .58) k *= .82; // wet bank
     }
-    // modern eras: roads/plaza painted procedurally — อำเภอ concrete slabs + kerbs, จังหวัด/ประเทศ asphalt with lane lines
-    const isRoad = t === T.DIRT && Math.hypot(tx - CENTER.x, ty - CENTER.y) < 30;
-    if (stage >= 2 && (plaza || isRoad)) {
-      let c;
-      const grain = hash(wx, wy, seed + 51), mott = smoothNoise(wx / 9, wy / 9, seed + 52);
-      if (plaza) {
-        if (stage === 2) { // concrete tiles 8x8 with joints
-          c = (wx % 8 === 0 || wy % 8 === 0) ? [168, 166, 158] : mott > .55 ? [214, 212, 204] : [204, 202, 194];
-        } else { // brick pavers (running bond), warm red/terracotta
-          const row = Math.floor(wy / 4), off = row % 2 ? 4 : 0;
-          c = (wy % 4 === 0 || (wx + off) % 8 === 0) ? [150, 92, 70] : hash(Math.floor((wx + off) / 8), row, seed + 53) > .5 ? [196, 120, 88] : [184, 110, 80];
-          if (stage >= 4 && dPlaza < plazaR * .45) c = (wx % 6 === 0 || wy % 6 === 0) ? [190, 190, 196] : [228, 228, 232]; // polished stone centre
+    // Fallback for when the dual-grid texture is not loaded: the same medieval
+    // cobble across every stage, never a transition to concrete or asphalt.
+    if (plaza || (t === T.DIRT && Math.hypot(tx-CENTER.x,ty-CENTER.y)<30)) {
+      const cobble = texData('tx_road_cobble') || texData('tx_rocky_0');
+      if (cobble) {
+        for (let j = 0; j < GS; j++) for (let i = 0; i < GS; i++) {
+          const sx = ((wx * GS+i) % cobble.w), sy=((wy*GS+j)%cobble.h), si=(sy*cobble.w+sx)*4, di=((py*GS+j)*OUT+pxx*GS+i)*4;
+          D[di]=cobble.d[si];D[di+1]=cobble.d[si+1];D[di+2]=cobble.d[si+2];D[di+3]=255;
         }
-        if (dPlaza > plazaR - 2.5) c = [236, 234, 226]; // white kerb
-      } else if (stage === 2) { // concrete road with expansion joints
-        c = mott > .6 ? [206, 204, 196] : [196, 194, 186];
-        if (wx % 16 === 0 || wy % 16 === 0) c = [160, 158, 150];
-        if (grain > .992) c = [150, 148, 142];
-        if (val < .57) c = [232, 230, 222]; // kerb
-      } else { // asphalt
-        c = stage >= 4 ? (mott > .5 ? [58, 60, 66] : [52, 54, 60]) : (mott > .5 ? [76, 78, 84] : [70, 72, 78]);
-        if (grain > .97) c = c.map(q => q + 16);
-        if (val < .55) c = [214, 212, 206]; // concrete kerb / footpath edge
-        else if (val < .59) c = [236, 236, 230]; // white edge line
-        else if (val > .7 && val < .735 && ((wx + wy) >> 2) % 3 !== 0) c = stage >= 4 ? [236, 236, 230] : [232, 190, 64]; // dashed lane line inside each edge
+        continue;
       }
-      if (add) c = c.map(q => Math.min(255, q + add * .8));
-      const kk = below > .42 && below <= .5 ? .86 : 1; // grass shade on the edge
-      for (let j = 0; j < GS; j++) for (let i = 0; i < GS; i++) { const di = ((py * GS + j) * OUT + pxx * GS + i) * 4; D[di] = c[0] * kk; D[di + 1] = c[1] * kk; D[di + 2] = c[2] * kk; D[di + 3] = 255; }
-      continue;
     }
     // water and plain dirt are painted procedurally (posterised 16-bit style) — no visible texture squares
     // palette sampled from the reference village map: saturated yellow-greens
@@ -301,7 +282,7 @@ function buildChunkOrganic(cx, cy, stage) {
 // 4 corners match them (16 masks), so roads/water get real drawn borders instead of procedural ones.
 // Layers per tile: grass -> dirt/road overlay (grass keyed out) -> pond bank. Water itself is NOT baked: the chunk is
 // transparent there and drawWater() paints the 4-frame animation underneath every frame.
-export const TILE_NAMES = [...Object.keys(TILESETS), 'bankmask', 'beachmask'].map(n => 'tiles/' + n);
+export const TILE_NAMES = ['grass','road2','bank','beach','bankmask','beachmask','stones','water','cliff'].map(n => 'tiles/' + n);
 let TL = null;
 export function setTileImages(images) {
   const ok = n => images[n]?.complete && images[n].naturalWidth > 0;
@@ -312,7 +293,7 @@ export function setTileImages(images) {
 }
 export function tilesReady() { return !!TL; }
 const CELL = 2, TPX = 64, CW = Math.ceil(WORLD_W / CELL), CHH = Math.ceil(WORLD_H / CELL);
-const K = { G: 0, W: 1, R: 2, D: 3, P: 4, MEADOW: 5, ROCKY: 6, M: 7 }; // M = main street (asphalt + sidewalk)
+const K = { G: 0, W: 1, R: 2, D: 3, P: 4, MEADOW: 5, ROCKY: 6, M: 7 }; // M retained for old save metadata only
 let cellKey = '', cellT = null, cellSub = null, cellStream = null;
 function cellGrid(stage) {
   const key = `${WORLD.seed}:${WORLD.plan}:${WORLD.version}:${stage}:${ROADS.size}:${ROADS.main?.size || 0}:${PAVED.size}:${YARD.size}:${yardVer}:${paveVer}`;
@@ -325,14 +306,14 @@ function cellGrid(stage) {
     let w = 0, r = 0, d = 0, me = 0, ro = 0, pv = 0, mn = 0;
     for (let j = 0; j < CELL; j++) for (let i = 0; i < CELL; i++) {
       const x = X * CELL + i, y = Y * CELL + j, t = groundAt(x, y);
-      // v0.27 road tiles look like what the leader paved them to: dirt (0), concrete (1), asphalt + sidewalks (2)
+      // All paths use one medieval cobbled style, including upgraded roads from old saves.
       const k = x + ',' + y, lv = ROADS.has(k) ? (PAVE ? PAVE.get(k) ?? 0 : (ROADS.main?.has(k) ? 2 : 1)) : -1;
       if (lv >= 2) mn++;
       if (lv >= 1) r++; else if (lv === 0) d++; else if (isW(t)) w++; else if (road(x, y)) r++; else if (PAVED.has(x + ',' + y)) pv++; else if (YARD.has(x + ',' + y)) { if (stage >= 2) pv++; else d++; } else if (t === T.DIRT) d++;
       if (t === T.MEADOW) me++; if (t === T.ROCKY) ro++;
     }
     const i = Y * CW + X, plaza = stage >= 1 && !WORLD.custom && Math.hypot(X * CELL + 1 - CENTER.x - .5, Y * CELL + 1 - CENTER.y - .5) < PLAZA_R + .6;
-    cellT[i] = mn >= 2 ? K.M : r >= 2 ? K.R : w >= 2 ? K.W : plaza || pv >= 2 ? K.P : d >= 2 ? K.D : K.G;
+    cellT[i] = w >= 2 ? K.W : plaza || pv >= 2 ? K.P : r + mn >= 2 ? K.R : d >= 2 ? K.D : K.G;
     cellSub[i] = me >= 2 ? K.MEADOW : ro >= 2 ? K.ROCKY : K.G;
     if (cellT[i] === K.W) { // narrow water = flowing stream frames, wide water = lake ripples
       let n = 0, all = 0;
@@ -343,16 +324,16 @@ function cellGrid(stage) {
 }
 const cellAt = (X, Y) => cellT[Math.max(0, Math.min(CHH - 1, Y)) * CW + Math.max(0, Math.min(CW - 1, X))];
 function maskOf(X, Y, test) { return (test(cellAt(X, Y)) ? 8 : 0) | (test(cellAt(X + 1, Y)) ? 4 : 0) | (test(cellAt(X, Y + 1)) ? 2 : 0) | (test(cellAt(X + 1, Y + 1)) ? 1 : 0); }
-const ROAD_SET = ['road1', 'road2', 'road3', 'road4', 'road5'];
+const ROAD_SET = ['road2']; // v030 fantasy cobblestone only; legacy tarmac/concrete tiles retired
 function blit(g, name, idx, dx, dy) { g.drawImage(TL[name], idx * TPX, 0, TPX, TPX, dx, dy, TPX, TPX); }
 function buildChunkTiles(cx, cy, stage) {
   cellGrid(stage);
   const OUT = CH * TILE * GS, ox = cx * CH * TILE, oy = cy * CH * TILE, seed = WORLD.seed;
   const c = document.createElement('canvas'); c.width = c.height = OUT;
   const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
-  const per = CH / CELL, roadSet = ROAD_SET[Math.min(4, stage)];
+  const per = CH / CELL;
   const isW = t => t === K.W, isD = t => t === K.D, isR = t => t === K.R || t === K.P || t === K.M, isM = t => t === K.M;
-  const laneSet = 'road2', mainSet = stage >= 2 ? ROAD_SET[Math.min(4, stage)] : 'road3';
+  const laneSet = ROAD_SET[0];
   for (let Y = cy * per - 1; Y < (cy + 1) * per; Y++) for (let X = cx * per - 1; X < (cx + 1) * per; X++) {
     const dx = ((X * CELL + 1) * TILE - ox) * GS, dy = ((Y * CELL + 1) * TILE - oy) * GS;
     const wm = maskOf(X, Y, isW);
@@ -370,18 +351,16 @@ function buildChunkTiles(cx, cy, stage) {
       continue;
     }
     const dm = maskOf(X, Y, isD);
-    if (dm) blit(g, 'road1', dm === 15 && h < .14 ? 16 + Math.floor(h2 * 3) : dm, dx, dy);
+    if (dm) blit(g, laneSet, dm === 15 && h < .14 ? 16 + Math.floor(h2 * 3) : dm, dx, dy);
     const rm = maskOf(X, Y, isR);
     if (rm === 15) {
       if (maskOf(X, Y, t => t === K.P) === 15) { // village plaza follows the era; paved city blocks are concrete pavers
         const centre = Math.hypot(X * CELL + 2 - CENTER.x - .5, Y * CELL + 2 - CENTER.y - .5) < PLAZA_R + 2;
-        blit(g, 'plaza' + (centre ? Math.min(4, stage) : 2), Math.floor(h * 4), dx, dy);
+        blit(g, laneSet, 15, dx, dy); // continuous stone courtyard, no modern paving
       }
       else { const ex = TILESETS[laneSet].extra; blit(g, laneSet, ex && h < .1 ? 16 + Math.floor(h2 * ex) : 15, dx, dy); }
     } else if (rm) blit(g, laneSet, rm, dx, dy);
-    // main streets on top: asphalt with sidewalks; where a lane joins, the sidewalk opens onto it
-    const mm = maskOf(X, Y, isM);
-    if (mm) blit(g, mainSet, mm, dx, dy);
+    // No asphalt, traffic markings, concrete sidewalks or era-specific road textures.
   }
   return c;
 }
