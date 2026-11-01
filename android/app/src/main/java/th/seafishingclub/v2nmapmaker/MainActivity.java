@@ -7,6 +7,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.view.View;
+import android.view.WindowManager;
 import android.provider.MediaStore;
 import android.util.Base64;
 import android.webkit.JavascriptInterface;
@@ -30,13 +32,26 @@ public class MainActivity extends Activity {
     private static final int PICK = 41;
     private WebView web;
     private ValueCallback<Uri[]> fileCb;
+    private long lastGameBack = 0;
+    private boolean isGame() { return "game".equals(BuildConfig.FLAVOR); }
+    private void immersiveGame() {
+        if (!isGame()) return;
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
+    }
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
+        immersiveGame();
         web = new WebView(this);
+        if (isGame()) { web.setBackgroundColor(android.graphics.Color.BLACK); web.setOverScrollMode(View.OVER_SCROLL_NEVER); }
         setContentView(web);
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
+        s.setDefaultTextEncodingName("UTF-8");
         s.setDomStorageEnabled(true);
         s.setAllowFileAccess(false);
         s.setMediaPlaybackRequiresUserGesture(true);
@@ -82,7 +97,31 @@ public class MainActivity extends Activity {
         super.onActivityResult(req, res, data);
     }
 
-    @Override public void onBackPressed() { if (web.canGoBack()) web.goBack(); else super.onBackPressed(); }
+    @Override public void onBackPressed() {
+        if (isGame()) {
+            long now = System.currentTimeMillis();
+            if (now - lastGameBack < 1800) { super.onBackPressed(); return; }
+            lastGameBack = now;
+            // The game closes its panels/build mode on Escape. A second Back exits Android.
+            web.evaluateJavascript("window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',code:'Escape',bubbles:true}))", null);
+            Toast.makeText(this, "กดย้อนกลับอีกครั้งเพื่อออกจากเกม", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (web.canGoBack()) web.goBack(); else super.onBackPressed();
+    }
+
+    @Override protected void onPause() {
+        // The web game's pagehide handler saves the existing localStorage key.
+        if (isGame() && web != null) web.evaluateJavascript("window.dispatchEvent(new Event('pagehide'))", null);
+        if (web != null) web.onPause();
+        super.onPause();
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        if (web != null) web.onResume();
+        immersiveGame();
+    }
 
     class Bridge {
         @JavascriptInterface public void saveFile(String name, String mime, String b64) {
