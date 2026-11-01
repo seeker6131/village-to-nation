@@ -2,37 +2,29 @@
 
 // Fantasy regression cases added after the original 18 browser tests.
 test('fantasy: all five new kingdom maps render with central castle, heights and stairs', async () => {
-  // Open the real game once, then switch its world plan with the same exported
-  // world-generation and NPC initialization methods used by normal game loading.
-  // Reloading the entire heavyweight sprite catalog per map can stall Chromium.
-  const ids = ['fantasy_valley','fantasy_lake','fantasy_pines','fantasy_meadow','fantasy_pass'];
-  const {ctx,page,errors} = await open('pc',{url:'/index.html?test=1&map='+ids[0],name:'Arin Noble'});
-  try {
-    for (const id of ids) {
-      const a=await page.evaluate(async id=>{
-        const W=await import('/src/world.js');
-        const GAME=await import('/src/ui/game.js');
-        const G=window.__V2N__.G;
-        const plan=W.PLANS.findIndex(p=>p.id===id);
-        if(plan<0) return {id:null,missing:id};
-        G.state.world.plan=plan;
-        W.ensureWorld(G.state);
-        GAME.rebuildNpcs();
-        G.cam.follow=false;
-        G.cam.x=(W.CENTER.x+.5)*W.TILE;
-        G.cam.y=(W.CENTER.y+.5)*W.TILE;
-        return {id:W.PLANS[W.WORLD.plan]?.id,x:W.LEADER_HOUSE.tx,y:W.LEADER_HOUSE.ty,
-         high:[...W.WORLD.elevation].filter(n=>n>0).length,stairs:[...W.WORLD.stairs].filter(Boolean).length};
-      },id);
-      assert.equal(a.id,id,'world generator must load requested map');
-      assert.ok(Math.abs(a.x-72)<18 && Math.abs(a.y-48)<14);
-      assert.ok(a.high>100 && a.stairs>=3,'each kingdom must have climbable cliffs');
-      assert.ok(await page.isHidden('#path-choice'));
-      await page.waitForTimeout(300); // let the real Canvas 2D game draw the new map
-      await shot(page,'fantasy_map_'+id);
-    }
+  // Start a fresh Chromium process for each map. A browser kept alive through the
+  // earlier 18 full-game scenarios retains hundreds of decoded sprite textures;
+  // opening a second large map in the same process can starve browser page tasks.
+  const ids=['fantasy_valley','fantasy_lake','fantasy_pines','fantasy_meadow','fantasy_pass'];
+  await browser.close();
+  browser=await chromium.launch();
+  for (const id of ids) {
+    const {ctx,page,errors}=await open('pc',{url:'/index.html?test=1&map='+id,name:'Arin Noble'});
+    const a=await page.evaluate(async()=>{
+      const W=await import('/src/world.js'),G=window.__V2N__.G;
+      return {id:W.PLANS[G.state.world.plan]?.id,x:W.LEADER_HOUSE.tx,y:W.LEADER_HOUSE.ty,
+       high:[...W.WORLD.elevation].filter(n=>n>0).length,stairs:[...W.WORLD.stairs].filter(Boolean).length};
+    });
+    assert.equal(a.id,id);
+    assert.ok(Math.abs(a.x-72)<18 && Math.abs(a.y-48)<14);
+    assert.ok(a.high>100 && a.stairs>=3,'each kingdom must have climbable cliffs');
+    assert.ok(await page.isHidden('#path-choice'));
+    await shot(page,'fantasy_map_'+id);
     assert.deepEqual(errors,[]);
-  } finally { await ctx.close(); }
+    await ctx.close();
+    await browser.close();
+    browser=await chromium.launch();
+  }
 });
 test('fantasy: kingdom castle, royal appointment, night lights, inn sleep and saved progress',async()=>{
   const {ctx,page,errors}=await open('pc',{url:'/index.html?test=1&map=fantasy_valley',name:'Arin Noble'});
