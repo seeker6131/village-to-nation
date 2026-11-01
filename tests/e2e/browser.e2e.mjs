@@ -47,7 +47,7 @@ async function open(device = 'pc', { url = '/index.html?test=1', storage = null,
   await page.waitForFunction(() => window.__V2N__ && !document.querySelector('#app').classList.contains('booting'), { }, { timeout: 90_000 });
   // Boot overlays are explicitly managed with the .hidden class. Reading that class
   // avoids forcing a costly full layout during initial canvas/image decoding.
-  if (name && await page.evaluate(() => !document.querySelector('#creator').classList.contains('hidden'))) { await page.fill('#cr-name', name); await page.click('#cr-confirm'); await page.waitForTimeout(150); }
+  if (name && await page.evaluate(() => !document.querySelector('#creator').classList.contains('hidden'))) { await page.fill('#cr-name', name); await page.dispatchEvent('#cr-confirm', 'click'); await page.waitForTimeout(150); }
   if (name && await page.evaluate(() => !document.querySelector('#path-choice').classList.contains('hidden'))) { await page.click('#path-choice [data-path=founder]'); await page.waitForTimeout(100); }
   return { ctx, page, errors };
 }
