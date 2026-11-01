@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"/>
+<title>V2N Engine Studio</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,"Noto Sans Thai",sans-serif;--bg:#101720;--panel:#182330;--panel2:#213143;--line:#364b61;--ink:#eaf2f8;--muted:#9eb2c7;--accent:#75d9c5;--gold:#f4cb83}
+*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--ink)}
+button,input,textarea{font:inherit}button{cursor:pointer;color:var(--ink);background:var(--panel2);border:1px solid var(--line);padding:9px 13px;border-radius:10px;min-height:42px}button:hover{border-color:var(--accent)}button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent)}
+button.primary{background:#23645d;border-color:#328f81;color:#fff}button.gold{background:#66502a;border-color:#977a42;color:#fff}
+input,textarea{color:var(--ink);background:#101c29;border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:100%;min-height:41px}textarea{min-height:170px;resize:vertical;font:13px/1.55 ui-monospace,monospace}
+small,.muted{color:var(--muted)}h1,h2,h3,p{margin:0}h1{font-size:18px;letter-spacing:.2px}h2{font-size:21px}h3{font-size:16px}p{line-height:1.6}label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}
+.app{height:100%;display:grid;grid-template-rows:58px minmax(0,1fr)}header{display:flex;align-items:center;gap:11px;padding:8px 14px;background:#172430;border-bottom:1px solid var(--line);min-width:0}.brand{display:flex;align-items:center;gap:10px;min-width:0}.mark{display:grid;place-items:center;background:#19574f;color:#caf8ea;font-weight:800;border-radius:9px;width:39px;height:39px;flex:none}.brand p{font-size:11px;color:var(--muted)}.grow{flex:1}.topnav{display:flex;gap:6px}.topnav button{font-size:13px;min-width:75px}.topnav button.active{background:#1d514b;border-color:var(--accent)}
+main{position:relative;overflow:hidden}.pane{display:none;height:100%;overflow:auto;padding:20px}.pane.active{display:block}
+.wrap{max-width:1180px;margin:auto}.hero{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}.hero p{color:var(--muted);margin-top:5px}.chip{border-radius:20px;padding:5px 10px;font-size:12px;background:#173c37;color:#96e8d7;white-space:nowrap}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.box{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:16px}.feature{cursor:pointer;min-height:150px;text-align:left;display:flex;flex-direction:column;align-items:flex-start;gap:7px}.feature strong{font-size:17px}.feature .emoji{font-size:27px}.feature span:last-child{font-size:13px;color:var(--muted);line-height:1.6}.feature:hover{background:#233647}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}.stack{display:flex;flex-direction:column;gap:12px}.form-row{display:grid;grid-template-columns:1fr 150px;gap:10px}
+#workspace{padding:0;overflow:hidden}#workbar{height:51px;background:#1a2735;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:7px 12px;gap:8px}#toolFrame{border:0;display:block;width:100%;height:calc(100% - 51px);background:#111b25}
+#assetsGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px;margin-top:14px}.sprite{padding:8px;border-radius:10px;border:1px solid var(--line);background:#1a2834;display:flex;flex-direction:column;gap:5px;text-align:left;align-items:center;min-height:142px}.sprite img{display:block;width:100%;height:93px;object-fit:contain;image-rendering:pixelated}.sprite span{font-size:12px;overflow-wrap:anywhere}.sprite.on{border-color:var(--accent);background:#1b3b39}
+#toast{position:fixed;bottom:12px;right:12px;z-index:10;max-width:450px;background:#285048;border:1px solid var(--accent);padding:9px 14px;border-radius:9px;box-shadow:0 7px 30px #0008;display:none;font-size:13px}
+.note{border-left:3px solid var(--gold);padding:9px 12px;background:#3c3525;border-radius:0 7px 7px 0;color:#f4e2bb;font-size:13px;margin-top:12px}
+hr{border:0;border-top:1px solid var(--line);margin:14px 0}.info{font-size:13px;line-height:1.7}.info b{color:var(--gold)}#projData{min-height:265px}
+@media(max-width:940px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.pane{padding:12px}.two{grid-template-columns:1fr}.hero h2{font-size:18px}.topnav button{min-width:55px;padding:8px}}
+@media(max-width:630px){header{padding:5px;gap:4px}.brand{gap:6px}.brand p{display:none}h1{font-size:13px}.mark{width:28px;height:28px}.topnav{gap:2px}.topnav button{font-size:11px;min-height:36px;min-width:auto;padding:5px}.grid{grid-template-columns:1fr 1fr}.feature{min-height:135px;padding:10px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="brand"><div class="mark">V2N</div><div><h1>ENGINE STUDIO</h1><p>Village to Nation · เครื่องมือพัฒนา</p></div></div>
+  <div class="grow"></div>
+  <nav class="topnav" aria-label="เครื่องมือ">
+    <button data-nav="home" class="active">โปรเจกต์</button>
+    <button data-nav="map">แมพ</button>
+    <button data-nav="rig">ตัวละคร</button>
+    <button data-nav="assets">Assets</button>
+    <button data-nav="preview">ทดสอบ</button>
+  </nav>
+</header>
+<main>
+<section id="home" class="pane active">
+<div class="wrap">
+  <div class="hero">
+    <div><h2>โปรเจกต์เกมของคุณ</h2><p>แก้ฉาก วัตถุ ตัวละคร ข้อมูลเกม และทดลองเล่นได้ใน APK เดียว</p></div>
+    <div class="chip" id="status">บันทึกในเครื่อง</div>
+  </div>
+  <div class="grid">
+    <button class="box feature" data-open="map"><span class="emoji">🗺️</span><strong>Scene / Map Editor</strong><span>วาดพื้น ถนน หน้าผา วางอาคาร NPC และส่งออกแมพ .v2nmap.json</span></button>
+    <button class="box feature" data-open="rig"><span class="emoji">🧍</span><strong>Character Rig Editor</strong><span>ทำสไปรต์เลเยอร์ ปรับจุดยึด กระดูก และพรีวิวอนิเมชัน</span></button>
+    <button class="box feature" data-open="assets"><span class="emoji">🏰</span><strong>Asset Browser</strong><span>ดูอาคารแฟนตาซี 3 ระดับและคัดชื่อสไปรต์สำหรับจัดฉาก</span></button>
+    <button class="box feature" data-open="config"><span class="emoji">⚙️</span><strong>Game Data</strong><span>แก้ข้อมูลบาลานซ์ฉบับร่างแบบ JSON พร้อมตรวจค่า</span></button>
+    <button class="box feature" data-open="preview"><span class="emoji">▶️</span><strong>Playtest</strong><span>เปิดเกมตัวอย่างแบบออฟไลน์จากไฟล์ที่ฝังในแอป</span></button>
+    <button class="box feature" id="shortcutExport"><span class="emoji">📦</span><strong>Export Project</strong><span>รวมข้อมูลโปรเจกต์กับแมพที่บันทึกในเครื่องเป็นไฟล์ JSON</span></button>
+  </div>
+  <div class="two" style="margin-top:14px">
+    <div class="box stack">
+      <h3>ข้อมูลโปรเจกต์</h3>
+      <div class="form-row"><div><label for="pname">ชื่อโปรเจกต์</label><input id="pname" maxlength="100"/></div><div><label for="pversion">เวอร์ชัน</label><input id="pversion" maxlength="40"/></div></div>
+      <div><label for="pdesc">คำอธิบาย</label><input id="pdesc" maxlength="2000"/></div>
+      <div class="actions"><button class="primary" id="saveProject">บันทึกโปรเจกต์</button><button id="exportProject">ส่งออก .v2nproject.json</button><button id="importProject">นำเข้าโปรเจกต์</button></div>
+      <input id="fileImport" type="file" accept=".json,application/json" style="display:none"/>
+    </div>
+    <div class="box stack">
+      <h3>ข้อมูลงานล่าสุด</h3>
+      <div class="info" id="mapStatus">กำลังตรวจสอบแมพ...</div>
+      <div class="info" id="assetStatus">เลือกอาคาร: castle_1</div>
+      <p class="note">Engine Studio เป็นเครื่องมือแก้ไขข้อมูลและ Asset ของเกมเดิม ไม่ใช่ Godot/Unity และยังไม่คอมไพล์ APK ใหม่บนมือถือ การแก้ค่าเกมต้องส่งออกโปรเจกต์เพื่อนำไปเชื่อมในซอร์สก่อนเผยแพร่</p>
+    </div>
+  </div>
+</div>
+</section>
+<section id="workspace" class="pane">
+<div id="workbar"><strong id="worktitle">Map Editor</strong><span class="muted" id="workhint" style="font-size:12px"></span><div class="grow"></div><button id="closeWorkspace">← กลับ</button><button class="gold" id="reloadWorkspace">โหลดเครื่องมือใหม่</button></div>
+<iframe id="toolFrame" title="V2N Engine Tool" loading="eager"></iframe>
+</section>
+<section id="assets" class="pane"><div class="wrap">
+  <div class="hero"><div><h2>Fantasy Asset Library</h2><p>แสดงเฉพาะอาคารแฟนตาซีที่เกมใช้งาน 3 ระดับ</p></div><div class="chip" id="assetCount">0 sprites</div></div>
+  <input id="assetSearch" placeholder="ค้นหา castle, house, market, ..."/>
+  <div id="assetsGrid"></div>
+</div></section>
+<section id="config" class="pane"><div class="wrap">
+  <div class="hero"><div><h2>Game Data Editor</h2><p>ปรับค่าต้นแบบและตรวจข้อมูลก่อน export</p></div></div>
+  <div class="two">
+    <div class="box stack"><h3>ค่าบาลานซ์ฉบับร่าง</h3><textarea id="projData" spellcheck="false" aria-label="Game data JSON"></textarea>
+    <div class="actions"><button class="primary" id="saveData">ตรวจ JSON และบันทึก</button><button id="resetData">คืนค่าเริ่มต้น</button></div></div>
+    <div class="box stack"><h3>คำอธิบาย Fields</h3>
+      <p class="info"><b>dayMinutes</b> — นาทีจริงต่อวันในเกม<br/><b>startSilver</b> — เงินเริ่มต้น<br/><b>npcLimit</b> — เพดานจำนวน NPC<br/><b>seasonDays</b> — จำนวนวันต่อฤดูกาล</p>
+      <p class="note">ข้อมูลนี้เป็นเกมคอนฟิกฉบับร่าง ยังไม่ไปเปลี่ยนค่าของตัวเกมที่กำลัง Playtest อัตโนมัติ เพื่อหลีกเลี่ยงแก้ซอร์สเกมแบบเงียบ ๆ</p>
+    </div>
+  </div>
+</div></section>
+</main>
+</div>
+<div id="toast" role="status"></div>
+<script type="module">
+import { ENGINE_KEY, ENGINE_FORMAT, MAP_KEY, FAMILIES, newProject, normalizeProject, serializeProject, validConfig } from './project.js';
+const $ = id => document.getElementById(id);
+let project;
+let screen = 'home';
+try { project = normalizeProject(JSON.parse(localStorage.getItem(ENGINE_KEY))); }
+catch (_) { project = newProject(); }
+function toast(text) { const el = $('toast'); el.textContent = text; el.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(() => { el.style.display='none'; }, 2900); }
+function persist() { project.updatedAt = new Date().toISOString(); localStorage.setItem(ENGINE_KEY, JSON.stringify(project)); $('status').textContent='บันทึกในเครื่อง ✓'; }
+function fields() { $('pname').value=project.name; $('pversion').value=project.version; $('pdesc').value=project.description; $('assetStatus').textContent='เลือกอาคาร: '+project.selectedAsset; $('projData').value=JSON.stringify(project.config,null,2); refreshMap(); }
+function refreshMap() {
+  try {const s=localStorage.getItem(MAP_KEY);const m=s?JSON.parse(s):null;
+    $('mapStatus').textContent=m&&m.format==='v2n-map@1'?'แมพ: '+String(m.name||'ไม่มีชื่อ')+' · '+m.width+' × '+m.height+' tiles':'ยังไม่มีแมพที่บันทึกจาก Map Editor';
+  }catch(_){$('mapStatus').textContent='อ่านข้อมูลแมพไม่ได้';}
+}
+function saveInfo() { project.name=$('pname').value.trim()||'V2N Project';project.version=$('pversion').value.trim()||'0.1';project.description=$('pdesc').value.trim();persist();toast('บันทึกโปรเจกต์แล้ว'); }
+$('saveProject').onclick=saveInfo;
+function show(name) {
+  screen=name;
+  document.querySelectorAll('.pane').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===name));
+  if (name==='home') {$('home').classList.add('active');refreshMap();return;}
+  if (['map','rig','preview'].includes(name)) {
+    $('workspace').classList.add('active');
+    const info={map:['Map / Scene Editor','วาดพื้นและวางอาคาร · บันทึกในเครื่องอัตโนมัติ','../editor/index.html'],rig:['Character Rig Editor','ประกอบสไปรต์และพรีวิวกระดูก','../rig/index.html'],preview:['Game Playtest','ทดลองเล่นจากตัวเกมออฟไลน์ (Sandbox)','../play.html?dev=1']};
+    $('worktitle').textContent=info[name][0];$('workhint').textContent=info[name][1];
+    const frame=$('toolFrame');const target=info[name][2];
+    if (!frame.src || !frame.src.endsWith(target)) frame.src=target;
+    return;
+  }
+  $(name).classList.add('active');
+  if(name==='assets')drawAssets();if(name==='config')$('projData').value=JSON.stringify(project.config,null,2);
+}
+document.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>show(b.dataset.nav));
+document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>show(b.dataset.open));
+$('closeWorkspace').onclick=()=>show('home');
+$('reloadWorkspace').onclick=()=>{let f=$('toolFrame');f.src=f.src;toast('โหลดเครื่องมือใหม่แล้ว');};
+$('shortcutExport').onclick=()=>exportFile();
+function drawAssets() {
+  const filter=$('assetSearch').value.trim().toLowerCase();
+  const names=FAMILIES.flatMap(n=>[1,2,3].map(k=>n+'_'+k)).filter(n=>n.includes(filter));
+  $('assetCount').textContent=names.length+' sprites';
+  const grid=$('assetsGrid');grid.replaceChildren();
+  for (const name of names) {
+    const b=document.createElement('button');b.className='sprite'+(project.selectedAsset===name?' on':'');
+    const img=document.createElement('img');img.src='../assets/fantasy/'+name+'.webp';img.alt=name;img.loading='lazy';
+    const label=document.createElement('span');label.textContent=name;b.append(img,label);
+    b.onclick=()=>{project.selectedAsset=name;persist();$('assetStatus').textContent='เลือกอาคาร: '+name;drawAssets();toast('เลือก '+name);};
+    grid.append(b);
+  }
+}
+$('assetSearch').oninput=drawAssets;
+$('saveData').onclick=()=>{try{const c=JSON.parse($('projData').value);if(!validConfig(c))throw Error('ค่าบางช่องไม่ถูกต้อง');project.config={dayMinutes:c.dayMinutes,startSilver:c.startSilver,npcLimit:c.npcLimit,seasonDays:c.seasonDays};persist();toast('ตรวจและบันทึก Game Data แล้ว');}catch(e){toast('JSON ผิด: '+e.message);}};
+$('resetData').onclick=()=>{project.config=newProject().config;persist();$('projData').value=JSON.stringify(project.config,null,2);toast('คืนค่าเริ่มต้นแล้ว');};
+function safeName() {return (project.name.replace(/[^a-zA-Z0-9\u0E00-\u0E7F_-]/g,'-').replace(/-+/g,'-').slice(0,50)||'v2n-project')+'.v2nproject.json';}
+function exportFile() {
+  try {
+    project.name=$('pname').value.trim()||project.name;
+    project.version=$('pversion').value.trim()||project.version;
+    project.description=$('pdesc').value.trim();
+    const json=serializeProject(project,localStorage.getItem(MAP_KEY));
+    persist();
+    const file=safeName();
+    if(window.AndroidBridge&&typeof AndroidBridge.saveFile==='function'){
+      const bytes=new TextEncoder().encode(json);let binary='';
+      for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode.apply(null,bytes.subarray(i,i+8192));
+      AndroidBridge.saveFile(file,'application/json',btoa(binary));
+      toast('ส่งไฟล์ไปยัง Downloads / แชร์');
+    }else{
+      const url=URL.createObjectURL(new Blob([json],{type:'application/json'}));
+      const a=document.createElement('a');a.href=url;a.download=file;document.body.append(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),5000);toast('ส่งออกโปรเจกต์แล้ว');
+    }
+  }catch(e){toast('ส่งออกไม่สำเร็จ: '+e.message);}
+}
+$('exportProject').onclick=exportFile;
+$('importProject').onclick=()=>$('fileImport').click();
+$('fileImport').onchange=async e=>{
+  const file=e.target.files[0];if(!file)return;
+  try{
+    if(file.size>13_000_000)throw Error('ไฟล์ใหญ่เกิน 13 MB');
+    const p=normalizeProject(JSON.parse(await file.text()));
+    if(p.map)localStorage.setItem(MAP_KEY,JSON.stringify(p.map));
+    project=p;persist();fields();toast('นำเข้าโปรเจกต์แล้ว · เปิด Map Editor เพื่อแก้แมพ');
+    if(screen!=='home')show('home');
+  }catch(err){toast('นำเข้าไม่สำเร็จ: '+err.message);}
+  e.target.value='';
+};
+window.v2nEngineBack=()=>{if(screen!=='home'){show('home');return true;}return false;};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&screen!=='home'){e.preventDefault();show('home');}});
+fields();
+</script>
+</body>
+</html>
