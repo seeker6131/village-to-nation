@@ -1,0 +1,80 @@
+name: Village to Nation Game APK
+on:
+  push:
+    branches: [main, feat/android-playable-game-apk]
+    paths:
+      - 'android/**'
+      - 'src/**'
+      - 'assets/**'
+      - 'source_art/fantasy/**'
+      - 'index.html'
+      - 'scripts/build-standalone.mjs'
+      - 'package.json'
+      - '.github/workflows/game-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  game-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Verify game source and build fully offline HTML
+        run: |
+          npm test
+          npm run build
+          node - <<'NODE'
+          const fs = require('fs');
+          const html = fs.readFileSync('play.html', 'utf8');
+          if (html.length < 1000000 || !html.includes('__V2N_ASSET_MAP__') || !html.includes('__V2N_FANTASY_MAP__'))
+            throw Error('Standalone game is missing its offline sprites or modules');
+          console.log('Offline bundle ready:', (Buffer.byteLength(html) / 1048576).toFixed(1), 'MiB');
+          NODE
+      - name: Copy playable game into Android WebView assets
+        run: |
+          mkdir -p android/app/src/main/assets/www
+          cp play.html android/app/src/main/assets/www/play.html
+      - name: Build signed release APK
+        run: |
+          set -o pipefail
+          gradle -p android assembleGameRelease --no-daemon --stacktrace 2>&1 | tee game-build.log || {
+            grep -E 'error:|What went wrong|FAILURE|Exception' game-build.log | head -70 || true
+            exit 1
+          }
+      - name: Validate APK contains the complete offline game
+        run: |
+          APK=android/app/build/outputs/apk/game/release/app-game-release.apk
+          test -s "$APK"
+          unzip -l "$APK" | grep -F 'assets/www/play.html'
+          cp "$APK" Village-to-Nation-Game.apk
+          ls -lh Village-to-Nation-Game.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Village-to-Nation-Game-APK
+          path: Village-to-Nation-Game.apk
+          retention-days: 30
+      - name: Publish standalone Android game download
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: game-apk-v${{ github.run_number }}
+          name: Village to Nation Game APK v${{ github.run_number }}
+          body: |
+            Village to Nation Fantasy — playable Android game (not Map Maker / Rig Maker).
+            Offline Android WebView game, landscape fullscreen, save retained on app updates.
+            Android 7.0+ (minSdk 24). Download and install Village-to-Nation-Game.apk.
+          files: Village-to-Nation-Game.apk
+          make_latest: true
