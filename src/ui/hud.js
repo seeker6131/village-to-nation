@@ -7,6 +7,8 @@ import { STAGES } from '../progression.js';
 import { BUILDINGS, missingText } from '../construction.js';
 import { appearanceKey } from '../character/model.js';
 import { roleLabel } from '../leadership.js';
+import { PLANS } from '../world.js';
+import { ensureKingdom, seasonAt } from '../fantasyKingdom.js';
 import { allUnlocked } from '../save.js';
 import { G, actionLabel } from './game.js';
 import { drawPortrait } from './render.js';
@@ -23,6 +25,7 @@ export function hud() {
   { const b = document.querySelector('#speed-btn'), m = s.tickMultiplier || 1; if (b) { b.textContent = m === 1 ? '⏩' : m + 'x'; b.classList.toggle('on', m > 1); } }
   $('#hud-level').textContent = `Lv.${p.level}`;
   $('#hud-role').textContent = stage.icon + ' ' + (s.leadership?.isLeader ? `${roleLabel(s).replace(' (รักษาการ)', '')} 👍${s.leadership.popularity}` : s.civilService.examPassed ? s.civilService.rank : s.career?.id ? { courier: 'คนส่งของ', farmer: 'เกษตรกร', builder: 'ช่าง', trader: 'พ่อค้าแม่ค้า' }[s.career.id] : 'ประชาชน');
+  if (PLANS[s.world.plan]?.id?.startsWith('fantasy_')) { const f=ensureKingdom(s); $('#hud-role').textContent = `👑 ${roleLabel(s)} · ${seasonAt(s.day)} · 🥈${s.player.coins} 🥇${s.player.gold} · ชื่อเสียง ${f.reputation}`; }
   $('#energy-fill').style.width = Math.max(0, Math.min(100, p.stamina)) + '%';
   $('#energy-text').textContent = `${Math.floor(p.stamina)}/100`;
   $('#xp-fill').style.width = Math.min(100, Math.round(p.xp / requiredXp(p.level) * 100)) + '%';

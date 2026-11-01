@@ -127,7 +127,7 @@
       </header>
       <div class="cr-body">
         <div class="cr-stage">
-          <canvas id="cr-canvas" width="160" height="160" aria-label="ตัวอย่างตัวละคร"></canvas>
+          <canvas id="cr-canvas" width="320" height="320" aria-label="ตัวอย่างตัวละคร"></canvas>
           <div class="cr-rotate"><button type="button" id="cr-prev" aria-label="หมุนซ้าย">◀</button><span id="cr-dir">ด้านหน้า</span><button type="button" id="cr-next" aria-label="หมุนขวา">▶</button></div>
           <label class="cr-walk"><input type="checkbox" id="cr-walk" checked /> <span id="cr-walk-label">ดูท่าเดิน</span></label>
           <div class="cr-strip" id="cr-strip"></div>
@@ -137,6 +137,8 @@
           <input id="cr-name" type="text" maxlength="24" autocomplete="off" spellcheck="false" placeholder="เช่น ต้นกล้า หรือ River" />
           <div id="cr-error" class="cr-error" role="status"></div>
           <div class="cr-group"><span id="cr-hair-label">ทรงผม</span><div class="cr-options" id="cr-hair"></div></div>
+          <div class="cr-group"><span id="cr-beard-label">หนวดเครา</span><div class="cr-options" id="cr-beard"></div></div>
+          <div class="cr-group"><span id="cr-hat-label">หมวก</span><div class="cr-options" id="cr-hat"></div></div>
           <div class="cr-group"><span id="cr-haircolor-label">สีผม</span><div class="cr-swatches" id="cr-haircolor"></div></div>
           <div class="cr-group"><span id="cr-skin-label">สีผิว</span><div class="cr-swatches" id="cr-skin"></div></div>
           <div class="cr-group"><span id="cr-eyes-label">สีตา</span><div class="cr-swatches" id="cr-eyes"></div></div>
@@ -146,6 +148,13 @@
         </div>
       </div>
     </div>
+  </section>
+  <section id="indoor" class="hidden" aria-label="ภายในอาคาร" style="position:fixed;inset:0;z-index:2500;background:#101f1cf7;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:12px;color:#f5ead0;touch-action:manipulation">
+    <h2 id="in-room-title" style="margin:0;font-size:18px">ห้องภายใน</h2>
+    <canvas id="in-scene" width="362" height="272" style="width:min(94vw,724px);max-height:58vh;object-fit:contain;image-rendering:pixelated;border:3px solid #987b57;background:#25332a"></canvas>
+    <p id="in-host" style="margin:0;font-size:13px;text-align:center">ผู้ดูแลอาคาร</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"><button type="button" id="in-sleep" class="btn">นอนถึงเช้า</button><button type="button" id="in-royal" class="btn hidden">👑 ขอรับพระราชาแต่งตั้ง</button><button type="button" id="in-trade" class="btn hidden">🛒 ส่งเกวียนค้าไม้</button><button type="button" id="in-exit" class="btn">🚪 ออกจากอาคาร</button></div>
+    <div id="in-controls" style="display:flex;gap:6px"><button data-step="left">◀</button><button data-step="up">▲</button><button data-step="down">▼</button><button data-step="right">▶</button></div>
   </section>
 </main>
 <script type="module" src="./src/main.js"></script>

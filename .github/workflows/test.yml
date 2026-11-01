@@ -28,3 +28,16 @@ jobs:
         with:
           name: qa-screens
           path: qa/screens
+
+  source-snapshot:
+    if: github.event_name == 'pull_request' && github.head_ref == 'work/fantasy-all-8-20261101'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bundle source and fantasy images for development QA
+        run: tar -czf /tmp/vtn-source.tar.gz src scripts tests docs assets source_art/fantasy source_art/v030 maps editor rig index.html package.json CLAUDE.md README.md .github
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vtn-source-snapshot
+          path: /tmp/vtn-source.tar.gz
+          retention-days: 2

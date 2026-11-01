@@ -60,6 +60,7 @@ export function ensureTown(s) {
   s.town.mealsServed = s.town.mealsServed || 0;
   s.town.hungryMeals = s.town.hungryMeals || 0;
   s.town.rentEarned = s.town.rentEarned || 0;
+  s.town.fantasyLooks = s.town.fantasyLooks && typeof s.town.fantasyLooks === 'object' && !Array.isArray(s.town.fantasyLooks) ? s.town.fantasyLooks : {};
   return s;
 }
 
@@ -109,6 +110,7 @@ export function settlerArrivals(s) {
       phrase: ['เพิ่งย้ายมาอยู่ที่นี่ กำลังเก็บเงินสร้างบ้านของตัวเอง', 'ได้ยินว่าหมู่บ้านนี้มีงานเยอะ เลยย้ายมาอยู่', 'อีกไม่นานฉันจะมีบ้านเป็นของตัวเองแล้ว!'][i % 3], arrivedDay: s.day,
     };
   }
+  settler.look = lastingLook(s, settler); // save once; this is not changed by future redraws
   s.town.settlers.push(settler);
   s.town.lastSettlerDay = s.day; s.town.lastSettlerHour = absHour;
   addHistory(s, `${settler.name} (${settler.role}) ย้ายเข้ามาอยู่ในหมู่บ้าน`);
@@ -118,7 +120,25 @@ export function settlerArrivals(s) {
 // v0.27 the starters' homes follow the village origin (maps from the Map Maker put the village elsewhere)
 const HOME0 = new Map(NPC_DEFS.map(d => [d, [...d.home]])); let homeOrigin = '0,0';
 function syncHomes() { const k = ORIGIN.x + ',' + ORIGIN.y; if (k === homeOrigin) return; homeOrigin = k; for (const [d, h] of HOME0) d.home = [h[0] + ORIGIN.x, h[1] + ORIGIN.y]; }
-export function allNpcDefs(s) { ensureTown(s); syncHomes(); return [...STARTERS, ...s.town.settlers]; }
+// A one-time, saved appearance per NPC. Stable world-seeded variety, never re-rolled by a render.
+function lastingLook(s, npc) {
+  const cache = s.town.fantasyLooks = s.town.fantasyLooks || {};
+  if (cache[npc.id]) return cache[npc.id];
+  const text = String(npc.id) + ':' + String(s.world?.seed || 0);
+  let seed = 2166136261;
+  for (let i = 0; i < text.length; i++) seed = Math.imul(seed ^ text.charCodeAt(i), 16777619) >>> 0;
+  const pick = (items, salt) => items[Math.floor(hash(seed, salt, 51) * items.length) % items.length];
+  const outfit = JOB_OUTFIT[npc.job] || npc.look?.outfit || 'cream';
+  return (cache[npc.id] = { ...npc.look, outfit,
+    hair: pick(['short', 'pony', 'messy', 'swept'], 3),
+    hairColor: pick(['brown', 'black', 'chestnut', 'ash', 'blonde'], 5),
+    beard: pick(['none', 'none', 'none', '1', '2', '3'], 7),
+    hat: pick(['none', 'none', 'none', '1', '2', '3'], 11) });
+}
+export function allNpcDefs(s) {
+  ensureTown(s); syncHomes();
+  return [...STARTERS, ...s.town.settlers].map(n => ({ ...n, look: lastingLook(s, n) }));
+}
 
 function siteFront(id) { const p = POINTS[id]; return [p.x, p.y + Math.ceil((p.h || 2) / 2) + 1]; }
 export function structurePos(s, ref) {

@@ -15,7 +15,7 @@ export function nearestWalkable(tx, ty, walkable, maxR = 10) {
  * The search stops at the first reachable tile within `near` tiles of the target, so a target that is itself
  * blocked (a tree trunk, a building) or sits in a closed pocket still gets the closest reachable approach.
  */
-export function tileRoute(ax, ay, bx, by, walkable, near = 1) {
+export function tileRoute(ax, ay, bx, by, walkable, near = 1, canStep = () => true) {
   const s = nearestWalkable(Math.floor(ax / TILE), Math.floor(ay / TILE), walkable);
   const gx = Math.floor(bx / TILE), gy = Math.floor(by / TILE);
   if (!s) return [];
@@ -32,7 +32,7 @@ export function tileRoute(ax, ay, bx, by, walkable, near = 1) {
     if (!t && Math.abs(x - gx) <= near && Math.abs(y - gy) <= near) { goal = c; break; }
     for (const [dx, dy] of D) {
       const nx = x + dx, ny = y + dy, n = ny * WORLD_W + nx;
-      if (nx < 0 || nx >= WORLD_W || ny < 0 || ny >= WORLD_H || prev[n] !== -1 || !walkable(nx, ny)) continue;
+      if (nx < 0 || nx >= WORLD_W || ny < 0 || ny >= WORLD_H || prev[n] !== -1 || !walkable(nx, ny) || !canStep(x, y, nx, ny)) continue;
       prev[n] = c; q[tail++] = n;
     }
   }

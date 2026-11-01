@@ -8,6 +8,7 @@ import { ensureJobs } from './jobs.js';
 import { ensureQuests } from './quests.js';
 import { ensureShop } from './shop.js';
 import { normalizeAppearance, validateName, fromV07Character } from './character/model.js';
+import { ensureKingdom } from './fantasyKingdom.js';
 import { ensureWorld, plotObstacles, setNode, SPAWN, DEFAULT_SEED, nodeOnTile } from './world.js';
 import { BUILDINGS } from './construction.js';
 import { ensureLeadership } from './leadership.js';
@@ -16,7 +17,7 @@ import { openRoads, paveAll } from './villageLayout.js';
 import { clearPropTiles } from './villageProps.js';
 import { openSlots as openSlotsV } from './villageLayout.js';
 
-export const SCHEMA = 4;
+export const SCHEMA = 5;
 export const V07_KEY = 'v2n-inline-06';
 export const BACKUP_KEY = SAVE_KEY + '-backup-schema1';
 
@@ -30,6 +31,8 @@ export function migrate(raw) {
   const preForest = !s.world; // v0.3–v0.8 used the painted map; v0.9 starts in a generated forest
   ensureSystems(s); ensureConstruction(s); ensureTown(s); ensureJobs(s); ensureQuests(s); ensureShop(s);
   ensureWorld(s);
+  // v0.30 additive migration: preserve saved fantasy NPC looks, initialise missing maps.
+  if (!s.town.fantasyLooks || typeof s.town.fantasyLooks !== 'object' || Array.isArray(s.town.fantasyLooks)) s.town.fantasyLooks = {};
   const hadLeader = s.election?.leader === 'player'; ensureLeadership(s); if (preForest && !hadLeader && s.election?.completed) { /* old save lost a mock election: keep founder status anyway */ }
   if (preForest && (s.day > 1 || s.placed.length || Object.values(s.projects).some(Boolean) || s.player.coins !== 35)) {
     // move an old village into the forest region: keep progress, refund private buildings, clear finished plots
@@ -75,6 +78,7 @@ export function migrate(raw) {
     s.character = v.ok ? { name: v.name, lang: s.character.lang === 'en' ? 'en' : 'th', appearance: normalizeAppearance(s.character.appearance, allUnlocked(s)), created: true } : null;
   } else s.character = null;
   if (s.character) s.player.name = s.character.name;
+  ensureKingdom(s);
   s.schema = SCHEMA;
   return s;
 }

@@ -41,10 +41,14 @@ async function open(device = 'pc', { url = '/index.html?test=1', storage = null,
   page.on('pageerror', e => { errors.push(e.message); allErrors.push(`${device}: ${e.message}`); });
   page.on('console', m => { if (m.type() === 'error') { errors.push(m.text()); allErrors.push(`${device}: ${m.text()}`); } });
   if (storage) await page.addInitScript(s => { for (const [k, v] of Object.entries(s)) localStorage.setItem(k, v); }, storage);
-  await page.goto(base + url);
-  await page.waitForFunction(() => window.__V2N__ && !document.querySelector('#app').classList.contains('booting'));
-  if (name && await page.isVisible('#creator')) { await page.fill('#cr-name', name); await page.click('#cr-confirm'); await page.waitForTimeout(150); }
-  if (name && await page.isVisible('#path-choice')) { await page.click('#path-choice [data-path=founder]'); await page.waitForTimeout(100); }
+  // The game streams many sprite assets. The window 'load' event may lag despite a playable UI.
+  // Wait for DOM content, not the heavyweight window load event, then assert game boot.
+  await page.goto(base + url, { waitUntil: 'domcontentloaded', timeout: 90_000 });
+  await page.waitForFunction(() => window.__V2N__ && !document.querySelector('#app').classList.contains('booting'), { }, { timeout: 90_000 });
+  // Boot overlays are explicitly managed with the .hidden class. Reading that class
+  // avoids forcing a costly full layout during initial canvas/image decoding.
+  if (name && await page.evaluate(() => !document.querySelector('#creator').classList.contains('hidden'))) { await page.fill('#cr-name', name); await page.dispatchEvent('#cr-confirm', 'click'); await page.waitForTimeout(150); }
+  if (name && await page.evaluate(() => !document.querySelector('#path-choice').classList.contains('hidden'))) { await page.click('#path-choice [data-path=founder]'); await page.waitForTimeout(100); }
   return { ctx, page, errors };
 }
 const G = (page, fn, arg) => page.evaluate(([f, a]) => { const G = window.__V2N__.G; return new Function('G', 'a', 'return (' + f + ')(G,a)')(G, a); }, [fn.toString(), arg]);
@@ -459,3 +463,59 @@ test('village plan: build every slot of tier 1, the leader presses ยกระ�
 });
 
 test('no JavaScript errors were raised in any scenario', () => { assert.deepEqual(allErrors, []); });
+
+
+// Fantasy regression cases added after the original 18 browser tests.
+test('fantasy: browser smoke of a kingdom map with central castle, heights and stairs', async () => {
+  // Start a fresh Chromium process for each map. A browser kept alive through the
+  // earlier 18 full-game scenarios retains hundreds of decoded sprite textures;
+  // opening a second large map in the same process can starve browser page tasks.
+  const valid=['fantasy_valley','fantasy_lake','fantasy_pines','fantasy_meadow','fantasy_pass'];
+  const ids=[process.env.V2N_MAP_ONLY || valid[0]];
+  assert.ok(valid.includes(ids[0]),'unknown fantasy map name');
+  await browser.close();
+  browser=await chromium.launch();
+  for (const id of ids) {
+    console.log('CHECK fantasy map', id);
+    const {ctx,page,errors}=await open('pc',{url:'/index.html?test=1&map='+id,name:'Arin Noble'});
+    const a=await page.evaluate(async()=>{
+      const W=await import('/src/world.js'),G=window.__V2N__.G;
+      return {id:W.PLANS[G.state.world.plan]?.id,x:W.LEADER_HOUSE.tx,y:W.LEADER_HOUSE.ty,
+       high:[...W.WORLD.elevation].filter(n=>n>0).length,stairs:[...W.WORLD.stairs].filter(Boolean).length};
+    });
+    assert.equal(a.id,id);
+    assert.ok(Math.abs(a.x-72)<18 && Math.abs(a.y-48)<14);
+    assert.ok(a.high>100 && a.stairs>=3,'each kingdom must have climbable cliffs');
+    assert.ok(await page.isHidden('#path-choice'));
+    await shot(page,'fantasy_map_'+id);
+    assert.deepEqual(errors,[]);
+    await ctx.close();
+    await browser.close();
+    browser=await chromium.launch();
+  }
+});
+test('fantasy: kingdom castle, royal appointment, night lights, inn sleep and saved progress',async()=>{
+  const {ctx,page,errors}=await open('pc',{url:'/index.html?test=1&map=fantasy_valley',name:'Arin Noble'});
+  await page.evaluate(()=>{window.__V2N__.G.state.gameTime=22*3600;});
+  await page.waitForTimeout(350);await shot(page,'fantasy_night_castle');
+  await page.evaluate(()=>window.__V2N__.G.enterIndoor('castle'));
+  assert.ok(await page.isVisible('#indoor'));
+  assert.match(await page.textContent('#in-room-title'),/พระราชา/);
+  await shot(page,'fantasy_royal_hall');
+  await page.click('#in-royal');
+  assert.match(await page.textContent('#in-host'),/ยศ|ชื่อเสียง|พระราชาแต่งตั้ง/);
+  await page.click('#in-exit');
+  await page.evaluate(()=>window.__V2N__.G.enterIndoor('inn'));
+  assert.ok(await page.isVisible('#in-sleep'));
+  await shot(page,'fantasy_inn');
+  const before=await G(page,G=>G.state.day);
+  await page.click('#in-sleep');
+  const after=await G(page,G=>G.state.day);
+  assert.ok(after>before,'sleep advances the real game day');
+  await page.click('#in-exit');
+  await page.evaluate(()=>window.__V2N__.saveNow());
+  await page.reload();await page.waitForFunction(()=>window.__V2N__);
+  assert.equal(await G(page,G=>G.state.character?.name),'Arin Noble');
+  assert.ok(await G(page,G=>G.state.day)>=after);
+  assert.deepEqual(errors,[]);await ctx.close();
+});

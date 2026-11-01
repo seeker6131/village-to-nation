@@ -93,11 +93,19 @@ function rng(seed) { let s = seed >>> 0 || 1; return () => { s ^= s << 13; s >>>
 
 // ------------------------------------------------------------------------------------- region state
 // Arrays/objects are mutated in place (never reassigned) so every module sees the current region.
-export const WORLD = { seed: DEFAULT_SEED, biome: 'forest', ground: new Uint8Array(WORLD_W * WORLD_H), decor: new Uint8Array(WORLD_W * WORLD_H), occ: new Uint8Array(WORLD_W * WORLD_H), occKey: '', version: 0 };
+export const WORLD = { seed: DEFAULT_SEED, biome: 'forest', ground: new Uint8Array(WORLD_W * WORLD_H), decor: new Uint8Array(WORLD_W * WORLD_H), occ: new Uint8Array(WORLD_W * WORLD_H), elevation: new Uint8Array(WORLD_W * WORLD_H), stairs: new Uint8Array(WORLD_W * WORLD_H), hasElevation: false, occKey: '', version: 0 };
 export const TREES = [], ROCKS = [], NODES = [], PROPS = [];
 const nodeAt = new Map();
 const idx = (x, y) => y * WORLD_W + x;
 const inside = (x, y) => x >= 0 && y >= 0 && x < WORLD_W && y < WORLD_H;
+export function elevationAt(x, y) { return inside(x, y) ? WORLD.elevation[idx(x, y)] : 255; }
+export function stairAt(x, y) { return inside(x, y) ? WORLD.stairs[idx(x, y)] : 0; }
+/** Cross a height boundary only by a marked staircase. No diagonal ledge hopping. */
+export function canStepElevation(ax, ay, bx, by) {
+  if (!inside(ax, ay) || !inside(bx, by) || Math.abs(ax - bx) + Math.abs(ay - by) > 1) return false;
+  const delta = Math.abs(elevationAt(ax, ay) - elevationAt(bx, by));
+  return delta === 0 || (delta === 1 && !!(stairAt(ax, ay) || stairAt(bx, by)));
+}
 export function groundAt(x, y) { return inside(x, y) ? WORLD.ground[idx(x, y)] : T.WATER; }
 const isWater = t => t === T.WATER;
 
@@ -121,7 +129,7 @@ export function generateRegion(seed = DEFAULT_SEED, biome = 'forest', plan = 0) 
   const LAY = applyLayout(WORLD.plan); BRIDGES.length = 0;
   if (LAY.map) return generateCustom(LAY.map, seed);
   const G = WORLD.ground, D = WORLD.decor, R = rng(seed);
-  G.fill(T.GRASS); D.fill(0);
+  G.fill(T.GRASS); D.fill(0); WORLD.elevation.fill(0); WORLD.stairs.fill(0); WORLD.hasElevation = false;
   // 1) base terrain from noise: forest floor, rocky ground, meadows
   for (let y = 0; y < WORLD_H; y++) for (let x = 0; x < WORLD_W; x++) {
     const f = fbm(x, y, seed), r = fbm(x + 300, y + 300, seed + 5), m = fbm(x + 600, y, seed + 11);
@@ -310,6 +318,13 @@ export function generateRegion(seed = DEFAULT_SEED, biome = 'forest', plan = 0) 
 const MAP_T = { g: T.GRASS, m: T.MEADOW, r: T.ROCKY, d: T.DIRT, f: T.DIRT, s: T.SAND, w: T.WATER, S: T.WATER };
 function generateCustom(M, seed) {
   const G = WORLD.ground, D = WORLD.decor;
+  WORLD.elevation.fill(0); WORLD.stairs.fill(0); WORLD.hasElevation = false;
+  for (let y = 0; y < WORLD_H; y++) for (let x = 0; x < WORLD_W; x++) {
+    const i = idx(x, y), height = Math.max(0, Math.min(2, Number(M.heightRows?.[y]?.[x]) || 0));
+    WORLD.elevation[i] = height;
+    WORLD.stairs[i] = M.stairRows?.[y]?.[x] === 'S' ? 1 : 0;
+    if (height || WORLD.stairs[i]) WORLD.hasElevation = true;
+  }
   WORLD.sea = WORLD.sea || new Uint8Array(WORLD_W * WORLD_H); WORLD.sea.fill(0);
   for (let y = 0; y < WORLD_H; y++) for (let x = 0; x < WORLD_W; x++) {
     const ch = M.ground[y]?.[x] || 'g', i = idx(x, y); G[i] = MAP_T[ch] ?? T.GRASS; if (ch === 'S') WORLD.sea[i] = 1;

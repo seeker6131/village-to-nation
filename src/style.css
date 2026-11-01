@@ -282,3 +282,5 @@ body.force-land #app{inset:auto;top:0;left:0;transform-origin:0 0}
 #app.tiny .devbar{zoom:calc(var(--ui,1) * .78)}
 
 .designs{display:flex;gap:6px;flex-wrap:wrap}.designs .design{width:84px;padding:4px;border-radius:10px;border:2px solid var(--hud-line);background:#0003;display:flex;flex-direction:column;align-items:center}.designs .design.on{border-color:var(--gold);background:#a76b3455}.designs img{width:72px;height:60px;object-fit:contain;image-rendering:pixelated}
+
+#indoor.hidden{display:none!important}
