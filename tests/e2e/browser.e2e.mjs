@@ -41,8 +41,10 @@ async function open(device = 'pc', { url = '/index.html?test=1', storage = null,
   page.on('pageerror', e => { errors.push(e.message); allErrors.push(`${device}: ${e.message}`); });
   page.on('console', m => { if (m.type() === 'error') { errors.push(m.text()); allErrors.push(`${device}: ${m.text()}`); } });
   if (storage) await page.addInitScript(s => { for (const [k, v] of Object.entries(s)) localStorage.setItem(k, v); }, storage);
-  await page.goto(base + url);
-  await page.waitForFunction(() => window.__V2N__ && !document.querySelector('#app').classList.contains('booting'));
+  // The game streams many sprite assets. The window 'load' event may lag despite a playable UI.
+  // Wait for the navigation to commit and explicitly assert that the real game has booted.
+  await page.goto(base + url, { waitUntil: 'commit', timeout: 60_000 });
+  await page.waitForFunction(() => window.__V2N__ && !document.querySelector('#app').classList.contains('booting'), { }, { timeout: 90_000 });
   if (name && await page.isVisible('#creator')) { await page.fill('#cr-name', name); await page.click('#cr-confirm'); await page.waitForTimeout(150); }
   if (name && await page.isVisible('#path-choice')) { await page.click('#path-choice [data-path=founder]'); await page.waitForTimeout(100); }
   return { ctx, page, errors };
