@@ -1,0 +1,80 @@
+name: Android Game APK
+on:
+  push:
+    branches: [work/android-offline-game-apk-20261101, main]
+    paths:
+      - 'android/**'
+      - '.github/workflows/game-apk.yml'
+      - 'src/**'
+      - 'assets/**'
+      - 'source_art/fantasy/**'
+      - 'index.html'
+      - 'scripts/build-standalone.mjs'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Verify gameplay source
+        run: npm test && npm run build
+      - name: Package complete game offline
+        run: |
+          mkdir -p android/app/src/main/assets/www
+          cp play.html android/app/src/main/assets/www/play.html
+          python3 - <<'PY'
+          from pathlib import Path
+          html = Path('android/app/src/main/assets/www/play.html').read_text()
+          assert 'window.__V2N_ASSET_MAP__' in html, 'game sprites not bundled'
+          assert 'window.__V2N_FANTASY_MAP__' in html, 'paperdoll sprites not bundled'
+          assert 'const __mod = {}' in html, 'game engine not bundled'
+          assert '<script type="module" src="./src/main.js"></script>' not in html, 'external modules left unbundled'
+          print('Offline play.html checked:', len(html.encode()) // 1024, 'KiB')
+          PY
+      - name: Build signed game APK
+        run: gradle -p android assembleGameRelease --no-daemon --stacktrace
+      - name: Verify game package and bundled assets
+        run: |
+          APK=android/app/build/outputs/apk/game/release/app-game-release.apk
+          test -s "$APK"
+          unzip -l "$APK" | grep -q 'assets/www/play.html'
+          AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -n1)
+          "$AAPT" dump badging "$APK" | grep "package: name='th.seafishingclub.villagetonation'"
+          cp "$APK" Village-to-Nation-Android.apk
+          sha256sum Village-to-Nation-Android.apk > Village-to-Nation-Android.apk.sha256
+          ls -lh Village-to-Nation-Android.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Village-to-Nation-Android-APK
+          path: |
+            Village-to-Nation-Android.apk
+            Village-to-Nation-Android.apk.sha256
+          retention-days: 30
+      - name: Publish APK release on main
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: game-android-v${{ github.run_number }}
+          name: Village to Nation Android Game v${{ github.run_number }}
+          body: |
+            Village to Nation Android offline game.
+            Landscape fullscreen; artwork bundled in APK; local saves persist after closing app.
+            This is the game APK, separate from the Map Maker and Rig Maker tools.
+            Requires Android 7.0 or later.
+          files: |
+            Village-to-Nation-Android.apk
+            Village-to-Nation-Android.apk.sha256
+          make_latest: true
