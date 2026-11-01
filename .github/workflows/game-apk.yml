@@ -1,0 +1,106 @@
+name: Village to Nation Android Game APK
+on:
+  push:
+    branches: [main, work/android-game-apk-20261101]
+    paths:
+      - 'android/**'
+      - 'src/**'
+      - 'assets/**'
+      - 'source_art/fantasy/**'
+      - 'index.html'
+      - 'scripts/build-standalone.mjs'
+      - '.github/workflows/game-apk.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+
+jobs:
+  game-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Verify the existing game engine and offline standalone build
+        run: |
+          npm test
+          npm run build
+      - name: Package complete local game and fantasy assets
+        run: |
+          set -euo pipefail
+          W=android/app/src/main/assets/www
+          mkdir -p "$W/source_art"
+          cp index.html "$W/index.html"
+          cp -a src "$W/"
+          cp -a assets "$W/"
+          cp -a source_art/fantasy "$W/source_art/"
+          # File-based offline engine: use real ES modules and compressed sprites;
+          # no remote URL, server, network permission or 34MB inline HTML required.
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import { ART_USED } from './src/ui/render.js';
+          import { FANTASY_ASSET_NAMES } from './src/fantasyManifest.js';
+          const root='android/app/src/main/assets/www/';
+          const needed=[
+            'index.html','src/main.js','src/style.css',
+            ...ART_USED.map(n=>'assets/'+n+'.webp'),
+            ...FANTASY_ASSET_NAMES.map(n=>'assets/'+n+'.webp'),
+            ...['char_base_walk','hair_short','hair_ponytail','hair_wavy','beards','hats',
+              'outfit_poor','outfit_noble','outfit_smith','outfit_soldier','outfit_merchant']
+              .map(n=>'source_art/fantasy/'+n+'.png')
+          ];
+          const missing=needed.filter(n=>!fs.existsSync(root+n));
+          if(missing.length) throw new Error('Missing offline files: '+missing.join(', '));
+          console.log('APK offline assets validated:',needed.length,'files');
+          JS
+      - name: Build Android APK (signed release)
+        run: gradle -p android assembleGameRelease --no-daemon --stacktrace
+      - name: Verify package assets and signature
+        run: |
+          set -euo pipefail
+          APK=android/app/build/outputs/apk/game/release/app-game-release.apk
+          test -s "$APK"
+          cp "$APK" Village-to-Nation-Android.apk
+          python3 - <<'PY'
+          import zipfile
+          p='Village-to-Nation-Android.apk'
+          with zipfile.ZipFile(p) as z:
+              names=set(z.namelist())
+              required=['assets/www/index.html','assets/www/src/main.js','assets/www/src/style.css',
+                  'assets/www/assets/fantasy/castle_1.webp','assets/www/assets/tiles/road2.webp',
+                  'assets/www/source_art/fantasy/char_base_walk.png',
+                  'assets/www/source_art/fantasy/hats.png']
+              missing=[x for x in required if x not in names]
+              if missing: raise RuntimeError('Missing APK game assets: '+str(missing))
+              print('APK contains',len(names),'entries; offline game engine and fantasy images verified')
+          PY
+          "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$APK" | head -8
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose "$APK"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Village-to-Nation-Android-APK
+          path: Village-to-Nation-Android.apk
+          retention-days: 30
+      - name: Publish downloadable signed APK release (main only)
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: game-v1.0.${{ github.run_number }}
+          name: Village to Nation Android v1.0.${{ github.run_number }}
+          body: |
+            Village to Nation เกมแฟนตาซีสำหรับ Android เล่นออฟไลน์ได้
+            - เกมจริงพร้อมภาพและแผนที่ครบในไฟล์เดียว
+            - แนวนอน / Fullscreen / ระบบเซฟในเครื่อง
+            - ติดตั้งทับเวอร์ชันเกม APK เดิมได้ (ใช้ลายเซ็นเดียวกัน)
+            - เป็นเกมแบบ WebView/Canvas ใช้เอนจินของเว็บเกม ไม่ใช่เอนจิน Unity หรือ Unreal
+          files: Village-to-Nation-Android.apk
+          make_latest: true
