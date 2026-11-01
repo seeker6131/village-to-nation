@@ -68,6 +68,8 @@ jobs:
       - run: npm run build
       - name: Install Chromium for real-browser E2E
         run: npm i --no-save playwright@1.48.2 && npx playwright install --with-deps chromium
+      - name: Isolated browser smoke for all five authored maps
+        run: node --test --test-concurrency=1 --test-name-pattern='fantasy: all five' tests/e2e/browser.e2e.mjs
       - name: Play through browser E2E tests
         run: npm run test:e2e
       - uses: actions/upload-artifact@v4
