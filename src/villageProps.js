@@ -46,17 +46,14 @@ export function villageProps(s) {
   const key = `${t}|${built}|${s.world?.seed}|${s.world?.ver}|${WORLD.plan}`;
   if (memo.key === key) return memo.list;
   const list = [];
-  if (WORLD.custom) { const l = customProps(s, t); streetLamps(s, t, l); memo = { key, list: l }; return memo.list; }
+  if (WORLD.custom) { const l = customProps(s, t); if (WORLD.custom.id?.startsWith('fantasy_')) l.push(...cityPlan(t, ART10).props); streetLamps(s, t, l); memo = { key, list: l }; return memo.list; }
   for (const p of TIER1) if (!p.only || t <= p.only) list.push(p);
   if (t <= 1) for (let i = 0; i < TENTS.length; i++) list.push(P(i === 0 ? 'pc_tent' : 'pc_tent_small', TENTS[i].tx + 1, TENTS[i].ty + 2));
   if (t >= 2) list.push(...TIER2);
-  for (const p of s.placed || []) if (p.type === 'cottage' && p.level >= 1) list.push(P('pp_mailbox', p.tx + 3.6, p.ty + 3.4));
+  // Contemporary street props and mailboxes have been retired from the fantasy world.
   list.push(...bridges(t));
-  // 🚌 travel to the other towns: the stop grows with the era (sala -> bus stop -> terminal -> metro station)
-  const era = Math.min(3, t - 1);
-  list.push(P(['bs_sala', 'bs_stop', 'bs_terminal', 'bs_metro'][era], BUS_STOP.x, BUS_STOP.y, { block: [[Math.floor(BUS_STOP.x) - 1, Math.floor(BUS_STOP.y) - 1], [Math.floor(BUS_STOP.x), Math.floor(BUS_STOP.y) - 1]] }));
-  // entrance arch over the south road (bamboo -> village arch -> district gate -> city gateway)
-  list.push(P(['gt_bamboo', 'gt_village', 'gt_district', 'gt_city'][era], GATE.x, GATE.y, { block: [[GATE.x - 2, GATE.y - 1], [GATE.x + 1, GATE.y - 1]].map(([x, y]) => [Math.floor(x), Math.floor(y)]) }));
+  // No bus terminals, metro stations, or modern concrete gates in this kingdom.
+  list.push(P('gt_bamboo', GATE.x, GATE.y, { block: [[GATE.x - 2, GATE.y - 1], [GATE.x + 1, GATE.y - 1]].map(([x, y]) => [Math.floor(x), Math.floor(y)]) }));
   if (t >= 3) list.push(...cityPlan(t, ART10).props);
   streetLamps(s, t, list);
   memo = { key, list };
@@ -67,7 +64,7 @@ export function villageProps(s) {
  *  อำเภอ up. One on the verge every ~8 tiles, alternating sides, never on a road, plot, door, tree, water or prop. */
 function streetLamps(s, t, list) {
   if (t < 2) return;
-  const R = roadTiles(s), name = t >= 3 ? 'cp_lamp' : 'pp_lamp', busy = new Set(), mark = (x0, y0, w, h, pad = 1) => { for (let y = y0 - pad; y < y0 + h + pad; y++) for (let x = x0 - pad; x < x0 + w + pad; x++) busy.add(x + ',' + y); };
+  const R = roadTiles(s), name = 'pp_lamp', busy = new Set(), mark = (x0, y0, w, h, pad = 1) => { for (let y = y0 - pad; y < y0 + h + pad; y++) for (let x = x0 - pad; x < x0 + w + pad; x++) busy.add(x + ',' + y); };
   for (const p of list) { for (const [x, y] of p.block || [[Math.floor(p.x), Math.floor(p.y - .01)]]) busy.add(x + ',' + y); if (/lamp/.test(p.name)) mark(Math.floor(p.x), Math.floor(p.y), 1, 1, 5); }
   for (const sl of [...openSlots(s), ...(WORLD.custom ? allLots().all : [])]) mark(sl.tx, sl.ty - 2, 4, 6, 1); // house + roof + yard
   for (const id of ['home', 'farm', 'market', 'hall']) { const r = plotRect(id); mark(r.tx, r.ty - 4, r.w, r.h + 4, 1); }
@@ -97,7 +94,7 @@ function customProps(s, t) {
   const list = [];
   for (const p of TIER1.slice(0, 4)) if (!p.only || t <= p.only) list.push(sh(p)); // fire, study log, board, delivery crates (TIER1 holds the default positions)
   if (t >= 2) list.push(P('pp_board', POINTS.board.x + .5, POINTS.board.y + 1.1));
-  for (const p of s.placed || []) if (p.type === 'cottage' && p.level >= 1) list.push(P('pp_mailbox', p.tx + 3.6, p.ty + 3.4));
+  // Contemporary street props and mailboxes have been retired from the fantasy world.
   for (const m of WORLD.custom.props) {
     if ((m.tier || 1) > t) continue; // drawn for a later era: the land waits for it
     if (m.bridge) { // the map's bridge, in this era's style, stretched over its footprint
@@ -115,7 +112,7 @@ export function propBlocks(s) { const out = new Set(); for (const p of villagePr
 /** v0.18: the map's bridges are fixed (world.BRIDGES, planks over FORD tiles); kept for old callers. */
 export function bridgeSpan() { return BRIDGES[0] || null; }
 /** v0.29 bridges change with the era: log footbridge (camp/village) -> stone arch (อำเภอ) -> concrete road bridge (จังหวัด+). */
-export const bridgeSprite = (t, horizontal = true) => `pw_br_${t <= 2 ? 'log' : t === 3 ? 'stone' : 'concrete'}_${horizontal ? 'h' : 'v'}`;
+export const bridgeSprite = (t, horizontal = true) => `pw_br_${t <= 2 ? 'log' : 'stone'}_${horizontal ? 'h' : 'v'}`;
 function bridges(t = 1) { // centred on the planked (FORD) span so the deck sits exactly over the walkable tiles
   return BRIDGES.map(b => { const xs = []; for (let x = b.x0 - 3; x <= b.x1 + 3; x++) for (let y = b.y - 1; y <= b.y + 2; y++) { const g = groundAt(x, y); if (g === T.FORD || ((g === T.WATER) && (y === b.y - 1 || y === b.y + 2))) { xs.push(x); break; } }
     const c = xs.length ? (xs[0] + xs[xs.length - 1] + 1) / 2 : (b.x0 + b.x1 + 1) / 2, span = xs.length ? xs[xs.length - 1] - xs[0] + 1 : 4;

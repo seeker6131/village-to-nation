@@ -77,8 +77,8 @@ export function cottageFrame(p, progress = 1) {
 export function leaderHouseFrame(stage = 0) { return `leader_e${Math.min(4, Math.max(0, stage) + 1)}_s3`; }
 
 // ---- ground era (roads, private paths)
-export const ROAD_ERAS = ['dirt', 'gravel', 'cobble', 'slab', 'asphalt'];
-export function roadTexture(stage = 0) { return 'tx_road_' + ROAD_ERAS[Math.max(0, Math.min(4, stage))]; }
+export const ROAD_ERAS = ['cobble']; // One fantasy stone road at every progression tier
+export function roadTexture(stage = 0) { return 'tx_road_cobble'; }
 
 // ---- crops & fences
 export const CROPS = ['rice', 'cabbage', 'chili', 'corn', 'pumpkin', 'mango'];

@@ -12,11 +12,11 @@ import { cityPlan } from './cityPlan.js';
 import { ART10 } from './artManifest.js';
 
 export const CIVIL_JOBS = {
-  police: { th: 'ตำรวจ', outfit: 'police', at: ['cb_police'], from: 3 },
-  official: { th: 'ข้าราชการอำเภอ', outfit: 'civil', at: ['cb_parliament', 'cb_province', 'cb_district'], from: 3 },
-  teacher: { th: 'คุณครู', outfit: 'civil', at: ['cb_school'], from: 3 },
-  nurse: { th: 'พยาบาล', outfit: 'cream', at: ['cb_hospital'], from: 4 },
-  clerk: { th: 'พนักงานบริษัท', outfit: 'blue', at: ['cb_bank', 'cd_office', 'cb_tower_glass', 'cb_mall'], from: 5 },
+  police: { th: 'ทหารยาม', outfit: 'soldier', at: ['barracks'], from: 3 },
+  official: { th: 'เสมียนราชสำนัก', outfit: 'civil', at: ['town_hall'], from: 3 },
+  teacher: { th: 'ปราชญ์หลวง', outfit: 'civil', at: ['town_hall'], from: 3 },
+  nurse: { th: 'หมอยา', outfit: 'cream', at: ['inn'], from: 4 },
+  clerk: { th: 'พนักงานสมาคมพ่อค้า', outfit: 'merchant', at: ['merchant_guild','bank'], from: 5 },
 };
 const WAGE = { police: 9, official: 10, teacher: 8, nurse: 9, clerk: 11, builder: 7, trader: 6, farmer: 5, courier: 6, mentor: 0, explorer: 4 };
 const WORKING = new Set(['work', 'build', 'farm', 'sell', 'craft', 'chop', 'gather', 'forage', 'patrol', 'office', 'meeting']);
@@ -33,7 +33,7 @@ function workplaces(s) {
   const t = tierOf(s); if (t < 3) return {};
   const k = memoKey(s); if (wpMemo.k === k) return wpMemo.v;
   const out = {};
-  for (const p of cityPlan(t, ART10).props) if (p.big) (out[p.name] = out[p.name] || []).push([Math.round(p.x), Math.round(p.y + 1)]);
+  for (const p of cityPlan(t, ART10).props) if (p.big) (out[p.family || p.name] = out[p.family || p.name] || []).push([Math.round(p.x), Math.round(p.y + 1)]);
   wpMemo = { k, v: out };
   return out;
 }
@@ -54,7 +54,7 @@ export function lifePlan(s, npc, hour, index, home) {
   const awake = hour >= 6 && hour < 21.5;
   if (awake && v.energy < 12) return { activity: 'sleep', target: home, need: 'tired' };
   if (awake && v.hunger > 78) {
-    const food = (wp.cd_nightmarket || wp.cb_market || [])[0];
+    const food = (wp.market || wp.inn || [])[0];
     const q = zoneById('village');
     return { activity: 'lunch', target: food ? off(food, index) : off([q.x + 2, q.y + 3], index), place: 'market', need: 'hungry' };
   }
@@ -64,7 +64,7 @@ export function lifePlan(s, npc, hour, index, home) {
     if (job === 'police' && hour >= 13) { // afternoon patrol around the whole town
       const spots = strollSpots(s); return { activity: 'patrol', target: spots[(index + Math.floor(hour * 2)) % spots.length] };
     }
-    if (hour >= 15 && hour < 16 && job !== 'nurse') { const gov = (wp.cb_parliament || wp.cb_province || wp.cb_district)[0]; return { activity: 'meeting', target: off(gov, index), place: 'gov' }; }
+    if (hour >= 15 && hour < 16 && job !== 'nurse') { const gov = (wp.town_hall || [])[0]; return { activity: 'meeting', target: off(gov, index), place: 'gov' }; }
     return { activity: 'office', target: off(site, index) };
   }
   return null;
