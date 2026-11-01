@@ -90,8 +90,8 @@ jobs:
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: engine-apk-v\${{ github.run_number }}
-          name: V2N Engine Studio APK v\${{ github.run_number }}
+          tag_name: engine-apk-v${{ github.run_number }}
+          name: V2N Engine Studio APK v${{ github.run_number }}
           body: |
             V2N Engine Studio for Android, not the playable Game APK.
             Includes scene/map editor, character rig editor, fantasy asset browser,
