@@ -1,6 +1,10 @@
 package th.seafishingclub.v2nmapmaker;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.pm.ActivityInfo;
+import android.view.View;
+import android.view.WindowManager;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.net.Uri;
@@ -28,22 +32,39 @@ import java.util.Arrays;
  *  ES modules work; a small bridge saves map files / PNGs to Download and opens the share sheet (send to Claude). */
 public class MainActivity extends Activity {
     private static final int PICK = 41;
+    private static final boolean GAME = "play.html".equals(BuildConfig.START);
     private WebView web;
     private ValueCallback<Uri[]> fileCb;
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
+        if (GAME) {
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            setGameImmersive();
+        }
         web = new WebView(this);
         setContentView(web);
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
+        s.setSupportZoom(false);
+        s.setBuiltInZoomControls(false);
+        s.setTextZoom(100);
         s.setAllowFileAccess(false);
         s.setMediaPlaybackRequiresUserGesture(true);
         final WebViewAssetLoader loader = new WebViewAssetLoader.Builder()
             .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this)).build();
         web.setWebViewClient(new WebViewClient() {
-            @Override public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) { return loader.shouldInterceptRequest(r.getUrl()); }
+            @Override public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) {
+                return loader.shouldInterceptRequest(r.getUrl());
+            }
+            @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
+                Uri uri = r.getUrl();
+                if ("https".equals(uri.getScheme()) && "appassets.androidplatform.net".equals(uri.getHost())) return false;
+                try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); } catch (Exception ignored) {}
+                return true;
+            }
         });
         web.setWebChromeClient(new WebChromeClient() {
             @Override public boolean onShowFileChooser(WebView v, ValueCallback<Uri[]> cb, FileChooserParams p) {
@@ -59,9 +80,25 @@ public class MainActivity extends Activity {
                 return true;
             }
         });
-        web.addJavascriptInterface(new Bridge(), "AndroidBridge");
+        // The offline game needs no privileged bridge. Retain file exports only for editor tools.
+        if (!GAME) web.addJavascriptInterface(new Bridge(), "AndroidBridge");
         if (b != null) web.restoreState(b);
         else web.loadUrl("https://appassets.androidplatform.net/assets/www/" + BuildConfig.START);
+    }
+
+    private void setGameImmersive() {
+        if (!GAME) return;
+        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN
+            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+    }
+
+    @Override public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) setGameImmersive();
     }
 
     @Override protected void onSaveInstanceState(Bundle out) { super.onSaveInstanceState(out); web.saveState(out); }
@@ -82,7 +119,14 @@ public class MainActivity extends Activity {
         super.onActivityResult(req, res, data);
     }
 
-    @Override public void onBackPressed() { if (web.canGoBack()) web.goBack(); else super.onBackPressed(); }
+    @Override public void onBackPressed() {
+        if (GAME) {
+            new AlertDialog.Builder(this).setMessage("ออกจาก Village to Nation?")
+                .setNegativeButton("เล่นต่อ", (d, which) -> setGameImmersive())
+                .setPositiveButton("ออกเกม", (d, which) -> finish()).show();
+        } else if (web.canGoBack()) web.goBack();
+        else super.onBackPressed();
+    }
 
     class Bridge {
         @JavascriptInterface public void saveFile(String name, String mime, String b64) {
