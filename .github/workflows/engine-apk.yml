@@ -1,0 +1,101 @@
+name: V2N Engine Studio APK
+on:
+  push:
+    branches: [main, feat/v2n-engine-studio-apk]
+    paths:
+      - 'engine/**'
+      - 'editor/**'
+      - 'rig/**'
+      - 'android/**'
+      - 'assets/**'
+      - 'src/**'
+      - 'source_art/fantasy/**'
+      - 'index.html'
+      - 'scripts/build-standalone.mjs'
+      - 'tests/engine*'
+      - '.github/workflows/engine-apk.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  engine-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Test editor projects and game build
+        run: |
+          npm test
+          npm run build
+          test -s play.html
+      - name: Browser test editor UI and project import/export
+        run: |
+          npm i --no-save playwright@1.48.2
+          npx playwright install --with-deps chromium
+          node --test --test-concurrency=1 tests/engine.e2e.mjs
+      - name: Bundle offline Engine Studio, map maker, rig maker and test game
+        run: |
+          set -euo pipefail
+          W=android/app/src/main/assets/www
+          mkdir -p "$W/engine" "$W/editor" "$W/rig" "$W/assets" "$W/src/maps"
+          cp engine/index.html engine/project.js "$W/engine/"
+          cp editor/index.html "$W/editor/"
+          cp rig/index.html rig/demo.js "$W/rig/"
+          cp play.html "$W/"
+          cp -r assets/v10 assets/tiles assets/fantasy "$W/assets/"
+          cp src/artManifest.js "$W/src/"
+          cp src/maps/mapArt.js "$W/src/maps/"
+          test -s "$W/engine/index.html"
+          test -s "$W/editor/index.html"
+          test -s "$W/rig/index.html"
+          test -s "$W/play.html"
+      - name: Assemble signed Android Engine Studio APK
+        run: |
+          set -o pipefail
+          gradle -p android assembleEngineRelease --no-daemon --stacktrace 2>&1 | tee engine-build.log || {
+            grep -E 'error:|What went wrong|FAILURE|Exception' engine-build.log | head -80 || true
+            exit 1
+          }
+      - name: Validate engine APK, do not confuse with player APK
+        run: |
+          APK=android/app/build/outputs/apk/engine/release/app-engine-release.apk
+          test -s "$APK"
+          for path in assets/www/engine/index.html assets/www/engine/project.js assets/www/editor/index.html assets/www/rig/index.html assets/www/rig/demo.js assets/www/play.html assets/www/assets/fantasy/castle_1.webp; do
+            unzip -Z -1 "$APK" | grep -Fx "$path"
+          done
+          cp "$APK" V2N-Engine-Studio.apk
+          ls -lh V2N-Engine-Studio.apk
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: V2N-Engine-Studio-APK
+          path: V2N-Engine-Studio.apk
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: V2N-Engine-QA
+          path: qa/screens/engine-*.png
+      - name: Publish signed Engine Studio APK to GitHub Releases
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: engine-apk-v\${{ github.run_number }}
+          name: V2N Engine Studio APK v\${{ github.run_number }}
+          body: |
+            V2N Engine Studio for Android, not the playable Game APK.
+            Includes scene/map editor, character rig editor, fantasy asset browser,
+            editable project JSON and offline game playtest. Project export/import supported.
+            This project-specific engine does NOT compile changed game code into APK on the phone.
+          files: V2N-Engine-Studio.apk
+          make_latest: true
