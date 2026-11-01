@@ -16,6 +16,7 @@ android {
     productFlavors {
         mapmaker { dimension 'app'; applicationId 'th.seafishingclub.v2nmapmaker'; resValue 'string', 'app_name', 'V2N Map Maker'; buildConfigField 'String', 'START', '"editor/index.html"' }
         rig { dimension 'app'; applicationId 'th.seafishingclub.v2nrig'; resValue 'string', 'app_name', 'V2N Rig Maker'; buildConfigField 'String', 'START', '"rig/index.html"' }
+        game { dimension 'app'; applicationId 'th.seafishingclub.v2ngame'; resValue 'string', 'app_name', 'Village to Nation'; buildConfigField 'String', 'START', '"play.html"' }
     }
     buildTypes { release { minifyEnabled false; signingConfig signingConfigs.v2n } }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
