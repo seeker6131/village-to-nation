@@ -64,6 +64,17 @@ jobs:
           PY
           python scripts/ingest-fantasy-tiles.py
           python scripts/ingest-fantasy-art.py
+      - name: Export generated sources for reproducible map debugging
+        uses: actions/upload-artifact@v4
+        with:
+          name: fantasy-generated-code
+          path: |
+            src/
+            scripts/
+            tests/
+            index.html
+            package.json
+          retention-days: 2
       - run: npm test
       - run: npm run build
       - name: Install Chromium for real-browser E2E
