@@ -38,8 +38,9 @@ const DISTRICTS = [
   {tier:5,zone:'newtown',types:[['town_hall',0,-4],['house_c',-11,10],['bank',11,10],['merchant_guild',-9,19],['barracks',9,19]]},
 ];
 const CASTLE_RING = [
-  {tier:1,family:'house_a',dx:-19,dy:-15}, {tier:1,family:'house_b',dx:19,dy:-15},
-  {tier:1,family:'blacksmith',dx:-19,dy:13}, {tier:1,family:'market',dx:19,dy:13},
+  // House fronts frame the player's first village square; later guilds expand outside it.
+  {tier:1,family:'house_a',dx:-11,dy:0}, {tier:1,family:'house_b',dx:13,dy:3},
+  {tier:1,family:'blacksmith',dx:-11,dy:15}, {tier:1,family:'market',dx:13,dy:10},
   {tier:2,family:'inn',dx:-12,dy:22},{tier:2,family:'merchant_guild',dx:12,dy:22},
   {tier:3,family:'barracks',dx:-24,dy:-17},{tier:3,family:'town_hall',dx:24,dy:-17},
   {tier:4,family:'bank',dx:0,dy:25},{tier:4,family:'house_c',dx:29,dy:5},
