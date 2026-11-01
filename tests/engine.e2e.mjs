@@ -1,0 +1,72 @@
+// Browser QA for the Android engine UI. The same pages are loaded from appassets.androidplatform.net inside the APK.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+const { chromium } = createRequire(import.meta.url)('playwright');
+const ROOT = path.resolve(import.meta.dirname, '..');
+const SHOTS = path.join(ROOT, 'qa/screens');
+const MIME = {'.js':'text/javascript','.html':'text/html','.css':'text/css','.json':'application/json','.webp':'image/webp','.png':'image/png'};
+let server, browser, url;
+test.before(async()=>{
+  fs.mkdirSync(SHOTS,{recursive:true});
+  server=http.createServer((req,res)=>{
+    const u=decodeURIComponent(new URL(req.url,'http://localhost').pathname);
+    const file=path.resolve(ROOT,'.'+u);
+    if(!file.startsWith(ROOT+path.sep)||!fs.existsSync(file)||fs.statSync(file).isDirectory()){res.writeHead(404);return res.end();}
+    res.writeHead(200,{'content-type':MIME[path.extname(file)]||'application/octet-stream'});
+    fs.createReadStream(file).pipe(res);
+  });
+  await new Promise(resolve=>server.listen(0,resolve));
+  url='http://127.0.0.1:'+server.address().port+'/engine/index.html';
+  browser=await chromium.launch({headless:true});
+});
+test.after(async()=>{await browser?.close();await new Promise(resolve=>server?.close(resolve));});
+test('engine dashboard has working map/rig scene editors and fullscreen playtest entry', async()=>{
+  const ctx=await browser.newContext({viewport:{width:1280,height:720},acceptDownloads:true});
+  const page=await ctx.newPage(), errors=[];
+  page.on('pageerror',e=>errors.push(e.message));
+  await page.goto(url);
+  await page.getByRole('heading',{name:'โปรเจกต์เกมของคุณ'}).waitFor();
+  await page.screenshot({path:path.join(SHOTS,'engine-dashboard.png')});
+  await page.getByRole('button',{name:/Scene \/ Map Editor/}).click();
+  await page.locator('#toolFrame').waitFor();
+  await page.waitForFunction(()=>document.querySelector('#toolFrame')?.contentWindow?.location.pathname.endsWith('/editor/index.html'));
+  assert.match(await page.locator('#worktitle').textContent(),/Map/);
+  await page.screenshot({path:path.join(SHOTS,'engine-map.png')});
+  await page.locator('#closeWorkspace').click();
+  await page.getByRole('button',{name:/Character Rig Editor/}).click();
+  await page.waitForFunction(()=>document.querySelector('#toolFrame')?.contentWindow?.location.pathname.endsWith('/rig/index.html'));
+  await page.locator('#closeWorkspace').click();
+  assert.deepEqual(errors,[]);
+  await ctx.close();
+});
+test('engine asset selection, JSON tuning and project export/import actually persist',async()=>{
+  const ctx=await browser.newContext({viewport:{width:1180,height:700},acceptDownloads:true});
+  const page=await ctx.newPage();
+  await page.goto(url);
+  await page.locator('[data-nav="assets"]').click();
+  await page.locator('#assetSearch').fill('castle_3');
+  await page.locator('.sprite').click();
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('v2n-engine-project-v1')).selectedAsset),'castle_3');
+  await page.locator('[data-nav="home"]').click();
+  await page.locator('#pname').fill('อาณาจักรทดสอบ');
+  await page.locator('#saveProject').click();
+  await page.locator('[data-open="config"]').click();
+  await page.locator('#projData').fill(JSON.stringify({dayMinutes:25,startSilver:300,npcLimit:45,seasonDays:30}));
+  await page.locator('#saveData').click();
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('v2n-engine-project-v1')).config.npcLimit),45);
+  await page.locator('[data-nav="home"]').click();
+  await page.evaluate(()=>localStorage.setItem('v2n-mapmaker-v1',JSON.stringify({format:'v2n-map@1',name:'Castle Test',width:144,height:96,objects:[]})));
+  const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#exportProject').click()]);
+  const payload=JSON.parse(fs.readFileSync(await download.path(),'utf8'));
+  assert.equal(payload.format,'v2n-engine-project@1');
+  assert.equal(payload.name,'อาณาจักรทดสอบ');
+  assert.equal(payload.map.name,'Castle Test');
+  await page.locator('#fileImport').setInputFiles({name:'project.v2nproject.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({...payload,name:'Imported Kingdom'}))});
+  assert.equal(await page.locator('#pname').inputValue(),'Imported Kingdom');
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('v2n-mapmaker-v1')).name),'Castle Test');
+  await ctx.close();
+});
