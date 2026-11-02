@@ -47,16 +47,17 @@ jobs:
         run: |
           set -euo pipefail
           W=android/app/src/main/assets/www
-          mkdir -p "$W/engine" "$W/editor" "$W/rig" "$W/assets" "$W/src/maps"
+          mkdir -p "$W/engine" "$W/editor" "$W/rig" "$W/assets" "$W/src"
           cp engine/index.html engine/project.js "$W/engine/"
           cp editor/index.html "$W/editor/"
           cp rig/index.html rig/demo.js "$W/rig/"
           cp play.html "$W/"
-          cp -r assets/v10 assets/tiles assets/fantasy "$W/assets/"
-          cp src/artManifest.js "$W/src/"
-          cp src/maps/mapArt.js "$W/src/maps/"
+          cp -r assets/tiles assets/fantasy "$W/assets/"
+          cp src/fantasyManifest.js "$W/src/"
           test -s "$W/engine/index.html"
           test -s "$W/editor/index.html"
+          test -s "$W/src/fantasyManifest.js"
+          test -s "$W/assets/fantasy/int_hunter.webp"
           test -s "$W/rig/index.html"
           test -s "$W/play.html"
       - name: Assemble signed Android Engine Studio APK
@@ -70,7 +71,7 @@ jobs:
         run: |
           APK=android/app/build/outputs/apk/engine/release/app-engine-release.apk
           test -s "$APK"
-          for path in assets/www/engine/index.html assets/www/engine/project.js assets/www/editor/index.html assets/www/rig/index.html assets/www/rig/demo.js assets/www/play.html assets/www/assets/fantasy/castle_1.webp; do
+          for path in assets/www/engine/index.html assets/www/engine/project.js assets/www/editor/index.html assets/www/rig/index.html assets/www/rig/demo.js assets/www/play.html assets/www/assets/fantasy/castle_1.webp assets/www/assets/fantasy/int_hunter.webp assets/www/src/fantasyManifest.js; do
             unzip -Z -1 "$APK" | grep -Fx "$path"
           done
           cp "$APK" V2N-Engine-Studio.apk

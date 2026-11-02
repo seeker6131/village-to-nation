@@ -2,7 +2,7 @@ name: Map Maker APK
 on:
   push:
     branches: [main]
-    paths: ['editor/**', 'android/**', 'assets/**', 'src/artManifest.js', '.github/workflows/mapmaker-apk.yml']
+    paths: ['editor/**', 'android/**', 'assets/**', 'src/fantasyManifest.js', '.github/workflows/mapmaker-apk.yml']
   workflow_dispatch:
 permissions:
   contents: write
@@ -15,14 +15,15 @@ jobs:
         with: { distribution: temurin, java-version: '17' }
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.9' }
-      - name: Copy the web editor + game art into the app
+      - name: Copy fantasy-only Map Maker artwork and manifest into the app
         run: |
           W=android/app/src/main/assets/www
           mkdir -p $W/editor $W/assets $W/src
           cp editor/index.html $W/editor/
-          cp -r assets/v10 assets/tiles $W/assets/
-          cp src/artManifest.js $W/src/
-          mkdir -p $W/src/maps && cp src/maps/mapArt.js $W/src/maps/
+          cp -r assets/fantasy assets/tiles $W/assets/
+          cp src/fantasyManifest.js $W/src/
+          test -s $W/assets/fantasy/int_hunter.webp
+          test -s $W/src/fantasyManifest.js
       - name: Build APK
         run: |
           set -o pipefail
