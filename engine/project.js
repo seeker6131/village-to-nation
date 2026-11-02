@@ -8,6 +8,9 @@ export const FAMILIES = [
   'castle','town_hall','market','inn','blacksmith','barracks','bank',
   'merchant_guild','lumber_mill','fishing','dorm','house_a','house_b','house_c'
 ];
+export const INTERIORS = ['int_hunter','int_fish','int_tailor'];
+export const STAIRS = Array.from({length:16},(_,i)=>'cliff_stairs_'+i);
+export const FANTASY_ASSETS = [...FAMILIES.flatMap(f=>[1,2,3].map(i=>f+'_'+i)),...INTERIORS,...STAIRS];
 export function newProject(now = new Date().toISOString()) {
   return {
     format: ENGINE_FORMAT,
@@ -37,7 +40,7 @@ export function normalizeProject(input) {
   project.description = String(input.description || '').slice(0, 2000);
   project.createdAt = typeof input.createdAt === 'string' ? input.createdAt : project.createdAt;
   project.updatedAt = new Date().toISOString();
-  if (typeof input.selectedAsset === 'string' && /^[a-z_]+_[123]$/.test(input.selectedAsset)) {
+  if (typeof input.selectedAsset === 'string' && FANTASY_ASSETS.includes(input.selectedAsset)) {
     project.selectedAsset = input.selectedAsset;
   }
   const c = Object.assign({}, project.config, input.config || {});
