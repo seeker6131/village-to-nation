@@ -75,7 +75,7 @@ hr{border:0;border-top:1px solid var(--line);margin:14px 0}.info{font-size:13px;
 <iframe id="toolFrame" title="V2N Engine Tool" loading="eager"></iframe>
 </section>
 <section id="assets" class="pane"><div class="wrap">
-  <div class="hero"><div><h2>Fantasy Asset Library</h2><p>แสดงเฉพาะอาคารแฟนตาซีที่เกมใช้งาน 3 ระดับ</p></div><div class="chip" id="assetCount">0 sprites</div></div>
+  <div class="hero"><div><h2>Fantasy Asset Library</h2><p>อาคารแฟนตาซี 3 ระดับ + ห้อง Indoor + บันไดหน้าผา (ไม่มีชุดเมืองเก่า)</p></div><div class="chip" id="assetCount">0 sprites</div></div>
   <input id="assetSearch" placeholder="ค้นหา castle, house, market, ..."/>
   <div id="assetsGrid"></div>
 </div></section>
@@ -94,7 +94,7 @@ hr{border:0;border-top:1px solid var(--line);margin:14px 0}.info{font-size:13px;
 </div>
 <div id="toast" role="status"></div>
 <script type="module">
-import { ENGINE_KEY, ENGINE_FORMAT, MAP_KEY, FAMILIES, newProject, normalizeProject, serializeProject, validConfig } from './project.js';
+import { ENGINE_KEY, ENGINE_FORMAT, MAP_KEY, FAMILIES, INTERIORS, STAIRS, FANTASY_ASSETS, newProject, normalizeProject, serializeProject, validConfig } from './project.js';
 const $ = id => document.getElementById(id);
 let project;
 let screen = 'home';
@@ -102,7 +102,7 @@ try { project = normalizeProject(JSON.parse(localStorage.getItem(ENGINE_KEY))); 
 catch (_) { project = newProject(); }
 function toast(text) { const el = $('toast'); el.textContent = text; el.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(() => { el.style.display='none'; }, 2900); }
 function persist() { project.updatedAt = new Date().toISOString(); localStorage.setItem(ENGINE_KEY, JSON.stringify(project)); $('status').textContent='บันทึกในเครื่อง ✓'; }
-function fields() { $('pname').value=project.name; $('pversion').value=project.version; $('pdesc').value=project.description; $('assetStatus').textContent='เลือกอาคาร: '+project.selectedAsset; $('projData').value=JSON.stringify(project.config,null,2); refreshMap(); }
+function fields() { $('pname').value=project.name; $('pversion').value=project.version; $('pdesc').value=project.description; $('assetStatus').textContent='เลือก Asset: '+project.selectedAsset; $('projData').value=JSON.stringify(project.config,null,2); refreshMap(); }
 function refreshMap() {
   try {const s=localStorage.getItem(MAP_KEY);const m=s?JSON.parse(s):null;
     $('mapStatus').textContent=m&&m.format==='v2n-map@1'?'แมพ: '+String(m.name||'ไม่มีชื่อ')+' · '+m.width+' × '+m.height+' tiles':'ยังไม่มีแมพที่บันทึกจาก Map Editor';
@@ -133,14 +133,14 @@ $('reloadWorkspace').onclick=()=>{let f=$('toolFrame');f.src=f.src;toast('โห
 $('shortcutExport').onclick=()=>exportFile();
 function drawAssets() {
   const filter=$('assetSearch').value.trim().toLowerCase();
-  const names=FAMILIES.flatMap(n=>[1,2,3].map(k=>n+'_'+k)).filter(n=>n.includes(filter));
+  const names=FANTASY_ASSETS.filter(n=>n.includes(filter));
   $('assetCount').textContent=names.length+' sprites';
   const grid=$('assetsGrid');grid.replaceChildren();
   for (const name of names) {
     const b=document.createElement('button');b.className='sprite'+(project.selectedAsset===name?' on':'');
     const img=document.createElement('img');img.src='../assets/fantasy/'+name+'.webp';img.alt=name;img.loading='lazy';
     const label=document.createElement('span');label.textContent=name;b.append(img,label);
-    b.onclick=()=>{project.selectedAsset=name;persist();$('assetStatus').textContent='เลือกอาคาร: '+name;drawAssets();toast('เลือก '+name);};
+    b.onclick=()=>{project.selectedAsset=name;persist();$('assetStatus').textContent='เลือก Asset: '+name;drawAssets();toast('เลือก '+name);};
     grid.append(b);
   }
 }
