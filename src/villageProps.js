@@ -102,7 +102,13 @@ function customProps(s, t) {
       if (A) { const sc = hz ? m.fw * 16 / A[0] : m.fh * 16 / A[1]; list.push(P(name, m.x + m.fw / 2, hz ? m.y + m.fh / 2 + A[1] * sc / 32 : m.y + m.fh + .1, { flat: true, scale: sc, city: m.label })); continue; }
     }
     const blk = []; if (!m.bridge) for (let y = m.y; y < m.y + m.fh; y++) for (let x = m.x; x < m.x + m.fw; x++) blk.push([x, y]);
-    list.push(P(m.name, m.x + m.fw / 2, m.y + m.fh + .1, { block: blk, flip: m.flip, rot: m.rot || 0, pivot: m.fh * 8 + 1.6, scale: m.scale || 1, city: m.label, ...(m.bridge ? { flat: true } : {}) })); // pivot: the footprint centre, like the Map Maker
+    const fantasy = /^fantasy\/([a-z_]+)_([123])$/.exec(m.name);
+    list.push(P(m.name, m.x + m.fw / 2, m.y + m.fh + .1, {
+      block: blk, flip: m.flip, rot: m.rot || 0, pivot: m.fh * 8 + 1.6,
+      scale: m.scale || 1, city: m.label,
+      ...(fantasy ? { family: fantasy[1], level: Number(fantasy[2]) } : {}),
+      ...(m.bridge ? { flat: true } : {})
+    })); // pivot: the footprint centre, like the Map Maker
   }
   return list;
 }
