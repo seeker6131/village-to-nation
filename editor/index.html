@@ -132,24 +132,25 @@ kbd{background:#111;border:1px solid var(--line);border-radius:4px;padding:0 4px
 // text rows, objects and markers as lists with tile coordinates, footprints and rotation, imported images embedded.
 const TILE = 16, FORMAT = 'v2n-map@1', LS = 'v2n-mapmaker-v1';
 const $ = s => document.querySelector(s), esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const KINDS = { house: 'บ้าน', building: 'อาคาร/ตึก', shop: 'ร้านค้า/ธุรกิจ', civic: 'ราชการ/เมือง', tree: 'ต้นไม้', bush: 'พุ่มไม้/ดอกไม้', rock: 'หิน/แร่', prop: 'ของประดับ', farm: 'ฟาร์ม/พืชผล', animal: 'สัตว์', fence: 'รั้ว', bridge: 'สะพาน', stage: 'ขั้นก่อสร้าง', ground: 'พื้น (ลายปู)', road: 'ถนน (ลายปู)' };
+const KINDS = { indoor: 'ห้องภายใน (Indoor)', house: 'บ้าน', building: 'อาคาร/ตึก', shop: 'ร้านค้า/ธุรกิจ', civic: 'ราชการ/เมือง', tree: 'ต้นไม้', bush: 'พุ่มไม้/ดอกไม้', rock: 'หิน/แร่', prop: 'ของประดับ', farm: 'ฟาร์ม/พืชผล', animal: 'สัตว์', fence: 'รั้ว', bridge: 'สะพาน', stage: 'ขั้นก่อสร้าง', ground: 'พื้น (ลายปู)', road: 'ถนน (ลายปู)' };
 const KIND_W = { house: 4, building: 6, shop: 4, civic: 7, tree: 3, bush: 1, rock: 1, prop: 1, farm: 2, animal: 2, fence: 1, bridge: 5, stage: 4, ground: 1, road: 1 };
 // Ground and roads use the GAME's own tile sheets (assets/tiles, dual-grid: every 32 px tile sits between 4 cells of 2x2
 // game tiles and picks one of 16 edge pieces), exactly like src/ui/terrain.js. Painting works on those 2x2 cells.
 const DEF_TERRAIN = [
-  { id: 'grass', name: 'หญ้า', color: '#78b858', base: 'grass' }, { id: 'meadow', name: 'ทุ่งดอกไม้', color: '#8cc464', base: 'meadow' },
-  { id: 'rocky', name: 'หญ้ามีกรวด', color: '#9aa47c', base: 'rocky' }, { id: 'dirt', name: 'ดิน/ลานดิน', color: '#c99a62', set: 'road1' },
-  { id: 'farm', name: 'ไร่นา/แปลงปลูก', color: '#9b6b3e', set: 'farmland' }, { id: 'soil', name: 'ดินร่วน', color: '#8a6a48', plain: 'soil', edge: 'road1' },
-  { id: 'water', name: 'น้ำ (แม่น้ำ/บ่อ)', color: '#3fa8c9', water: 'bank' }, { id: 'sea', name: 'ทะเล (ชายหาด)', color: '#2a7fb0', water: 'beach' },
+  {id:'grass',name:'หญ้าป่า',color:'#346c52',base:'grass'},
+  {id:'meadow',name:'ทุ่งหญ้า',color:'#477653',base:'meadow'},
+  {id:'rocky',name:'เนินหิน',color:'#52665a',base:'rocky'},
+  {id:'dirt',name:'ลานหิน',color:'#756e55',set:'road2'},
+  {id:'farm',name:'พื้นที่เพาะปลูก',color:'#59734f',base:'grass'},
+  {id:'soil',name:'ทางกรวด',color:'#737c68',set:'road2'},
+  {id:'water',name:'แม่น้ำ',color:'#1f4f52',water:'bank'},
+  {id:'sea',name:'ทะเลสาบ',color:'#245b60',water:'bank'}
 ];
 const DEF_ROADS = [
-  { id: 'main', name: 'ถนนหลัก + ทางเท้า', color: '#5d6168', set: 'road3' }, { id: 'main2', name: 'ถนนหลัก แบบ 2', color: '#5a5d63', set: 'road4' },
-  { id: 'main3', name: 'ถนนหลัก แบบ 3', color: '#55585e', set: 'road5' }, { id: 'lane', name: 'ซอย/ถนนเล็ก', color: '#8a8c90', set: 'road2' },
-  { id: 'path', name: 'ทางดิน', color: '#c7995d', set: 'road1' }, { id: 'stones', name: 'ทางเดินหิน', color: '#b6ad9c', plain: 'stones', edge: 'road2' },
-  { id: 'plaza1', name: 'ลานกลางบ้าน แบบ 1', color: '#c08a6a', plain: 'plaza1', edge: 'road2' }, { id: 'plaza2', name: 'ลานเมือง แบบ 2', color: '#b9a48a', plain: 'plaza2', edge: 'road2' },
-  { id: 'plaza3', name: 'ลานเมือง แบบ 3', color: '#a9a39a', plain: 'plaza3', edge: 'road2' }, { id: 'plaza4', name: 'ลานเมือง แบบ 4', color: '#9ea0a6', plain: 'plaza4', edge: 'road2' },
+  {id:'cobble',name:'ถนนหินแฟนตาซี',color:'#4a5a4f',set:'road2'},
+  {id:'path',name:'ทางเดินหิน',color:'#6e7866',set:'road2'}
 ];
-const TILESETS = ['grass', 'farmland', 'road1', 'road2', 'road3', 'road4', 'road5', 'bank', 'beach', 'bankmask', 'beachmask', 'plaza1', 'plaza2', 'plaza3', 'plaza4', 'soil', 'stones', 'water'];
+const TILESETS = ['grass','road2','bank','bankmask','cliff'];
 const TL = {}; let tilesOk = false;
 const ROWCH = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
@@ -157,19 +158,21 @@ const ROWCH = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 // Lots and building plots show the REAL game sprite (translucent) inside the box, so the size is obvious.
 // A house plot in the game is a 4x3 base; with a front yard / gap it needs about 6 x 5 tiles.
 const LOT_W = 6, LOT_H = 5;
-const PLOT_TYPES = { // building plots ("ที่ดินอาคาร") with their game sprite and a good size in tiles
-  home: { name: 'บ้านพักชุมชน', sprite: 'house_e3_s3', w: 10, h: 7, tier: 1 }, farm: { name: 'สวนอาหาร/ฟาร์ม', sprite: null, w: 9, h: 8, tier: 1 },
-  market: { name: 'ตลาด', sprite: 'market_e2_s3', w: 12, h: 8, tier: 2 }, hall: { name: 'ศาลาประชาคม', sprite: 'hall_e2_s3', w: 14, h: 9, tier: 2 },
-  workshop: { name: 'โรงงาน', sprite: 'bz_work_2', w: 6, h: 5, tier: 2 }, district: { name: 'ที่ว่าการอำเภอ', sprite: 'cb_district', w: 11, h: 8, tier: 3 },
-  police: { name: 'สถานีตำรวจ', sprite: 'cb_police', w: 10, h: 7, tier: 3 }, school: { name: 'โรงเรียน', sprite: 'cb_school', w: 11, h: 7, tier: 3 },
-  post: { name: 'ไปรษณีย์', sprite: 'cb_post', w: 8, h: 6, tier: 3 }, temple: { name: 'วัด', sprite: 'cb_temple', w: 9, h: 8, tier: 3 },
-  shop: { name: 'ร้านค้า', sprite: 'sh_conv_2', w: 6, h: 5, tier: 2 }, hospital: { name: 'โรงพยาบาล', sprite: 'cb_hospital', w: 15, h: 10, tier: 4 },
-  mall: { name: 'ห้างสรรพสินค้า', sprite: 'cb_mall', w: 13, h: 9, tier: 4 }, fire: { name: 'สถานีดับเพลิง', sprite: 'cb_fire', w: 9, h: 7, tier: 4 },
-  province: { name: 'ศาลากลางจังหวัด', sprite: 'cb_province', w: 13, h: 9, tier: 4 }, bank: { name: 'ธนาคาร', sprite: 'bz_bank_3', w: 8, h: 6, tier: 5 },
-  office: { name: 'ตึกสำนักงาน', sprite: 'bz_office_3', w: 8, h: 6, tier: 5 }, hotel: { name: 'โรงแรม', sprite: 'cd_hotel', w: 9, h: 7, tier: 5 },
-  parliament: { name: 'ทำเนียบรัฐบาล', sprite: 'cb_parliament', w: 16, h: 11, tier: 5 }, port: { name: 'ท่าเรือ', sprite: 'po_pier', w: 9, h: 7, tier: 5 },
-  station: { name: 'สถานีขนส่ง/รถไฟ', sprite: 'bs_terminal', w: 8, h: 5, tier: 3 },
+const PLOT_TYPES = {
+  home:{name:'บ้านชาวบ้าน',sprite:'fantasy/house_a_1',w:8,h:6,tier:1},
+  castle:{name:'ปราสาท',sprite:'fantasy/castle_1',w:14,h:11,tier:1},
+  dorm:{name:'เรือนพักคนงาน',sprite:'fantasy/dorm_1',w:10,h:8,tier:1},
+  inn:{name:'โรงเตี๊ยม',sprite:'fantasy/inn_1',w:10,h:8,tier:2},
+  market:{name:'ตลาด',sprite:'fantasy/market_1',w:10,h:8,tier:2},
+  blacksmith:{name:'ร้านช่างตีเหล็ก',sprite:'fantasy/blacksmith_1',w:10,h:8,tier:2},
+  town_hall:{name:'ศาลาว่าการ',sprite:'fantasy/town_hall_1',w:12,h:9,tier:3},
+  barracks:{name:'ค่ายทหาร',sprite:'fantasy/barracks_1',w:11,h:8,tier:3},
+  bank:{name:'หอเงินตรา',sprite:'fantasy/bank_1',w:11,h:8,tier:3},
+  merchant_guild:{name:'กิลด์พ่อค้า',sprite:'fantasy/merchant_guild_1',w:11,h:8,tier:4},
+  lumber_mill:{name:'โรงเลื่อย',sprite:'fantasy/lumber_mill_1',w:11,h:8,tier:4},
+  fishing:{name:'ร้านประมง',sprite:'fantasy/fishing_1',w:11,h:8,tier:4}
 };
+const OLD_PLOTS={farm:'lumber_mill',hall:'town_hall',workshop:'blacksmith',district:'town_hall',police:'barracks',school:'dorm',post:'merchant_guild',temple:'castle',shop:'market',hospital:'inn',mall:'market',fire:'blacksmith',province:'town_hall',office:'merchant_guild',hotel:'inn',parliament:'castle',port:'fishing',station:'market'};
 const MARKERS = {
   lot: { name: 'ที่ดินผู้เล่น', color: '#4fc3f7', icon: '🏠', w: LOT_W, h: LOT_H, house: true },
   npc: { name: 'บ้าน NPC', color: '#aed581', icon: '🧑', w: LOT_W, h: LOT_H, house: true },
@@ -179,7 +182,7 @@ const MARKERS = {
   zone: { name: 'โซน (ตั้งชื่อเอง)', color: '#f06292', icon: '▦', w: 10, h: 8 },
   note: { name: 'โน้ตถึง Claude', color: '#ffffff', icon: '📝', w: 2, h: 2 },
 };
-const HOUSE_PREVIEW = ['hz1a_s3', 'hz3a_s3', 'hz5a_s3']; // cabin, medium, mansion: what will stand on the lot
+const HOUSE_PREVIEW = ['fantasy/house_a_1','fantasy/house_b_2','fantasy/house_c_3']; // cabin, medium, mansion: what will stand on the lot
 const gameImg = new Map();
 function gameSprite(name) { if (!name) return null; if (!gameImg.has(name)) { const im = new Image(); im.onload = draw; im.src = GAME_BASE + name + '.webp'; gameImg.set(name, im); } return gameImg.get(name); }
 function markerSize(m) { const M = MARKERS[m.type] || MARKERS.note, T = PLOT_TYPES[m.plot] || PLOT_TYPES.home; return [m.w || (m.type === 'public' ? T.w : M.w) || 1, m.h || (m.type === 'public' ? T.h : M.h) || 1]; }
@@ -187,12 +190,8 @@ function markerSize(m) { const M = MARKERS[m.type] || MARKERS.note, T = PLOT_TYP
 // ------------------------------------------------------------------ v2.1 levels: paint which area opens at which level
 // Draw the FINAL town (nation level), then paint each part with the level that opens it. In the game, parts above the
 // current level are forest (trees are added automatically) with their roads/lots hidden; raising the area clears them.
-const TIER = [null, { th: 'ค่ายบุกเบิก', c: '#ffd84a' }, { th: 'หมู่บ้าน', c: '#8bc34a' }, { th: 'อำเภอ', c: '#4fc3f7' }, { th: 'จังหวัด', c: '#ba68c8' }, { th: 'ประเทศ', c: '#f06292' }];
-const NEED = { // what each level should have (cumulative lots; buildings that open at that level)
-  1: { lots: 0, npc: 7, plots: ['home', 'farm'] }, 2: { lots: 14, npc: 0, plots: ['market', 'hall', 'workshop'] },
-  3: { lots: 34, npc: 0, plots: ['district', 'police', 'school', 'post', 'temple'] }, 4: { lots: 60, npc: 0, plots: ['hospital', 'mall', 'fire', 'province'] },
-  5: { lots: 90, npc: 0, plots: ['bank', 'office', 'hotel', 'parliament'] },
-};
+const TIER = [null,{th:'ค่ายบุกเบิก',c:'#ffd84a'},{th:'หมู่บ้าน',c:'#8bc34a'},{th:'เมือง',c:'#4fc3f7'},{th:'นคร',c:'#ba68c8'},{th:'อาณาจักร',c:'#f06292'}];
+const NEED = {1:{lots:0,npc:7,plots:['home','castle']},2:{lots:14,npc:0,plots:['market','inn','blacksmith']},3:{lots:34,npc:0,plots:['town_hall','barracks','bank']},4:{lots:60,npc:0,plots:['merchant_guild','lumber_mill','fishing']},5:{lots:90,npc:0,plots:['castle','town_hall']}};
 const tierAt = (x, y) => inside(Math.floor(x), Math.floor(y)) ? P.tier[idx(Math.floor(x), Math.floor(y))] || 1 : 1;
 const objTier = o => tierAt(o.x + o.fw / 2, o.y + o.fh - 1);
 const mkTier = m => { const [w, h] = markerSize(m); return tierAt(m.x + w / 2, m.y + h - 1); };
@@ -266,24 +265,25 @@ function fromFile(f) {
   p.name = f.name || 'แมพ';
   // keep the rendering recipe (which game tile sheet) from the current defaults; custom/imported types are kept as saved
   const withDef = (list, defs) => { const out = list.map(t => ({ ...(defs.find(d => d.id === t.id) || {}), ...t, ...(defs.find(d => d.id === t.id) ? { set: defs.find(d => d.id === t.id).set, base: defs.find(d => d.id === t.id).base, plain: defs.find(d => d.id === t.id).plain, edge: defs.find(d => d.id === t.id).edge, water: defs.find(d => d.id === t.id).water } : {}) })); for (const d of defs) if (!out.some(t => t.id === d.id)) out.push({ ...d }); return out; };
-  p.terrains = withDef(f.terrains, DEF_TERRAIN); p.roads = withDef(f.roadTypes, DEF_ROADS);
-  const gi = {}; Object.entries(f.groundKey).forEach(([ch, id]) => gi[ch] = p.terrains.findIndex(t => t.id === id));
-  const ri = {}; Object.entries(f.roadKey).forEach(([ch, id]) => ri[ch] = id === 'none' ? 0 : p.roads.findIndex(r => r.id === id) + 1);
+  p.terrains=DEF_TERRAIN.map(t=>({...t}));p.roads=DEF_ROADS.map(t=>({...t}));
+  const gi={};Object.entries(f.groundKey||{}).forEach(([ch,id])=>gi[ch]=Math.max(0,p.terrains.findIndex(t=>t.id===id)));
+  const ri={};Object.entries(f.roadKey||{}).forEach(([ch,id])=>ri[ch]=id==='none'?0:id==='path'?2:1);
   f.groundRows.forEach((row, y) => { for (let x = 0; x < p.w; x++) p.ground[y * p.w + x] = Math.max(0, gi[row[x]] ?? 0); });
   f.roadRows.forEach((row, y) => { for (let x = 0; x < p.w; x++) p.road[y * p.w + x] = ri[row[x]] ?? 0; });
   (f.tierRows || []).forEach((row, y) => { for (let x = 0; x < p.w; x++) p.tier[y * p.w + x] = Math.max(1, Math.min(5, +row[x] || 1)); });
   (f.heightRows || []).forEach((row, y) => { if (y < p.h) for (let x = 0; x < p.w; x++) p.height[y * p.w + x] = Math.max(0, Math.min(2, +row[x] || 0)); });
   (f.stairRows || []).forEach((row, y) => { if (y < p.h) for (let x = 0; x < p.w; x++) p.stairs[y * p.w + x] = row[x] === 'S' ? 1 : 0; });
-  p.assets = f.assets.map(a => ({ ...a }));
-  p.objects = f.objects.map(o => ({ id: o.id, asset: o.asset, x: o.x, y: o.y, fw: o.fw, fh: o.fh, tw: o.tw, flip: o.flip, rot: o.rot || 0, label: o.label }));
-  p.markers = (f.markers || []).map(m => { const { typeName, tier, ...rest } = m; void typeName; void tier; return rest; });
+  p.assets=(f.assets||[]).map(migrateAsset).filter(Boolean);
+  const allowed=new Set(p.assets.map(a=>a.id));
+  p.objects=(f.objects||[]).filter(o=>allowed.has(o.asset)).map(o => ({ id: o.id, asset: o.asset, x: o.x, y: o.y, fw: o.fw, fh: o.fh, tw: o.tw, flip: o.flip, rot: o.rot || 0, label: o.label }));
+  p.markers = (f.markers || []).map(m => { const { typeName, tier, ...rest } = m; void typeName; void tier; if(rest.type==='public')rest.plot=OLD_PLOTS[rest.plot]||(PLOT_TYPES[rest.plot]?rest.plot:'home');return rest; });
   p.nextId = 1 + Math.max(0, ...p.objects.map(o => o.id), ...p.markers.map(m => m.id || 0));
   return p;
 }
 
 
 // ------------------------------------------------------------------ assets
-const GAME_BASE = new URL('../assets/v10/', location.href).href;
+const GAME_BASE = new URL('../assets/', location.href).href;
 function srcUrl(a) { return a.src?.startsWith('game:') ? GAME_BASE + a.src.slice(5) + '.webp' : a.src; }
 function loadImg(a) {
   if (img.has(a.id)) return img.get(a.id);
@@ -296,47 +296,59 @@ function addAsset(a) {
   if (a.kind === 'road') P.roads.push({ id: 'tex_' + a.id, name: a.name, color: '#777', edge: '#555', asset: a.id });
   return a;
 }
-// every sprite the game has (src/artManifest.js), sorted into kinds; building construction stages go to "ขั้นก่อสร้าง"
-const GAME_KIND = [[/^map\d+_/, null], [/^pw_br_/, 'bridge'], [/^pf_path_/, 'prop'], [/^hz\d[a-d]_s3$/, 'house'], [/_s[012]$/, 'stage'], [/^tree_/, 'tree'], [/^stump_/, 'tree'], [/^pl_/, 'bush'], [/^(rock|ore)_/, 'rock'],
-  [/^(sh|bz)_/, 'shop'], [/^(cb|cd|po)_/, 'civic'], [/^(leader|market|hall|cots|cotm|cotl|house|hs\d)_/, 'building'], [/^(bs|gt)_/, 'building'],
-  [/^pw_bridge/, 'bridge'], [/^an_/, 'animal'], [/^fence_/, 'fence'], [/^(crop|pf|pp)_/, 'farm'], [/^(cp|pc|pw)_/, 'prop'], [/^tx_/, null], [/^waterfall/, 'prop'], [/./, 'prop']];
-const OLD_STYLE = /^(cb|cd|leader|market|hall|cots|cotm|cotl|house|hs\d)_/;
-let GAME_ART = null;
-async function loadGameArt(quiet = false) {
-  let ART;
-  try { ART = GAME_ART || (GAME_ART = { ...(await import('../src/artManifest.js')).ART10, ...((await import('../src/maps/mapArt.js').catch(() => ({}))).MAP_ART || {}) }); } catch (e) { return quiet || toast('โหลดรูปในเกมไม่ได้ (ต้องเปิดผ่านเว็บ ไม่ใช่ไฟล์ในเครื่อง)'); }
-  let n = 0;
-  for (const [name, [w, h]] of Object.entries(ART)) {
-    const k = GAME_KIND.find(([re]) => re.test(name)); if (!k || !k[1]) continue;
-    if (P.assets.some(a => a.src === 'game:' + name)) continue;
-    const kind = k[1], tw = Math.max(1, Math.round(w / TILE * 2) / 2);
-    let fw = kind === 'ground' ? 1 : Math.max(1, Math.round(w / TILE * (kind === 'tree' ? .34 : .8))), fh = kind === 'ground' ? 1 : Math.max(1, Math.round(h / TILE * (kind === 'tree' ? .2 : kind === 'prop' || kind === 'animal' || kind === 'bush' ? .4 : .35)));
-    if (/^hz/.test(name)) { fw = 4; fh = 3; } // the game's house lot: 4x3 base
-    if (kind === 'tree' || kind === 'bush' || kind === 'rock') { fw = 1; fh = 1; }
-    if (kind === 'bridge') fh = 1;
-    addAsset({ name: gameName(name) + (OLD_STYLE.test(name) ? ' (ภาพเก่า)' : ''), kind, src: 'game:' + name, pw: w, ph: h, tw, fw, fh, game: true }); n++;
+// Fantasy-only catalog: no imports of the retired v10 art manifest.
+const FANTASY_LABELS={castle:'ปราสาทพระราชา',town_hall:'ศาลาว่าการ',market:'ตลาด',inn:'โรงเตี๊ยม',blacksmith:'ช่างตีเหล็ก',barracks:'ค่ายทหาร',bank:'หอเงินตรา',merchant_guild:'กิลด์พ่อค้า',lumber_mill:'โรงเลื่อย',fishing:'ร้านประมง',dorm:'เรือนพักคนงาน',house_a:'บ้านแบบ A',house_b:'บ้านแบบ B',house_c:'บ้านแบบ C',int_hunter:'Indoor ห้องนายพราน',int_fish:'Indoor ร้านปลา',int_tailor:'Indoor ร้านตัดเสื้อ'};
+function fantasyKind(n){
+ if(n.startsWith('fantasy/int_'))return 'indoor';
+ if(n.startsWith('fantasy/cliff_stairs_'))return 'prop';
+ if(/^fantasy\/house_[abc]_/.test(n))return 'house';
+ if(/^fantasy\/(castle|town_hall|barracks)_/.test(n))return 'civic';
+ if(/^fantasy\/(market|inn|merchant_guild|bank|blacksmith|fishing)_/.test(n))return 'shop';
+ return 'building';
+}
+function gameName(n){
+ if(n.startsWith('fantasy/cliff_stairs_'))return 'บันไดหน้าผา '+n.split('_').pop();
+ if(n.startsWith('fantasy/int_'))return FANTASY_LABELS[n.slice(8)]||n;
+ const m=/^fantasy\/(.+)_([123])$/.exec(n);
+ return m?(FANTASY_LABELS[m[1]]||m[1])+' ระดับ '+m[2]:n.replace(/_/g,' ');
+}
+function migrateAsset(a){
+ if(!a?.src?.startsWith('game:'))return null;
+ let n=a.src.slice(5);
+ if(!n.startsWith('fantasy/')){
+  const h=/^hz([1-5])([a-d])_s[0-3]$/.exec(n);
+  if(h)n='fantasy/house_'+(h[2]==='d'?'c':h[2])+'_'+Math.min(3,Math.ceil(+h[1]*3/5));
+  else if(/^(house|hs\d|cot)/.test(n))n='fantasy/house_a_1';
+  else{
+   const m=[[/^leader|^cb_parliament/,'castle'],[/^market|^cb_market|^sh_/,'market'],[/^hall|^cb_district|^cb_province/,'town_hall'],[/^bz_bank|^cb_bank/,'bank'],[/^bz_work|^cb_fire/,'blacksmith'],[/^bz_office|^cd_|^cb_mall/,'merchant_guild'],[/^cb_police|^gt_/,'barracks'],[/^cb_hospital|^cb_apartment/,'inn'],[/^po_pier/,'fishing']].find(([re])=>re.test(n));
+   n=m?'fantasy/'+m[1]+'_1':null;
   }
-  renderSheet(); if (!quiet) toast(n ? `เพิ่มรูปจากเกม ${n} รูป` : 'มีรูปในเกมครบทุกรูปแล้ว');
+ }
+ if(!n||!/^fantasy\/(?:[a-z_]+_[123]|cliff_stairs_\d+|int_(?:hunter|fish|tailor))$/.test(n))return null;
+ return {...a,src:'game:'+n,name:gameName(n),kind:fantasyKind(n),game:true};
 }
-function gameName(n) {
-  let m;
-  if ((m = n.match(/^hz(\d)([a-d])_s3$/))) return `บ้านระดับ ${m[1]} แบบ ${m[2].toUpperCase()}`;
-  if ((m = n.match(/^pw_br_(log|stone|concrete)_([hv])$/))) return `สะพาน${{ log: 'ไม้ซุง', stone: 'หินโค้ง', concrete: 'คอนกรีต' }[m[1]]} ${m[2] === 'h' ? 'แนวนอน' : 'แนวตั้ง'}`;
-  if ((m = n.match(/^pf_path_(stone|concrete)_(\d)$/))) return `ทางเดินหน้าบ้าน ${m[1] === 'stone' ? 'หิน' : 'คอนกรีต'} ${m[2]}`;
-  const tr = { tree_broadleaf: 'ต้นไม้ใหญ่ (ใบกลม)', tree_rubber: 'ต้นไม้เล็ก (ใบกลม)', tree_pine: 'สนใหญ่', tree_pinesmall: 'สนเล็ก' }; if (tr[n]) return tr[n];
-  if (n.startsWith('stump_')) return 'ตอไม้ ' + n.slice(6);
-  const map = { sh_conv: 'ร้านสะดวกซื้อ', sh_grocery: 'ร้านชำ', sh_rest: 'ร้านอาหาร', bz_bank: 'ธนาคาร', bz_office: 'สำนักงาน', bz_work: 'โรงงาน', leader: 'บ้านผู้นำ', market: 'ตลาด', hall: 'ศาลา',
-    an_buffalo: 'ควาย', an_cow: 'วัว', an_dog: 'หมา', an_chicken: 'ไก่', an_duck: 'เป็ด', an_pig: 'หมู', bs_metro: 'สถานีรถไฟฟ้า', bs_sala: 'ศาลารอรถ', bs_stop: 'ป้ายรถเมล์', bs_terminal: 'สถานีขนส่ง',
-    gt_bamboo: 'ประตูไม้ไผ่', gt_village: 'ซุ้มประตูหมู่บ้าน', gt_district: 'ซุ้มประตูอำเภอ', gt_city: 'ซุ้มประตูเมือง', cb_district: 'ที่ว่าการอำเภอ', cb_police: 'สถานีตำรวจ', cb_fire: 'สถานีดับเพลิง',
-    cb_school: 'โรงเรียน', cb_temple: 'วัด', cb_post: 'ไปรษณีย์', cb_market: 'ตลาดสด', cb_shophouse: 'ตึกแถว', cb_store: 'ร้านสะดวกซื้อเก่า', cb_apartment: 'อพาร์ตเมนต์', cb_province: 'ศาลากลางจังหวัด',
-    cb_hospital: 'โรงพยาบาล', cb_mall: 'ห้างสรรพสินค้า', cb_condo: 'คอนโด', cb_tower: 'ตึกสูง', cb_bank: 'ธนาคารเก่า', cb_parliament: 'ทำเนียบรัฐบาล', cd_: 'อาคารเมือง ', po_refinery: 'โรงกลั่นน้ำมัน',
-    po_crane: 'เครนท่าเรือ', po_pier: 'ท่าเรือ', po_pumpjack: 'บ่อน้ำมัน', po_rig: 'แท่นขุดเจาะ', pw_bridge: 'สะพาน', cp_bench: 'ม้านั่ง', cp_lamp: 'เสาไฟ', cp_fountain: 'น้ำพุ', cp_bin: 'ถังขยะ',
-    cp_planter: 'กระถางต้นไม้', cp_busstop: 'ป้ายรถเมล์เล็ก', cp_hydrant: 'หัวดับเพลิง', cp_policebox: 'ป้อมตำรวจ', cp_phone: 'ตู้โทรศัพท์', cp_traffic: 'ไฟจราจร', cp_billboard: 'ป้ายโฆษณา', cp_tree: 'ต้นไม้ริมทาง',
-    fence_: 'รั้ว ', crop_: 'พืชผล ', pl_: 'พุ่มไม้ ', rock_: 'หิน ' };
-  for (const [k, v] of Object.entries(map)) if (n.startsWith(k)) return `${v} ${n.replace(k, '').replace(/[_e]/g, ' ').trim()}`.trim();
-  return n.replace(/_/g, ' ');
+let GAME_ART=null;
+async function loadGameArt(quiet=false){
+ try{
+  if(!GAME_ART){
+   const {FANTASY_BUILDINGS,FANTASY_INTERIORS,FANTASY_STAIRS}=await import('../src/fantasyManifest.js');
+   GAME_ART={};
+   for(const [family,tiers] of Object.entries(FANTASY_BUILDINGS))
+    tiers.forEach((size,i)=>GAME_ART['fantasy/'+family+'_'+(i+1)]=size);
+   for(const [name,size] of Object.entries(FANTASY_INTERIORS))GAME_ART['fantasy/'+name]=size;
+   FANTASY_STAIRS.forEach((size,i)=>GAME_ART['fantasy/cliff_stairs_'+i]=size);
+  }
+ }catch(err){if(!quiet)toast('โหลดคลังภาพแฟนตาซีไม่ได้');return;}
+ let n=0;
+ for(const [name,[w,h]] of Object.entries(GAME_ART)){
+  if(P.assets.some(a=>a.src==='game:'+name))continue;
+  const kind=fantasyKind(name),tw=Math.max(1,Math.round(w/TILE*2)/2);
+  const fw=kind==='indoor'?1:kind==='house'?4:Math.max(1,Math.round(w/TILE*.75));
+  const fh=kind==='indoor'?1:kind==='house'?3:Math.max(1,Math.round(h/TILE*.3));
+  addAsset({name:gameName(name),kind,src:'game:'+name,pw:w,ph:h,tw,fw,fh,game:true});n++;
+ }
+ renderSheet();save();if(!quiet)toast(n?'เพิ่มชุดแฟนตาซี '+n+' ชิ้น (รวม Indoor)':'มีชุดแฟนตาซีครบแล้ว');
 }
-
 // ------------------------------------------------------------------ ground (game tile sheets, dual grid)
 let base = null, bctx = null, wbase = null, wctx = null, allDirty = true;
 const patterns = {};
@@ -655,7 +667,7 @@ function tap(g) {
   const t = g.t, tx = Math.floor(t.x), ty = Math.floor(t.y), T = ui.tool;
   ui.hover = t;
   if (T === 'pan') { const o = objectAt(t.x, t.y); ui.sel = o; ui.selMarker = o ? null : markerAt(tx, ty); renderSheet(); return draw(); }
-  if (T === 'place') return placeAt(t);
+  if(T==='place'){if(assetById(ui.asset)?.kind==='indoor'){toast('Indoor เป็นฉากห้อง ไม่ใช่ของวางกลางแจ้ง');return;}return placeAt(t);}
   if (T === 'marker') { const G = markerGhost(t.x, t.y); return placeMarker(G.x, G.y, G.w, G.h); }
   if (T === 'ground' && ui.groundMode === 'fill') { if (inside(tx, ty)) { begin(); flood(tx, ty, ui.terrain); save(); } return draw(); }
   if (T === 'road' && ui.roadMode === 'line') {
@@ -801,7 +813,7 @@ $('#sheetBody').addEventListener('click', e => {
   if (D.marker) ui.marker = D.marker;
   if (D.plot) ui.plot = D.plot;
   if (D.set) { ui[D.set] = isNaN(+D.v) ? D.v : +D.v; ui.lineStart = null; }
-  if (D.asset) { if (ui.tool !== 'scatter' && ui.asset !== D.asset) ui.placeScale = 1; if (ui.tool === 'scatter') ui.scatterSet = ui.scatterSet.includes(D.asset) ? ui.scatterSet.filter(x => x !== D.asset) : [...ui.scatterSet, D.asset]; else { ui.asset = D.asset; if (innerWidth < 900) toast('แตะบนแมพเพื่อวาง'); } }
+  if(D.asset){if(assetById(D.asset)?.kind==='indoor'){ui.asset=D.asset;toast('รูป Indoor อยู่ในคลังและถูกใช้เมื่อเข้าอาคาร');renderSheet();return;}if (ui.tool !== 'scatter' && ui.asset !== D.asset) ui.placeScale = 1; if (ui.tool === 'scatter') ui.scatterSet = ui.scatterSet.includes(D.asset) ? ui.scatterSet.filter(x => x !== D.asset) : [...ui.scatterSet, D.asset]; else { ui.asset = D.asset; if (innerWidth < 900) toast('แตะบนแมพเพื่อวาง'); } }
   const a = D.act;
   if (a === 'rotL') rotAction(-15); if (a === 'rotR') rotAction(15); if (a === 'rot90') rotAction(90); if (a === 'flip') flipAction();
   if (a === 'delMarker') delAction();
@@ -956,12 +968,14 @@ function exportPng() {
 function openFile() { $('#fileOpen').click(); }
 $('#fileOpen').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; try { P = fromFile(JSON.parse(await f.text())); undoStack = []; redoStack = []; afterLoad(); toast(`เปิด "${P.name}" แล้ว`); } catch (err) { toast('เปิดไม่ได้: ' + err.message); } };
 $('#nCancel').onclick = () => $('#mNew').classList.remove('open');
-$('#nOk').onclick = () => { const w = Math.max(16, Math.min(512, +$('#nW').value || 144)), h = Math.max(16, Math.min(512, +$('#nH').value || 96)); begin(); const keep = P.assets, terr = P.terrains, rd = P.roads; P = newProject(w, h, +$('#nFill').value, keep); P.terrains = terr; P.roads = rd; $('#mNew').classList.remove('open'); afterLoad(); };
+$('#nOk').onclick = () => { const w = Math.max(16, Math.min(512, +$('#nW').value || 144)), h = Math.max(16, Math.min(512, +$('#nH').value || 96)); begin(); const keep=P.assets.filter(a=>a.src?.startsWith('game:fantasy/')),terr=DEF_TERRAIN.map(t=>({...t})),rd=DEF_ROADS.map(t=>({...t})); P = newProject(w, h, +$('#nFill').value, keep); P.terrains = terr; P.roads = rd; $('#mNew').classList.remove('open'); afterLoad(); };
 $('#hOk').onclick = () => $('#mHelp').classList.remove('open');
 $('#bUndo').onclick = undo; $('#bRedo').onclick = redo; $('#bFit').onclick = fitView; $('#bSave').onclick = download;
 $('#pname').oninput = e => { P.name = e.target.value; save(); };
 function toast(t) { const el = $('#toast'); el.textContent = t; el.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(() => el.style.display = 'none', 2600); }
 function afterLoad() {
+  P.assets=P.assets.map(migrateAsset).filter(Boolean);
+  const valid=new Set(P.assets.map(a=>a.id));P.objects=P.objects.filter(o=>valid.has(o.asset));
   img.clear(); for (const a of P.assets) loadImg(a);
   loadGameArt(true);
   base = null; tierDirty = true; ui.sel = ui.selMarker = null; ui.asset = null; $('#pname').value = P.name;
@@ -972,13 +986,13 @@ function afterLoad() {
 // The map on screen is the TEMPLATE: roads, plots/markers, buildings and level painting are kept (the playable plan);
 // everything natural away from them (ground, water, trees, bushes, rocks) is regenerated from a style + seed.
 const STYLES = {
-  forest: { name: '🌲 ป่าทึบ', trees: .55, water: 'ponds', meadow: .1, rocky: .06, species: ['tree_broadleaf', 'tree_rubber', 'tree_bamboo'], bush: .04, rock: .015 },
-  river: { name: '🏞️ ริมแม่น้ำ', trees: .32, water: 'river', meadow: .15, rocky: .03, species: ['tree_broadleaf', 'tree_rubber', 'tree_bamboo'], bush: .05, rock: .01 },
-  farm: { name: '🌾 ทุ่งนา', trees: .12, water: 'ponds', fields: true, meadow: .12, rocky: 0, species: ['tree_broadleaf', 'tree_rubber'], bush: .03, rock: .005 },
-  coast: { name: '🏖️ ชายทะเล', trees: .22, water: 'coast', meadow: .06, rocky: .04, species: ['tree_broadleaf', 'tree_rubber'], bush: .03, rock: .02 },
-  rocky: { name: '⛰️ เขาหิน', trees: .26, water: 'none', meadow: .04, rocky: .5, species: ['tree_pine', 'tree_pinesmall'], bush: .02, rock: .07 },
-  meadow: { name: '🌼 ทุ่งดอกไม้', trees: .1, water: 'ponds', meadow: .55, rocky: 0, species: ['tree_broadleaf', 'tree_rubber'], bush: .12, rock: .01 },
-  lakes: { name: '💧 บึงหลายบึง', trees: .28, water: 'lakes', meadow: .15, rocky: .02, species: ['tree_broadleaf', 'tree_bamboo', 'tree_rubber'], bush: .05, rock: .01 },
+  forest: { name: '🌲 ป่าทึบ', trees: .55, water: 'ponds', meadow: .1, rocky: .06, species: [], bush: .04, rock: .015 },
+  river: { name: '🏞️ ริมแม่น้ำ', trees: .32, water: 'river', meadow: .15, rocky: .03, species: [], bush: .05, rock: .01 },
+  farm: { name: '🌾 ทุ่งนา', trees: .12, water: 'ponds', fields: true, meadow: .12, rocky: 0, species: [], bush: .03, rock: .005 },
+  coast: { name: '🏖️ ชายทะเล', trees: .22, water: 'coast', meadow: .06, rocky: .04, species: [], bush: .03, rock: .02 },
+  rocky: { name: '⛰️ เขาหิน', trees: .26, water: 'none', meadow: .04, rocky: .5, species: [], bush: .02, rock: .07 },
+  meadow: { name: '🌼 ทุ่งดอกไม้', trees: .1, water: 'ponds', meadow: .55, rocky: 0, species: [], bush: .12, rock: .01 },
+  lakes: { name: '💧 บึงหลายบึง', trees: .28, water: 'lakes', meadow: .15, rocky: .02, species: [], bush: .05, rock: .01 },
 };
 const RND = { tpl: null, seed: 0, style: 'random' };
 const NATURE = new Set(['tree', 'bush', 'rock']);
