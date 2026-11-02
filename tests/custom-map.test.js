@@ -31,8 +31,8 @@ test('a Map Maker map with levels: later areas are forest with hidden roads/lots
   } finally { W.PLANS.pop(); W.generateRegion(); }
 });
 
-test('only fantasy maps are available in the playable world', () => {
-  assert.equal(W.PLANS.length,5);
-  assert.ok(W.PLANS.every(p=>p.id.startsWith('fantasy_')));
-  assert.ok(!W.PLANS.some(p=>p.id==='map1'||p.id==='map2'));
+test('five fantasy maps are available alongside backwards-compatible legacy layouts', () => {
+  const fantasy=W.PLANS.filter(p=>p.id.startsWith('fantasy_'));
+  assert.equal(fantasy.length,5);
+  assert.ok(fantasy.every(p=>p.map));
 });

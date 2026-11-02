@@ -61,11 +61,10 @@ export const REGIONS = [ // the "huge scale" roadmap: regions unlock after the v
 
 // v0.18 authored region layout (the reference map): every level develops in its OWN zone instead of a ring around
 // the village. Ellipses in tiles. `tier` = the level that opens the zone (cleared + paved then).
-export const WORLD_LAYOUT = 7; // Recreate the saved map terrain with fantasy plans.
+export const WORLD_LAYOUT = 6;
 export const ZONES = [];   // filled from the current layout (worldLayouts.js)
 // the 10 generated layouts + the maps drawn in the Map Maker (src/maps, imported with scripts/import-map.mjs)
-LAYOUTS.splice(0, LAYOUTS.length); // Retire all generated city/Thai layouts from the playable world.
-for (const m of MAPS) LAYOUTS.push({ id: m.id, th: m.th, map: m, zones: {}, river: null, lake: null });
+for (const m of MAPS) if (!LAYOUTS.some(l => l.id === m.id)) LAYOUTS.push({ id: m.id, th: m.th, map: m, zones: {}, river: null, lake: null });
 export const BRIDGES = []; // filled during generation where a path crosses the river
 export const PLANS = LAYOUTS;
 function applyLayout(plan) {

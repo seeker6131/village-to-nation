@@ -10,14 +10,23 @@ import { ensureWorld, CENTER, TILE, SPAWN } from '../world.js';
 import { setZoom, clampCamera } from './camera.js';
 
 const $ = s => document.querySelector(s);
+const fantasyPlans = PLANS.map((p,i)=>p.id?.startsWith('fantasy_')?i:-1).filter(i=>i>=0);
+function nextFantasyPlan(index,delta=1) {
+  const cur=fantasyPlans.indexOf(index),p=cur<0?0:(cur+delta+fantasyPlans.length)%fantasyPlans.length;
+  return fantasyPlans[p];
+}
+function fantasyPlanLabel(index) {
+  const pos=fantasyPlans.indexOf(index);
+  return (pos<0?1:pos+1)+'/'+fantasyPlans.length;
+}
 export function enterShowcase(id) {
   if (G.away) return G.toast('ดูเมืองเต็มระดับได้ที่หมู่บ้านของตัวเอง', true);
   if (!G.preview) G.preview = { real: G.state, cam: { x: G.cam.x, y: G.cam.y, zoom: G.cam.zoomTarget, follow: G.cam.follow } };
   G.closePanel?.();
-  if (G.preview.plan == null) G.preview.plan = G.preview.real.world.plan || 0;
+  if (G.preview.plan == null) G.preview.plan = fantasyPlans.includes(G.preview.real.world.plan) ? G.preview.real.world.plan : fantasyPlans[0];
   const r = buildShowcase(G.preview.real, id, G.preview.plan);
   G.state = r.state; G.preview.id = id;
-  $('#sc-map-name').textContent = `🗺 ${PLANS[G.preview.plan]?.th || 'แมพ'} (${G.preview.plan + 1}/${PLANS.length})${G.preview.plan === (G.preview.real.world.plan || 0) ? ' · แมพของคุณ' : ''}`;
+  $('#sc-map-name').textContent = `🗺 ${PLANS[G.preview.plan]?.th || 'แมพ'} (${fantasyPlanLabel(G.preview.plan)})${G.preview.plan === (G.preview.real.world.plan || 0) ? ' · แมพของคุณ' : ''}`;
   ensureWorld(G.state); rebuildNpcs(); resetNpcPlans(); rebuildAnimals();
   G.state.player.x = (CENTER.x + 2.5) * TILE; G.state.player.y = (CENTER.y + 4.5) * TILE;
   const f = DISTRICT_FOCUS[r.info.stage + 1] || [CENTER.x - 2, CENTER.y - 1]; // look at the district this level opens
@@ -42,7 +51,7 @@ export function initShowcase() {
   $('#showcase-btn').addEventListener('click', () => (G.preview ? exitShowcase() : enterShowcase(Math.min(SHOWCASES.length, (G.state.town?.stage || 0) + 2))));
   $('#showcase-bar').addEventListener('click', e => {
     const b = e.target.closest('[data-show]'); if (b) enterShowcase(Number(b.dataset.show)); if (e.target.closest('#showcase-exit')) exitShowcase();
-    const m = e.target.closest('[data-map]'); if (m && G.preview) { G.preview.plan = (G.preview.plan + Number(m.dataset.map) + PLANS.length) % PLANS.length; enterShowcase(G.preview.id || 2); }
+    const m = e.target.closest('[data-map]'); if (m && G.preview) { G.preview.plan = nextFantasyPlan(G.preview.plan,Number(m.dataset.map)); enterShowcase(G.preview.id || 2); }
     if (e.target.closest('#sc-overview')) G.toggleOverview?.();
     if (e.target.closest('#sc-min')) { const bar = $('#showcase-bar'), min = bar.classList.toggle('min'); $('#sc-min').textContent = min ? '▸' : '▾'; }
   });
@@ -50,14 +59,14 @@ export function initShowcase() {
   // test mode only: build the current level out completely, then step the era up to review the next one
   const bar = $('#devbar'); if (!G.sandbox || !bar) return;
   bar.classList.remove('hidden');
-  const label = () => { const st = G.state.town.stage || 0, pl = G.state.world.plan || 0; $('#dev-era').textContent = `${STAGES[st].icon} ${STAGES[st].th} (${st + 1}/5)`; $('#dev-plan').textContent = `🗺 ผัง ${pl + 1}/${PLANS.length}`; $('#dev-plan').title = PLANS[pl].th + ' — กดเพื่อเปลี่ยนผัง (Y)'; };
+  const label = () => { const st = G.state.town.stage || 0, pl = G.state.world.plan || 0; $('#dev-era').textContent = `${STAGES[st].icon} ${STAGES[st].th} (${st + 1}/5)`; $('#dev-plan').textContent = `🗺 ผัง ${fantasyPlanLabel(pl)}`; $('#dev-plan').title = PLANS[pl].th + ' — กดเพื่อเปลี่ยนผัง (Y)'; };
   G.devAction = act => {
     if (G.preview) return;
     if (G.away) return G.toast('ปุ่มทดสอบใช้ได้ที่หมู่บ้านของตัวเอง', true);
     const s = G.state, st = s.town.stage || 0;
     if (act === 'fill') { fillLevel(s); G.toast(`🏗 พัฒนา${STAGES[st].th}จนเต็มแล้ว: ทุกแปลงสร้างเสร็จ อาคารยุค${STAGES[st].th} คนเต็มเมือง`); }
     else if (act === 'up') { if (st >= 4) return G.toast('ยุคสูงสุดแล้ว (ประเทศ)', true); setLevel(s, st + 1); G.toast(`⏫ อัพเป็นยุค${STAGES[st + 1].th} — กด 🏗 พัฒนาจนตัน เพื่อดูยุคนี้แบบเต็ม`); }
-    else if (act === 'plan') { const pl = applyPlan(s, ((s.world.plan || 0) + 1) % PLANS.length); s.player.x = SPAWN.x; s.player.y = SPAWN.y; G.toast(`🗺 ผังเมืองแบบที่ ${pl + 1}: ${PLANS[pl].th}`); }
+    else if (act === 'plan') { const pl = applyPlan(s, nextFantasyPlan(s.world.plan || 0)); s.player.x = SPAWN.x; s.player.y = SPAWN.y; G.toast(`🗺 ผังแฟนตาซี ${fantasyPlanLabel(pl)}: ${PLANS[pl].th}`); }
     else if (act === 'down') { if (st <= 0) return G.toast('ยุคแรกแล้ว', true); setLevel(s, st - 1); G.toast(`⏬ กลับเป็นยุค${STAGES[st - 1].th}`); }
     ensureWorld(s); rebuildNpcs(); resetNpcPlans(); rebuildAnimals(); saveNow(); label(); G.hud?.();
   };
