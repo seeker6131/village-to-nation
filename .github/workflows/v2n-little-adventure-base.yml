@@ -1,0 +1,114 @@
+name: V2N - Preserve full Little Adventure village RPG
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/v2n-little-adventure-base.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v2n-little-adventure
+  cancel-in-progress: false
+
+jobs:
+  import-and-export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout V2N
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Copy complete open-source village RPG into its own directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth=1 https://github.com/imikado/dupotLittleAdventure.git /tmp/little-adventure-v2n
+          test "$(git -C /tmp/little-adventure-v2n rev-parse HEAD)" = "111c7479c907df33363d8e3ca23f39d0f71cb625"
+          test -f /tmp/little-adventure-v2n/LICENSE
+          test -f /tmp/little-adventure-v2n/project.godot
+          mkdir -p v2n-reboot/little-adventure/source v2n-reboot/little-adventure/play
+          rsync -a --delete --exclude='.git/' /tmp/little-adventure-v2n/ v2n-reboot/little-adventure/source/
+          diff -qr --exclude='.git' /tmp/little-adventure-v2n/ v2n-reboot/little-adventure/source/
+          git -C /tmp/little-adventure-v2n rev-parse HEAD > v2n-reboot/little-adventure/UPSTREAM_COMMIT.txt
+
+      - name: Install Godot 4.7.2 and templates
+        uses: solarlabyrinth/action-setup-godot@v3
+        with:
+          version: 4.7.2-stable
+          export-templates: true
+
+      - name: Add Web export config to temporary build only
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/little-adventure-v2n/export_presets.cfg <<'PRESET'
+          [preset.0]
+
+          name="Web"
+          platform="Web"
+          runnable=true
+          advanced_options=false
+          custom_features=""
+          export_filter="all_resources"
+          include_filter=""
+          exclude_filter=""
+          export_path="build/index.html"
+          script_export_mode=1
+
+          [preset.0.options]
+
+          custom_template/debug=""
+          custom_template/release=""
+          variant/extensions_support=false
+          vram_texture_compression/for_desktop=false
+          vram_texture_compression/for_mobile=false
+          html/export_icon=true
+          html/custom_html_shell=""
+          html/head_include=""
+          html/canvas_resize_policy=2
+          html/focus_canvas_on_start=true
+          progressive_web_app/enabled=false
+          progressive_web_app/ensure_cross_origin_isolation_headers=false
+          PRESET
+
+      - name: Import village game
+        run: godot --headless --editor --path /tmp/little-adventure-v2n --import --quit
+
+      - name: Export playable web release
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --path /tmp/little-adventure-v2n --export-release "Web" "$GITHUB_WORKSPACE/v2n-reboot/little-adventure/play/index.html"
+          test -s v2n-reboot/little-adventure/play/index.html
+          test -n "$(find v2n-reboot/little-adventure/play -name '*.wasm' -print -quit)"
+          test -n "$(find v2n-reboot/little-adventure/play -name '*.pck' -print -quit)"
+
+      - name: Write separate launcher with original attribution
+        shell: bash
+        run: |
+          cat > v2n-reboot/little-adventure/index.html <<'HTML'
+          <!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Little Adventure - V2N Open Source Base</title><style>body{font:16px system-ui;margin:0;min-height:100svh;display:grid;place-items:center;background:#172d25;color:#f4eccc;padding:12px}main{width:min(660px,94vw);border-radius:16px;background:#274134;border:1px solid #94a975;padding:24px;line-height:1.5}a{color:#f2d386}.play{display:inline-block;background:#f2d386;color:#172519;padding:13px 20px;border-radius:9px;text-decoration:none;font-weight:bold}</style></head><body><main><h1>🌿 Little Adventure — เกมหมู่บ้านต้นฉบับ</h1><p>เกม Pixel RPG ของ Godot ที่มีหมู่บ้าน NPC ร้านค้า การต่อสู้และการเดินทาง คัดลอกทั้งโปรเจกต์แบบไม่เปลี่ยน Gameplay ไว้เป็นตัวเลือก V2N</p><p><a class="play" href="./play/">ทดลองเล่นเกมต้นฉบับ</a></p><p>คอม: ลูกศรเดิน · Enter/Space โต้ตอบ/โจมตี · Esc เมนู<br>รองรับ Web/Android ตามโปรเจกต์ต้นฉบับ แต่ยังไม่ได้ทดสอบแท็บเล็ตจริงในสำเนานี้</p><p><a href="https://github.com/seeker6131/village-to-nation/tree/main/v2n-reboot/little-adventure/source">Source Code ทั้งเกม</a> · <a href="./source/LICENSE">ไลเซนส์ LGPL 2.1</a> · <a href="https://github.com/imikado/dupotLittleAdventure">ต้นฉบับและเครดิต</a></p><small>ไม่ใช่เกม V2N ที่ดัดแปลงแล้ว การเผยแพร่และแก้ไขต้องคงสิทธิ์ตาม LGPL v2.1</small></main></body></html>
+          HTML
+
+      - name: Commit separate game without altering V2N
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add v2n-reboot/little-adventure/
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Import complete Little Adventure village game as separate open-source base"
+          for n in 1 2 3; do
+            if git push origin HEAD:main; then exit 0; fi
+            git fetch origin main
+            git rebase origin/main
+          done
+          exit 1
