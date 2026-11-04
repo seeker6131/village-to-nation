@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3 uid="uid://bn0mbkl6g0evg"]
+
+[ext_resource type="Script" path="res://game.gd" id="1_1kjdi"]
+
+[node name="Game" type="Node2D"]
+process_mode = 1
+script = ExtResource("1_1kjdi")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(160, 96)
