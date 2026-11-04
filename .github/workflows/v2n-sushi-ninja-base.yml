@@ -1,0 +1,140 @@
+name: V2N - Preserve full open-source Sushi Ninja base
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/v2n-sushi-ninja-base.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v2n-sushi-ninja-source
+  cancel-in-progress: false
+
+jobs:
+  import-game:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout V2N without changing existing games
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Clone MIT game with CC0 pixel art
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth=1 https://github.com/sporktank/godot4gamejam.git /tmp/v2n-ninja-upstream
+          test "$(git -C /tmp/v2n-ninja-upstream rev-parse HEAD)" = "5a4897de19340a6ba319d456f6145ca64cb677ca"
+          test -f /tmp/v2n-ninja-upstream/LICENSE
+          test -f /tmp/v2n-ninja-upstream/project.godot
+          test -d /tmp/v2n-ninja-upstream/assets
+          mkdir -p v2n-reboot/ninja-game/source v2n-reboot/ninja-game/play
+          rsync -a --delete --exclude='.git/' /tmp/v2n-ninja-upstream/ v2n-reboot/ninja-game/source/
+          diff -qr --exclude='.git' /tmp/v2n-ninja-upstream/ v2n-reboot/ninja-game/source/
+          git -C /tmp/v2n-ninja-upstream rev-parse HEAD > v2n-reboot/ninja-game/UPSTREAM_COMMIT.txt
+
+      - name: Install Godot engine and Web export templates
+        uses: solarlabyrinth/action-setup-godot@v3
+        with:
+          version: 4.7.2-stable
+          export-templates: true
+
+      - name: Generate WebGL2 preset in a temporary build copy only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('/tmp/v2n-ninja-upstream/project.godot')
+          t=p.read_text()
+          t=t.replace('config/features=PackedStringArray("4.0", "Forward Plus")',
+                      'config/features=PackedStringArray("4.7", "GL Compatibility")')
+          t=t.replace('[rendering]\n','[rendering]\nrenderer/rendering_method="gl_compatibility"\nrenderer/rendering_method.mobile="gl_compatibility"\n')
+          p.write_text(t)
+          PY
+          cat > /tmp/v2n-ninja-upstream/export_presets.cfg <<'PRESET'
+          [preset.0]
+
+          name="Web"
+          platform="Web"
+          runnable=true
+          advanced_options=false
+          custom_features=""
+          export_filter="all_resources"
+          include_filter=""
+          exclude_filter=""
+          export_path="build/index.html"
+          script_export_mode=1
+
+          [preset.0.options]
+
+          custom_template/debug=""
+          custom_template/release=""
+          variant/extensions_support=false
+          vram_texture_compression/for_desktop=false
+          vram_texture_compression/for_mobile=false
+          html/export_icon=true
+          html/custom_html_shell=""
+          html/head_include=""
+          html/canvas_resize_policy=2
+          html/focus_canvas_on_start=true
+          progressive_web_app/enabled=false
+          progressive_web_app/ensure_cross_origin_isolation_headers=false
+          PRESET
+
+      - name: Import original game assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path /tmp/v2n-ninja-upstream --import --quit
+
+      - name: Export to playable browser build
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --path /tmp/v2n-ninja-upstream --export-release "Web" "$GITHUB_WORKSPACE/v2n-reboot/ninja-game/play/index.html"
+          test -s v2n-reboot/ninja-game/play/index.html
+          test -n "$(find v2n-reboot/ninja-game/play -name '*.wasm' -print -quit)"
+          test -n "$(find v2n-reboot/ninja-game/play -name '*.pck' -print -quit)"
+          find v2n-reboot/ninja-game/play -maxdepth 1 -type f -printf '%f %s bytes\n'
+
+      - name: Create a play page and keep license notices
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > v2n-reboot/ninja-game/index.html <<'HTML'
+          <!doctype html>
+          <html lang="th"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>V2N Base Test — Sushi Ninja (MIT + CC0)</title>
+          <style>body{font:16px system-ui;background:#162522;color:#f2e8cc;display:grid;min-height:100svh;place-items:center;margin:0;padding:12px}main{border:1px solid #76976a;background:#263c2d;border-radius:15px;padding:24px;max-width:640px;line-height:1.5}a{color:#e9d283}a.play{display:inline-block;background:#e9d283;color:#172318;padding:13px 20px;border-radius:9px;text-decoration:none;font-weight:bold}</style></head>
+          <body><main><h1>⚔️ Sushi Ninja — V2N Source Candidate</h1><p>ตัวนี้เป็นเกม Godot 4 ต้นฉบับที่ใช้ภาพ Ninja Adventure CC0 และซอร์ส MIT ก๊อปทั้งโปรเจกต์ไว้แยกจาก V2N เดิมแล้ว ยังไม่ได้เปลี่ยน Asset หรือ Gameplay</p>
+          <p><a class="play" href="./play/">ทดลองเล่นต้นฉบับ</a></p><p><a href="https://github.com/seeker6131/village-to-nation/tree/main/v2n-reboot/ninja-game/source">ซอร์สครบทั้งโปรเจกต์</a> · <a href="./source/LICENSE">LICENSE</a> · <a href="https://pixel-boy.itch.io/ninja-adventure-asset-pack">Asset CC0</a></p><p><small>ต้นฉบับจาก <a href="https://github.com/sporktank/godot4gamejam">sporktank/godot4gamejam</a> · เป็นตัวทดลองเพื่อเลือก Engine ไม่ใช่ V2N เวอร์ชันสมบูรณ์</small></p></main></body></html>
+          HTML
+          cat > v2n-reboot/ninja-game/ASSET_CREDITS.md <<'DOC'
+          # Assets and code provenance
+
+          Original game code: [sporktank/godot4gamejam](https://github.com/sporktank/godot4gamejam), MIT license, see source/LICENSE.
+          Artwork source credited by original author: [Ninja Adventure](https://pixel-boy.itch.io/ninja-adventure-asset-pack), Pixel-Boy and AAA, CC0 1.0.
+          Game source is stored verbatim in source/; compatibility renderer and export preset are applied only to the temporary export build.
+          DOC
+
+      - name: Commit only the new game folder
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add v2n-reboot/ninja-game/
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Add full open-source Sushi Ninja Godot project and browser export"
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then exit 0; fi
+            git fetch origin main
+            git rebase origin/main
+          done
+          exit 1
