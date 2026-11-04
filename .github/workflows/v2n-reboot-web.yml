@@ -1,0 +1,87 @@
+name: V2N Reboot - Build playable Godot browser game
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/v2n-reboot-web.yml'
+      - 'v2n-reboot/tools/**'
+      - 'v2n-reboot/index.html'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v2n-reboot-build
+  cancel-in-progress: false
+
+jobs:
+  build-web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout V2N (existing game stays untouched)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 1
+
+      - name: Fetch pinned MIT upstream game
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth=1 https://github.com/cesswhite/my-city.git /tmp/mycity-upstream
+          git -C /tmp/mycity-upstream checkout 9cbf90f5214553305d69a0f7f6cac68f7121da36
+          mkdir -p /tmp/v2n-mycity
+          cp -a /tmp/mycity-upstream/game/. /tmp/v2n-mycity/
+
+      - name: Prepare V2N fantasy buildings and Web export preset
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet --break-system-packages Pillow
+          python3 v2n-reboot/tools/build_reboot.py /tmp/v2n-mycity source_art/fantasy v2n-reboot
+          mkdir -p v2n-reboot/source v2n-reboot/play
+          cp /tmp/mycity-upstream/LICENSE v2n-reboot/source/LICENSE
+          cp /tmp/mycity-upstream/THIRD_PARTY_NOTICES.md v2n-reboot/source/THIRD_PARTY_NOTICES.md
+
+      - name: Install Godot 4.7.2 and Web export templates
+        uses: solarlabyrinth/action-setup-godot@v3
+        with:
+          version: 4.7.2-stable
+          export-templates: true
+
+      - name: Import project and check simulation
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path /tmp/v2n-mycity --import --quit
+          godot --headless --path /tmp/v2n-mycity --script res://tests/smoke.gd
+
+      - name: Export playable single-threaded WebGL2 game
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p v2n-reboot/play
+          godot --headless --path /tmp/v2n-mycity --export-release "Web" "$GITHUB_WORKSPACE/v2n-reboot/play/index.html"
+          test -s v2n-reboot/play/index.html
+          find v2n-reboot/play -maxdepth 1 -type f -printf '%f %s bytes\n'
+          test -n "$(find v2n-reboot/play -maxdepth 1 -name '*.wasm' -print -quit)"
+          test -n "$(find v2n-reboot/play -maxdepth 1 -name '*.pck' -print -quit)"
+
+      - name: Publish complete editable Godot source and browser build in separate directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p v2n-reboot/source/game
+          rsync -a --delete --exclude='.godot/' --exclude='.import/' --exclude='*.tmp' /tmp/v2n-mycity/ v2n-reboot/source/game/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add v2n-reboot/source v2n-reboot/play v2n-reboot/castle.png
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish playable V2N Reboot web demo and Godot source"
+            git push origin HEAD:main
+          else
+            echo "No changes to publish"
+          fi
