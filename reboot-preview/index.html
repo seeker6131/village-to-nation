@@ -76,7 +76,7 @@ function frame(){
 }
 function moveTowards(o,x,y,delta,speed){const dx=x-o.x,dy=y-o.y,d=Math.hypot(dx,dy);if(d<2)return;o.x+=dx/d*Math.min(d,delta*speed);o.y+=dy/d*Math.min(d,delta*speed)}
 function tick(dt){s.minute+=dt*1.2;if(s.minute>=1440){s.minute-=1440;s.day++;s.food=Math.max(0,s.food-Math.ceil(s.pop/2));s.silver+=Math.floor(s.pop/2);s.energy=Math.min(100,s.energy+60);notify('🌅 วันใหม่! เก็บภาษี +'+Math.floor(s.pop/2)+' และใช้เสบียง');save()}
- let dx=(keys['a']||keys['ArrowLeft']?-1:0)+(keys['d']||keys['ArrowRight']?1:0),dy=(keys['w']||keys['ArrowUp']?-1:0)+(keys['s']||keys['ArrowDown']?1:0);
+ let dx=(keys['a']||keys['arrowleft']?-1:0)+(keys['d']||keys['arrowright']?1:0),dy=(keys['w']||keys['arrowup']?-1:0)+(keys['s']||keys['arrowdown']?1:0);
  if(dx||dy){go=null;const k=Math.hypot(dx,dy),spd=s.energy>0?152:85;player.x=Math.max(8*T,Math.min((MW-2)*T,player.x+dx/k*spd*dt));player.y=Math.max(2*T,Math.min((MH-2)*T,player.y+dy/k*spd*dt));}
  else if(go){moveTowards(player,go.x,go.y,dt,140);if(distance(player,go)<4)go=null}
  cam.x+=(player.x-cam.x)*Math.min(1,dt*4);cam.y+=(player.y-cam.y)*Math.min(1,dt*4);
