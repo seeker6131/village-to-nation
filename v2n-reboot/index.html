@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#142d24">
+<title>V2N Reboot — Fantasy Village</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,"Noto Sans Thai",sans-serif}
+*{box-sizing:border-box}
+body{margin:0;min-height:100svh;background:radial-gradient(circle at 50% 15%,#30553c 0%,#132b25 54%,#0a1616 100%);color:#f7ecd4;display:grid;place-items:center;padding:20px}
+main{width:min(100%,800px);border:1px solid #6b8d67;border-radius:18px;background:linear-gradient(140deg,#213a31,#101f1c);padding:clamp(18px,4vw,40px);box-shadow:0 20px 80px #0007}
+h1{font-family:Georgia,serif;font-size:clamp(38px,7vw,66px);line-height:1;margin:10px 0 8px;color:#eddda2}
+h2{font-size:19px;margin:4px 0 18px;font-weight:500}
+.tag{color:#b5d1a0;font-size:13px;letter-spacing:.16em}
+.cover{width:min(100%,250px);height:170px;object-fit:contain;image-rendering:pixelated;float:right;margin:5px -5px 4px 20px}
+p{line-height:1.7;color:#dddfce}
+.controls{padding:12px 16px;background:#0a1816;border:1px solid #3b5c49;border-radius:10px}
+.controls p{margin:4px 0;font-size:14px}
+a.play{display:inline-block;margin:18px 0 8px;padding:15px 26px;background:#debd70;color:#14261d;border-radius:9px;text-decoration:none;font-size:18px;font-weight:800}
+a.play:hover{background:#f5da8d}
+.small{font-size:13px;color:#b0bbab}
+footer{clear:both;margin-top:22px;font-size:12px;color:#9bb3a5}
+footer a{color:#d3e6ba}
+@media(max-width:550px){.cover{float:none;display:block;margin:0 auto 5px;height:150px}h1{font-size:41px}}
+</style>
+</head>
+<body>
+<main>
+  <span class="tag">REBUILT ON A FREE MIT-LICENSED ENGINE</span>
+  <img class="cover" src="./castle.png" alt="V2N fantasy castle" onerror="this.style.display='none'">
+  <h1>V2N REBOOT</h1>
+  <h2>Fantasy Village • ทดลองเล่นระบบใหม่</h2>
+  <p>เริ่มต้นในหมู่บ้านแฟนตาซี เดินสำรวจ ช่วยชาวบ้าน เก็บทรัพยากร ทำงาน ปรับปรุงบ้าน เปิดพื้นที่ใหม่ และสร้างความสัมพันธ์กับ NPC ที่มีชีวิตของตัวเอง</p>
+  <div class="controls">
+  <p><strong>คอมพิวเตอร์:</strong> WASD / ลูกศร = เดิน · E = โต้ตอบ · M = แผนที่ · Esc = เมนู</p>
+  <p><strong>มือถือ:</strong> แตะพื้นเพื่อเดิน · แตะตัวละครหรืออาคารเพื่อโต้ตอบ · แนะนำแนวนอน</p>
+  <p><strong>เริ่มเกม:</strong> กด New Game · ปุ่มในเกมบางส่วนยังเป็นภาษาสเปน</p>
+  </div>
+  <a class="play" href="./play/" id="play">⚔️ เข้าเกม</a>
+  <p class="small" id="status">เกมต้นแบบแยกจาก V2N เดิม เซฟใหม่ไม่ยุ่งกับของเก่า</p>
+  <footer>Upstream: <a href="https://github.com/cesswhite/my-city">My City</a> (MIT) · <a href="./source/LICENSE">LICENSE</a> · <a href="./source/THIRD_PARTY_NOTICES.md">Third-party notices</a> · <a href="https://github.com/seeker6131/village-to-nation/tree/main/v2n-reboot">ดูซอร์ส V2N Reboot</a></footer>
+</main>
+<script>
+fetch("./play/index.html",{method:"HEAD",cache:"no-store"})
+.then(r=>{if(!r.ok)throw Error("not yet published")})
+.catch(()=>{document.querySelector("#status").textContent="ตัวเกม Web Export ยังไม่พร้อมเปิดจากหน้านี้ ตรวจสถานะ Build ที่ GitHub Actions";document.querySelector("#play").textContent="ดูสถานะการสร้างเกม";document.querySelector("#play").href="https://github.com/seeker6131/village-to-nation/actions/workflows/v2n-reboot-web.yml"});
+</script>
+</body>
+</html>
