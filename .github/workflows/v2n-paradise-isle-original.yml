@@ -1,0 +1,99 @@
+name: V2N - Import full Paradise Isle source and playable game
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/v2n-paradise-isle-original.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v2n-paradise-isle-original
+  cancel-in-progress: false
+
+jobs:
+  copy-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout V2N repository without changing existing games
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Copy exact upstream MIT Paradise Isle into a separate directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone https://github.com/appleweiping/paradise-isle.git /tmp/paradise-isle-original
+          git -C /tmp/paradise-isle-original checkout --detach 62a2ec02bbc00317a51f7f3144381962dbb50ba3
+          test -f /tmp/paradise-isle-original/LICENSE
+          test -f /tmp/paradise-isle-original/package-lock.json
+          test -f /tmp/paradise-isle-original/vite.config.ts
+          mkdir -p v2n-reboot/paradise-isle-original/source
+          rsync -a --delete --exclude='.git/' /tmp/paradise-isle-original/ v2n-reboot/paradise-isle-original/source/
+          diff -qr --exclude='.git' /tmp/paradise-isle-original/ v2n-reboot/paradise-isle-original/source/
+          git -C /tmp/paradise-isle-original rev-parse HEAD > v2n-reboot/paradise-isle-original/UPSTREAM_COMMIT.txt
+          echo "Entire upstream source and assets preserved exactly as published."
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: v2n-reboot/paradise-isle-original/source/package-lock.json
+
+      - name: Install, test, and compile unmodified game
+        working-directory: /tmp/paradise-isle-original
+        shell: bash
+        env:
+          BASE_PATH: /village-to-nation/v2n-reboot/paradise-isle-original/play/
+        run: |
+          set -euo pipefail
+          npm ci
+          npm test
+          npm run build
+          test -s dist/index.html
+          test -n "$(find dist/assets -type f -name '*.js' -print -quit)"
+
+      - name: Publish compiled game and a small launcher
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p v2n-reboot/paradise-isle-original/play
+          rsync -a --delete /tmp/paradise-isle-original/dist/ v2n-reboot/paradise-isle-original/play/
+          cat > v2n-reboot/paradise-isle-original/index.html <<'HTML'
+          <!doctype html>
+          <html lang="th">
+          <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>V2N Base — Paradise Isle Original</title>
+          <style>body{margin:0;background:#112c27;color:#f5e9ce;font:16px system-ui;min-height:100svh;display:grid;place-items:center;padding:20px}main{max-width:650px;background:#23473a;padding:25px;border-radius:18px;border:1px solid #83a77b;line-height:1.7}h1{margin:0;color:#ffe3a0}a{color:#f8db91}.play{display:inline-block;background:#f9cf76;color:#183224;border-radius:10px;font-weight:bold;text-decoration:none;padding:15px 22px;margin:8px 0}small{color:#bed7c3}</style></head>
+          <body><main><h1>🏝️ Paradise Isle — Original</h1><p>นี่คือเกมต้นฉบับที่คัดลอกซอร์สทั้งหมดมาเป็นฐานใหม่สำหรับ V2N โดยยังไม่แก้ภาพหรือระบบการเล่น เล่นบนมือถือได้ด้วย</p><p><a class="play" href="./play/">🎮 เข้าเล่นต้นฉบับ</a></p><p>มือถือ: แตะที่พื้นที่ ปลูกพืช ตกปลา เลี้ยงสัตว์ ลากเพื่อเลื่อนแผนที่ และใช้สองนิ้วซูม</p><p><a href="https://github.com/appleweiping/paradise-isle">GitHub ต้นฉบับ</a> · <a href="./source/LICENSE">MIT License</a> · <a href="https://github.com/seeker6131/village-to-nation/tree/main/v2n-reboot/paradise-isle-original/source">ซอร์สที่คัดลอกทั้งหมด</a></p><small>ต้นฉบับยังไม่ปรับแต่ง • เซฟอยู่ในเบราว์เซอร์ • เกม V2N เดิมยังอยู่</small></main></body></html>
+          HTML
+          test -s v2n-reboot/paradise-isle-original/play/index.html
+
+      - name: Commit original source and playable files without touching other games
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add v2n-reboot/paradise-isle-original/
+          if git diff --cached --quiet; then
+            echo "No differences."
+            exit 0
+          fi
+          git commit -m "Import full unchanged Paradise Isle MIT source and playable web base"
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              echo "Published."
+              exit 0
+            fi
+            git fetch origin main
+            git rebase origin/main
+          done
+          echo "Publish failed after retries." >&2
+          exit 1
