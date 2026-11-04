@@ -1,0 +1,75 @@
+[gd_scene format=4]
+
+[ext_resource type="Script" path="res://screens/bear-village.gd" id="1"]
+[ext_resource type="Texture2D" path="res://screens/bear-village/images/background.png" id="2"]
+[ext_resource type="Texture2D" path="res://screens/bear-village/images/tree.png" id="3"]
+[ext_resource type="PackedScene" path="res://common/ui/playerAndControl.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://screens/bear-village/assets/ballhouse.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://common/areas/door.tscn" id="6"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_3hnlc"]
+texture = ExtResource("2")
+texture_region_size = Vector2i(96, 96)
+0:0/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_bg1pk"]
+tile_size = Vector2i(96, 96)
+physics_layer_0/collision_layer = 1
+sources/0 = SubResource("TileSetAtlasSource_3hnlc")
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ws841"]
+texture = ExtResource("3")
+texture_region_size = Vector2i(154, 256)
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(-45, -96)
+
+[sub_resource type="TileSet" id="TileSet_ytans"]
+tile_size = Vector2i(64, 64)
+physics_layer_0/collision_layer = 1
+sources/0 = SubResource("TileSetAtlasSource_ws841")
+
+[node name="bear-village" type="Node2D" unique_id=1137999618]
+script = ExtResource("1")
+
+[node name="cameraRef" type="ReferenceRect" parent="." unique_id=771623893]
+offset_left = -104.0
+offset_right = 1060.0
+offset_bottom = 814.0
+
+[node name="background" type="TileMapLayer" parent="." unique_id=2120526299]
+tile_map_data = PackedByteArray("AAD+////AAAAAAAAAAD/////AAAAAAAAAAAAAP//AAAAAAAAAAABAP//AAAAAAAAAAACAP//AAAAAAAAAAADAP//AAAAAAAAAAAEAP//AAAAAAAAAAAFAP//AAAAAAAAAAAGAP//AAAAAAAAAAAHAP//AAAAAAAAAAAIAP//AAAAAAAAAAAJAP//AAAAAAAAAAAKAP//AAAAAAAAAAD+/wAAAAAAAAAAAAD//wAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAACAAAAAAAAAAAAAAADAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAFAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAHAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAJAAAAAAAAAAAAAAAKAAAAAAAAAAAAAAD+/wEAAAAAAAAAAAD//wEAAAAAAAAAAAAAAAEAAAAAAAAAAAABAAEAAAAAAAAAAAACAAEAAAAAAAAAAAADAAEAAAAAAAAAAAAEAAEAAAAAAAAAAAAFAAEAAAAAAAAAAAAGAAEAAAAAAAAAAAAHAAEAAAAAAAAAAAAIAAEAAAAAAAAAAAAJAAEAAAAAAAAAAAAKAAEAAAAAAAAAAAD+/wIAAAAAAAAAAAD//wIAAAAAAAAAAAAAAAIAAAAAAAAAAAABAAIAAAAAAAAAAAACAAIAAAAAAAAAAAADAAIAAAAAAAAAAAAEAAIAAAAAAAAAAAAFAAIAAAAAAAAAAAAGAAIAAAAAAAAAAAAHAAIAAAAAAAAAAAAIAAIAAAAAAAAAAAAJAAIAAAAAAAAAAAAKAAIAAAAAAAAAAAD+/wMAAAAAAAAAAAD//wMAAAAAAAAAAAAAAAMAAAAAAAAAAAABAAMAAAAAAAAAAAACAAMAAAAAAAAAAAADAAMAAAAAAAAAAAAEAAMAAAAAAAAAAAAFAAMAAAAAAAAAAAAGAAMAAAAAAAAAAAAHAAMAAAAAAAAAAAAIAAMAAAAAAAAAAAAJAAMAAAAAAAAAAAAKAAMAAAAAAAAAAAD+/wQAAAAAAAAAAAD//wQAAAAAAAAAAAAAAAQAAAAAAAAAAAABAAQAAAAAAAAAAAACAAQAAAAAAAAAAAADAAQAAAAAAAAAAAAEAAQAAAAAAAAAAAAFAAQAAAAAAAAAAAAGAAQAAAAAAAAAAAAHAAQAAAAAAAAAAAAIAAQAAAAAAAAAAAAJAAQAAAAAAAAAAAAKAAQAAAAAAAAAAAD+/wUAAAAAAAAAAAD//wUAAAAAAAAAAAAAAAUAAAAAAAAAAAABAAUAAAAAAAAAAAACAAUAAAAAAAAAAAADAAUAAAAAAAAAAAAEAAUAAAAAAAAAAAAFAAUAAAAAAAAAAAAGAAUAAAAAAAAAAAAHAAUAAAAAAAAAAAAIAAUAAAAAAAAAAAAJAAUAAAAAAAAAAAAKAAUAAAAAAAAAAAD+/wYAAAAAAAAAAAD//wYAAAAAAAAAAAAAAAYAAAAAAAAAAAABAAYAAAAAAAAAAAACAAYAAAAAAAAAAAADAAYAAAAAAAAAAAAEAAYAAAAAAAAAAAAFAAYAAAAAAAAAAAAGAAYAAAAAAAAAAAAHAAYAAAAAAAAAAAAIAAYAAAAAAAAAAAAJAAYAAAAAAAAAAAAKAAYAAAAAAAAAAAD+/wcAAAAAAAAAAAD//wcAAAAAAAAAAAAAAAcAAAAAAAAAAAABAAcAAAAAAAAAAAACAAcAAAAAAAAAAAADAAcAAAAAAAAAAAAEAAcAAAAAAAAAAAAFAAcAAAAAAAAAAAAGAAcAAAAAAAAAAAAHAAcAAAAAAAAAAAAIAAcAAAAAAAAAAAAJAAcAAAAAAAAAAAAKAAcAAAAAAAAAAAD+/wgAAAAAAAAAAAD//wgAAAAAAAAAAAAAAAgAAAAAAAAAAAABAAgAAAAAAAAAAAACAAgAAAAAAAAAAAADAAgAAAAAAAAAAAAEAAgAAAAAAAAAAAAFAAgAAAAAAAAAAAAGAAgAAAAAAAAAAAAHAAgAAAAAAAAAAAAIAAgAAAAAAAAAAAAJAAgAAAAAAAAAAAAKAAgAAAAAAAAAAAA=")
+tile_set = SubResource("TileSet_bg1pk")
+
+[node name="treeTop" type="TileMapLayer" parent="." unique_id=47076831]
+tile_map_data = PackedByteArray("AAD///v/AAAAAAAAAAD9//3/AAAAAAAAAAAAAP3/AAAAAAAAAAADAP3/AAAAAAAAAAAGAP3/AAAAAAAAAAAJAP3/AAAAAAAAAAAMAP3/AAAAAAAAAAAPAP3/AAAAAAAAAAD7////AAAAAAAAAAD+////AAAAAAAAAAABAP//AAAAAAAAAAAEAP//AAAAAAAAAAAIAP//AAAAAAAAAAALAP//AAAAAAAAAAANAP//AAAAAAAAAAAGAAAAAAAAAAAAAAAPAAAAAAAAAAAAAAAKAAEAAAAAAAAAAAAMAAEAAAAAAAAAAAD7/wIAAAAAAAAAAAAOAAIAAAAAAAAAAAA=")
+tile_set = SubResource("TileSet_ytans")
+
+[node name="treeBottom" type="TileMapLayer" parent="." unique_id=1878805352]
+tile_map_data = PackedByteArray("AAD9/wMAAAAAAAAAAAD8/wUAAAAAAAAAAAD+/wYAAAAAAAAAAAD8/wcAAAAAAAAAAAD+/wgAAAAAAAAAAAD8/woAAAAAAAAAAAAAAAoAAAAAAAAAAAAEAAoAAAAAAAAAAAAJAAoAAAAAAAAAAAANAAoAAAAAAAAAAAD+/wsAAAAAAAAAAAADAAsAAAAAAAAAAAAGAAsAAAAAAAAAAAAKAAsAAAAAAAAAAAAOAAsAAAAAAAAAAAABAAwAAAAAAAAAAAAIAAwAAAAAAAAAAAAMAAwAAAAAAAAAAAA=")
+tile_set = SubResource("TileSet_ytans")
+
+[node name="Node2D" type="Node2D" parent="." unique_id=2022261284]
+y_sort_enabled = true
+
+[node name="playerAndControl" parent="Node2D" unique_id=1884453099 instance=ExtResource("4")]
+position = Vector2(964.88, 427.121)
+
+[node name="bevil-room" parent="Node2D" unique_id=1756830565 instance=ExtResource("5")]
+position = Vector2(105.946, 262.747)
+
+[node name="bee-room" parent="Node2D" unique_id=1653824988 instance=ExtResource("5")]
+position = Vector2(344.015, 361.588)
+
+[node name="shop" parent="Node2D" unique_id=1613678617 instance=ExtResource("5")]
+position = Vector2(842.935, 402.186)
+
+[node name="gotToMacro" parent="." unique_id=657282079 instance=ExtResource("6")]
+position = Vector2(1024.87, 359.783)
+scale = Vector2(4.8604, 72.4955)
+
+[connection signal="quit" from="Node2D/playerAndControl" to="." method="_on_playerAndControl_quit"]
+[connection signal="save" from="Node2D/playerAndControl" to="." method="_on_playerAndControl_save"]
+[connection signal="playerEntered" from="Node2D/bevil-room" to="." method="_on_bevilroom_playerEntered"]
+[connection signal="playerEntered" from="Node2D/bee-room" to="." method="_on_beeroom_playerEntered"]
+[connection signal="playerEntered" from="Node2D/shop" to="." method="_on_shop_playerEntered"]
+[connection signal="playerOpenedDoor" from="gotToMacro" to="." method="_on_gotToMacro_playerOpenedDoor"]

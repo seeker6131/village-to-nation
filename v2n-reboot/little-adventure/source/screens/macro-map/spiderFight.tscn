@@ -1,0 +1,49 @@
+[gd_scene format=4]
+
+[ext_resource type="PackedScene" path="res://common/fighters/spider1.tscn" id="1"]
+[ext_resource type="PackedScene" path="res://common/fighters/player.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://common/ui/lifeBar.tscn" id="3"]
+[ext_resource type="Texture2D" path="res://screens/tree-village/images/background.png" id="4"]
+[ext_resource type="Script" path="res://screens/macro-map/spiderFight.gd" id="5"]
+[ext_resource type="PackedScene" path="res://common/gamePad/fight.tscn" id="6"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_6ld7b"]
+texture = ExtResource("4")
+texture_region_size = Vector2i(96, 96)
+0:0/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_5jdrl"]
+tile_size = Vector2i(96, 96)
+physics_layer_0/collision_layer = 1
+sources/0 = SubResource("TileSetAtlasSource_6ld7b")
+
+[node name="Node2D" type="Node2D" unique_id=15532041]
+script = ExtResource("5")
+
+[node name="TileMap" type="TileMapLayer" parent="." unique_id=22531163]
+tile_map_data = PackedByteArray("AAD/////AAAAAAAAAAAAAP//AAAAAAAAAAABAP//AAAAAAAAAAACAP//AAAAAAAAAAADAP//AAAAAAAAAAAEAP//AAAAAAAAAAD//wAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAACAAAAAAAAAAAAAAADAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAD//wEAAAAAAAAAAAAAAAEAAAAAAAAAAAABAAEAAAAAAAAAAAACAAEAAAAAAAAAAAADAAEAAAAAAAAAAAAEAAEAAAAAAAAAAAAAAAIAAAAAAAAAAAABAAIAAAAAAAAAAAACAAIAAAAAAAAAAAADAAIAAAAAAAAAAAAEAAIAAAAAAAAAAAA=")
+tile_set = SubResource("TileSet_5jdrl")
+
+[node name="player" parent="." unique_id=133440641 instance=ExtResource("2")]
+position = Vector2(85.0283, 88.2986)
+
+[node name="spider1" parent="." unique_id=1793965719 instance=ExtResource("1")]
+position = Vector2(199.115, 51.272)
+
+[node name="lifePlayer" parent="." unique_id=1704518379 instance=ExtResource("3")]
+offset_left = 6.0
+offset_top = 6.0
+offset_right = 110.0
+offset_bottom = 30.0
+
+[node name="lifeSpider" parent="." unique_id=468325057 instance=ExtResource("3")]
+offset_left = 210.0
+offset_top = 6.0
+offset_right = 314.0
+offset_bottom = 30.0
+
+[node name="gamepad" parent="." unique_id=1166769056 instance=ExtResource("6")]
+
+[connection signal="attack" from="gamepad" to="." method="_on_gamepad_attack"]
+[connection signal="usePotion" from="gamepad" to="." method="_on_gamepad_usePotion"]
+[connection signal="leave" from="gamepad" to="." method="_on_gamepad_leave"]

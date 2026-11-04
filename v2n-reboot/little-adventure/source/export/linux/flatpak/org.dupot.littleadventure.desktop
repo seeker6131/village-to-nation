@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Little Adventure
+Exec=littleAdventure
+Type=Application
+Icon=org.dupot.littleadventure
+Categories=Game;RolePlaying
+Keywords=game;arcade;adventure;

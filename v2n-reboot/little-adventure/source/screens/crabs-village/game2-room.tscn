@@ -1,0 +1,226 @@
+[gd_scene format=4]
+
+[ext_resource type="PackedScene" path="res://screens/crabs-village/game2-room/assets/raft-2-horiz.tscn" id="1"]
+[ext_resource type="PackedScene" path="res://screens/crabs-village/game2-room/assets/raft-2-vert.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://screens/crabs-village/game2-room/assets/raft-3-horiz.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://screens/crabs-village/game2-room/assets/raft-3-vert.tscn" id="4"]
+[ext_resource type="Script" path="res://screens/crabs-village/game2-room.gd" id="5"]
+[ext_resource type="Texture2D" path="res://screens/crabs-village/characters/welcome-boy/welcome-boy-idle.png" id="6"]
+[ext_resource type="Texture2D" path="res://screens/crabs-village/game2-room/see.png" id="7"]
+[ext_resource type="PackedScene" path="res://common/ui/simpleDialog.tscn" id="8"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_gq781"]
+texture = ExtResource("7")
+margins = Vector2i(32, 0)
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_4hp1e"]
+texture = ExtResource("7")
+margins = Vector2i(0, 32)
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_3mm7q"]
+texture = ExtResource("7")
+margins = Vector2i(32, 32)
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fl50a"]
+texture = ExtResource("7")
+margins = Vector2i(64, 32)
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_b7j3k"]
+texture = ExtResource("7")
+margins = Vector2i(32, 64)
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_aucl6"]
+texture = ExtResource("7")
+margins = Vector2i(64, 0)
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ubdh6"]
+texture = ExtResource("7")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_oj8px"]
+texture = ExtResource("7")
+margins = Vector2i(64, 64)
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+
+[sub_resource type="TileSet" id="TileSet_xdbvu"]
+tile_size = Vector2i(32, 32)
+physics_layer_0/collision_layer = 1
+sources/0 = SubResource("TileSetAtlasSource_gq781")
+sources/1 = SubResource("TileSetAtlasSource_4hp1e")
+sources/2 = SubResource("TileSetAtlasSource_3mm7q")
+sources/3 = SubResource("TileSetAtlasSource_fl50a")
+sources/4 = SubResource("TileSetAtlasSource_b7j3k")
+sources/5 = SubResource("TileSetAtlasSource_aucl6")
+sources/6 = SubResource("TileSetAtlasSource_ubdh6")
+sources/7 = SubResource("TileSetAtlasSource_oj8px")
+
+[sub_resource type="AtlasTexture" id="9"]
+atlas = ExtResource("6")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="10"]
+atlas = ExtResource("6")
+region = Rect2(32, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="11"]
+atlas = ExtResource("6")
+region = Rect2(64, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="12"]
+atlas = ExtResource("6")
+region = Rect2(96, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="13"]
+atlas = ExtResource("6")
+region = Rect2(128, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="14"]
+atlas = ExtResource("6")
+region = Rect2(160, 0, 32, 32)
+
+[sub_resource type="SpriteFrames" id="15"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("9")
+}, {
+"duration": 1.0,
+"texture": SubResource("10")
+}, {
+"duration": 1.0,
+"texture": SubResource("11")
+}, {
+"duration": 1.0,
+"texture": SubResource("12")
+}, {
+"duration": 1.0,
+"texture": SubResource("13")
+}, {
+"duration": 1.0,
+"texture": SubResource("14")
+}],
+"loop": 1,
+"name": &"default",
+"speed": 5.0
+}]
+
+[node name="game2-room" type="Node2D" unique_id=1536644210]
+script = ExtResource("5")
+
+[node name="TileMap" type="TileMapLayer" parent="." unique_id=135762492]
+tile_map_data = PackedByteArray("AAD//wAABgAAAAAAAAAAAAAABgAAAAAAAAABAAAAAAAAAAAAAAACAAAAAAAAAAAAAAADAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAFAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAHAAAABgAAAAAAAAAIAAAABgAAAAAAAAAJAAAABgAAAAAAAAAKAAAABgAAAAAAAAD//wEABgAAAAAAAAAAAAEAAQAAAAAAAAABAAEAAgAAAAAAAAACAAEAAgAAAAAAAAADAAEAAgAAAAAAAAAEAAEAAgAAAAAAAAAFAAEAAgAAAAAAAAAGAAEAAgAAAAAAAAAHAAEAAwAAAAAAAAAIAAEABgAAAAAAAAAJAAEABgAAAAAAAAAKAAEABgAAAAAAAAD//wIABgAAAAAAAAAAAAIAAQAAAAAAAAABAAIAAgAAAAAAAAACAAIAAgAAAAAAAAADAAIAAgAAAAAAAAAEAAIAAgAAAAAAAAAFAAIAAgAAAAAAAAAGAAIAAgAAAAAAAAAHAAIABQAAAAAAAAAIAAIAAAAAAAAAAAAJAAIAAAAAAAAAAAAKAAIAAAAAAAAAAAALAAIAAAAAAAAAAAD//wMABgAAAAAAAAAAAAMAAQAAAAAAAAABAAMAAgAAAAAAAAACAAMAAgAAAAAAAAADAAMAAgAAAAAAAAAEAAMAAgAAAAAAAAAFAAMAAgAAAAAAAAAGAAMAAgAAAAAAAAAHAAMAAgAAAAAAAAAIAAMAAgAAAAAAAAAJAAMAAgAAAAAAAAAKAAMAAgAAAAAAAAALAAMAAgAAAAAAAAD//wQABgAAAAAAAAAAAAQAAQAAAAAAAAABAAQAAgAAAAAAAAACAAQAAgAAAAAAAAADAAQAAgAAAAAAAAAEAAQAAgAAAAAAAAAFAAQAAgAAAAAAAAAGAAQAAgAAAAAAAAAHAAQABwAAAAAAAAAIAAQABAAAAAAAAAAJAAQABAAAAAAAAAAKAAQABAAAAAAAAAD//wUABgAAAAAAAAAAAAUAAQAAAAAAAAABAAUAAgAAAAAAAAACAAUAAgAAAAAAAAADAAUAAgAAAAAAAAAEAAUAAgAAAAAAAAAFAAUAAgAAAAAAAAAGAAUAAgAAAAAAAAAHAAUAAwAAAAAAAAAIAAUABgAAAAAAAAAJAAUABgAAAAAAAAAKAAUABgAAAAAAAAD//wYABgAAAAAAAAAAAAYAAQAAAAAAAAABAAYAAgAAAAAAAAACAAYAAgAAAAAAAAADAAYAAgAAAAAAAAAEAAYAAgAAAAAAAAAFAAYAAgAAAAAAAAAGAAYAAgAAAAAAAAAHAAYAAwAAAAAAAAAIAAYABgAAAAAAAAAJAAYABgAAAAAAAAAKAAYABgAAAAAAAAD//wcABgAAAAAAAAAAAAcABgAAAAAAAAABAAcABAAAAAAAAAACAAcABAAAAAAAAAADAAcABAAAAAAAAAAEAAcABAAAAAAAAAAFAAcABAAAAAAAAAAGAAcABAAAAAAAAAAHAAcABgAAAAAAAAAIAAcABgAAAAAAAAAJAAcABgAAAAAAAAAKAAcABgAAAAAAAAA=")
+tile_set = SubResource("TileSet_xdbvu")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1648550800]
+position = Vector2(153.622, 129.136)
+scale = Vector2(5, 2)
+zoom = Vector2(0.909091, 0.909091)
+
+[node name="raft-2-horiz2" parent="." unique_id=1234312775 instance=ExtResource("1")]
+position = Vector2(160, 192)
+
+[node name="raft-2-horiz3" parent="." unique_id=624006894 instance=ExtResource("1")]
+position = Vector2(160, 32)
+
+[node name="raft-2-horiz4" parent="." unique_id=1159719439 instance=ExtResource("1")]
+position = Vector2(32, 32)
+
+[node name="raft-2-vert" parent="." unique_id=969970936 instance=ExtResource("2")]
+position = Vector2(-122.003, 130.378)
+
+[node name="raft-2-vert3" parent="." unique_id=565761786 instance=ExtResource("2")]
+position = Vector2(192, 128)
+
+[node name="raft-2-vert4" parent="." unique_id=1537299071 instance=ExtResource("2")]
+position = Vector2(128, 160)
+
+[node name="raft-2-vert2" parent="." unique_id=1612436546 instance=ExtResource("2")]
+position = Vector2(96, 32)
+
+[node name="raft-3-horiz" parent="." unique_id=1603120461 instance=ExtResource("3")]
+position = Vector2(64, 128)
+
+[node name="raft-3-vert" parent="." unique_id=1846761095 instance=ExtResource("4")]
+position = Vector2(32, 64)
+
+[node name="raft-3-vert2" parent="." unique_id=1251129581 instance=ExtResource("4")]
+position = Vector2(160, 96)
+
+[node name="raft-2-horiz" parent="." unique_id=919707461 instance=ExtResource("1")]
+position = Vector2(96, 96)
+displayDriver = true
+
+[node name="colorWin" type="ColorRect" parent="." unique_id=1021760513]
+visible = false
+offset_left = -35.0
+offset_top = -3.0
+offset_right = 353.0
+offset_bottom = 257.0
+color = Color(0, 0, 0, 1)
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="colorWin" unique_id=1973231278]
+position = Vector2(181.949, 113.569)
+scale = Vector2(3.8987, 3.8987)
+sprite_frames = SubResource("15")
+
+[node name="simpleDialogWin" parent="." unique_id=1826317231 instance=ExtResource("8")]
+
+[node name="simpleDialogStart" parent="." unique_id=479596294 instance=ExtResource("8")]
+
+[node name="ColorStart" type="ColorRect" parent="." unique_id=1783949437]
+offset_left = -34.0
+offset_top = 3.0
+offset_right = 354.0
+offset_bottom = 280.0
+color = Color(0, 0, 0, 1)
+
+[node name="AnimatedSprite2" type="AnimatedSprite2D" parent="ColorStart" unique_id=1061187718]
+position = Vector2(146.949, 110.569)
+scale = Vector2(3.8987, 3.8987)
+sprite_frames = SubResource("15")
+
+[connection signal="goLeft" from="raft-2-horiz2" to="." method="_on_raft2horiz_goLeft"]
+[connection signal="goRight" from="raft-2-horiz2" to="." method="_on_raft2horiz_goRight"]
+[connection signal="goLeft" from="raft-2-horiz3" to="." method="_on_raft2horiz_goLeft"]
+[connection signal="goRight" from="raft-2-horiz3" to="." method="_on_raft2horiz_goRight"]
+[connection signal="goLeft" from="raft-2-horiz4" to="." method="_on_raft2horiz_goLeft"]
+[connection signal="goRight" from="raft-2-horiz4" to="." method="_on_raft2horiz_goRight"]
+[connection signal="goDown" from="raft-2-vert" to="." method="_on_raft2vert_goDown"]
+[connection signal="goUp" from="raft-2-vert" to="." method="_on_raft2vert_goUp"]
+[connection signal="goDown" from="raft-2-vert3" to="." method="_on_raft2vert_goDown"]
+[connection signal="goUp" from="raft-2-vert3" to="." method="_on_raft2vert_goUp"]
+[connection signal="goDown" from="raft-2-vert4" to="." method="_on_raft2vert_goDown"]
+[connection signal="goUp" from="raft-2-vert4" to="." method="_on_raft2vert_goUp"]
+[connection signal="goDown" from="raft-2-vert2" to="." method="_on_raft2vert_goDown"]
+[connection signal="goUp" from="raft-2-vert2" to="." method="_on_raft2vert_goUp"]
+[connection signal="goLeft" from="raft-3-horiz" to="." method="_on_raft3horiz_goLeft"]
+[connection signal="goRight" from="raft-3-horiz" to="." method="_on_raft3horiz_goRight"]
+[connection signal="goDown" from="raft-3-vert" to="." method="_on_raft3vert_goDown"]
+[connection signal="goUp" from="raft-3-vert" to="." method="_on_raft3vert_goUp"]
+[connection signal="goDown" from="raft-3-vert2" to="." method="_on_raft3vert_goDown"]
+[connection signal="goUp" from="raft-3-vert2" to="." method="_on_raft3vert_goUp"]
+[connection signal="goLeft" from="raft-2-horiz" to="." method="_on_raft2horiz_goLeft"]
+[connection signal="goRight" from="raft-2-horiz" to="." method="_on_raft2horiz_goRight"]
+[connection signal="discussionFinished" from="simpleDialogWin" to="." method="_on_simpleDialog_discussionFinished"]
+[connection signal="discussionFinished" from="simpleDialogStart" to="." method="_on_simpleDialogStart_discussionFinished"]

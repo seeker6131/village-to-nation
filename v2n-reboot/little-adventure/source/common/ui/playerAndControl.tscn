@@ -1,0 +1,40 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://common/ui/HUD.tscn" id="1"]
+[ext_resource type="PackedScene" path="res://common/characters/player.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://common/gamePad/navigation.tscn" id="3"]
+[ext_resource type="Script" path="res://common/ui/playerAndControl.gd" id="4"]
+
+[node name="playerAndControl" type="Node2D" unique_id=546551265]
+y_sort_enabled = true
+position = Vector2(-0.944939, 13.8591)
+script = ExtResource("4")
+
+[node name="player" parent="." unique_id=975501249 instance=ExtResource("2")]
+position = Vector2(2.56245, -8.41107)
+
+[node name="HUD" parent="." unique_id=1089794277 instance=ExtResource("1")]
+
+[node name="navigation" parent="." unique_id=1315404345 instance=ExtResource("3")]
+
+[connection signal="damagedBy" from="player" to="." method="_on_player_damagedBy"]
+[connection signal="endClimbing" from="player" to="." method="_on_player_endClimbing"]
+[connection signal="hit" from="player" to="." method="_on_player_hit"]
+[connection signal="pressAccept" from="player" to="." method="_on_player_pressAccept"]
+[connection signal="pressMenu" from="player" to="." method="_on_player_pressMenu"]
+[connection signal="pressMenu" from="player" to="HUD" method="_on_player_pressMenu"]
+[connection signal="releaseAccept" from="player" to="." method="_on_player_releaseAccept"]
+[connection signal="startClimbing" from="player" to="." method="_on_player_startClimbing"]
+[connection signal="useKeyboard" from="player" to="navigation" method="_on_player_useKeyboard"]
+[connection signal="closeMenu" from="HUD" to="." method="_on_HUD_closeMenu"]
+[connection signal="equipItem" from="HUD" to="navigation" method="_on_HUD_equipItem"]
+[connection signal="openMenu" from="HUD" to="." method="_on_HUD_openMenu"]
+[connection signal="quit" from="HUD" to="." method="_on_HUD_quit"]
+[connection signal="refreshTouchUi" from="HUD" to="navigation" method="_on_HUD_refreshTouchUi"]
+[connection signal="save" from="HUD" to="." method="_on_HUD_save"]
+[connection signal="useItem" from="HUD" to="." method="_on_HUD_useItem"]
+[connection signal="movePlayer" from="navigation" to="player" method="_on_navigation_movePlayer"]
+[connection signal="pushButton" from="navigation" to="." method="_on_navigation_pushButton"]
+[connection signal="pushButton" from="navigation" to="player" method="_on_navigation_pushButton"]
+[connection signal="releaseButton" from="navigation" to="." method="_on_navigation_releaseButton"]
+[connection signal="releaseButton" from="navigation" to="player" method="_on_navigation_releaseButton"]

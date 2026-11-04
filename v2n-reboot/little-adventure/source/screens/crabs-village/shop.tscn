@@ -1,0 +1,61 @@
+[gd_scene format=4]
+
+[ext_resource type="PackedScene" path="res://screens/crabs-village/characters/welcome-boy.tscn" id="1"]
+[ext_resource type="PackedScene" path="res://common/ui/shopList.tscn" id="2"]
+[ext_resource type="Texture2D" path="res://screens/crabs-village/shop/shopTiles.png" id="3"]
+[ext_resource type="PackedScene" path="res://common/ui/playerAndControl.tscn" id="4"]
+[ext_resource type="Script" path="res://screens/crabs-village/shop.gd" id="5"]
+[ext_resource type="PackedScene" path="res://common/ui/simpleDialog.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://common/areas/door.tscn" id="7"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_4wn72"]
+texture = ExtResource("3")
+margins = Vector2i(32, 32)
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_4ccha"]
+texture = ExtResource("3")
+margins = Vector2i(32, 64)
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_ctqys"]
+tile_size = Vector2i(32, 32)
+physics_layer_0/collision_layer = 1
+sources/0 = SubResource("TileSetAtlasSource_4wn72")
+sources/1 = SubResource("TileSetAtlasSource_4ccha")
+
+[node name="shop" type="Node2D" unique_id=86966847]
+script = ExtResource("5")
+
+[node name="TileMap" type="TileMapLayer" parent="." unique_id=222617996]
+tile_map_data = PackedByteArray("AAD/////AAAAAAAAAAAAAP//AAAAAAAAAAABAP//AAAAAAAAAAACAP//AAAAAAAAAAADAP//AAAAAAAAAAAEAP//AAAAAAAAAAAFAP//AAAAAAAAAAAGAP//AAAAAAAAAAAHAP//AAAAAAAAAAAIAP//AAAAAAAAAAAJAP//AAAAAAAAAAAKAP//AAAAAAAAAAD//wAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAACAAAAAAAAAAAAAAADAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAFAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAHAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAJAAAAAAAAAAAAAAAKAAAAAAAAAAAAAAD//wEAAAAAAAAAAAAAAAEAAAAAAAAAAAAJAAEAAAAAAAAAAAAKAAEAAAAAAAAAAAD//wIAAAAAAAAAAAAAAAIAAAAAAAAAAAAJAAIAAAAAAAAAAAAKAAIAAAAAAAAAAAD//wMAAAAAAAAAAAAAAAMAAAAAAAAAAAAJAAMAAAAAAAAAAAAKAAMAAAAAAAAAAAD//wQAAAAAAAAAAAAAAAQAAAAAAAAAAAAEAAQAAQAAAAAAAAAJAAQAAAAAAAAAAAAKAAQAAAAAAAAAAAD//wUAAAAAAAAAAAAAAAUAAAAAAAAAAAABAAUAAAAAAAAAAAACAAUAAAAAAAAAAAADAAUAAAAAAAAAAAAEAAUAAAAAAAAAAAAFAAUAAAAAAAAAAAAGAAUAAAAAAAAAAAAHAAUAAAAAAAAAAAAIAAUAAAAAAAAAAAAJAAUAAAAAAAAAAAAKAAUAAAAAAAAAAAA=")
+tile_set = SubResource("TileSet_ctqys")
+
+[node name="welcome-boy" parent="." unique_id=1005883155 instance=ExtResource("1")]
+position = Vector2(131.443, 54.6306)
+
+[node name="shopList" parent="." unique_id=986603904 instance=ExtResource("2")]
+
+[node name="playerAndControl" parent="." unique_id=1906748737 instance=ExtResource("4")]
+position = Vector2(140.164, 106.359)
+
+[node name="cameraRef" type="ReferenceRect" parent="." unique_id=508439453]
+offset_left = 4.24742
+offset_top = 3.30355
+offset_right = 324.247
+offset_bottom = 181.304
+
+[node name="simpleDialog" parent="." unique_id=296742408 instance=ExtResource("6")]
+
+[node name="sellerTalk" parent="." unique_id=480798075 instance=ExtResource("7")]
+position = Vector2(131.199, 67.0151)
+
+[node name="door" parent="." unique_id=235100605 instance=ExtResource("7")]
+position = Vector2(149.604, 163.29)
+
+[connection signal="buyItem" from="shopList" to="playerAndControl" method="_on_shopList_buyItem"]
+[connection signal="discussionFinished" from="simpleDialog" to="." method="_on_simpleDialog_discussionFinished"]
+[connection signal="playerOpenedDoor" from="sellerTalk" to="." method="_on_sellerTalk_playerOpenedDoor"]
+[connection signal="playerOpenedDoor" from="door" to="." method="_on_door_playerOpenedDoor"]

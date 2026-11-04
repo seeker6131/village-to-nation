@@ -1,0 +1,198 @@
+[gd_scene format=4]
+
+[ext_resource type="Texture2D" path="res://screens/tree-village/shop/walls4.png" id="1"]
+[ext_resource type="Texture2D" path="res://screens/tree-village/shop/woodBackground.png" id="2"]
+[ext_resource type="Texture2D" path="res://screens/tree-village/shop/furnitures3.png" id="3"]
+[ext_resource type="PackedScene" path="res://screens/tree-village/shop/assets/seller/seller.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://common/ui/playerAndControl.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://common/areas/door.tscn" id="6"]
+[ext_resource type="Script" path="res://screens/tree-village/shop.gd" id="7"]
+[ext_resource type="PackedScene" path="res://common/ui/simpleDialog.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://common/ui/shopList.tscn" id="9"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_xsmuu"]
+texture = ExtResource("2")
+texture_region_size = Vector2i(96, 96)
+0:0/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_g62no"]
+tile_size = Vector2i(96, 96)
+physics_layer_0/collision_layer = 1
+sources/0 = SubResource("TileSetAtlasSource_xsmuu")
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_7r6ti"]
+texture = ExtResource("1")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_6rnan"]
+texture = ExtResource("1")
+margins = Vector2i(32, 0)
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, 16, -16, -16, 16, -16, 16, 16)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_su0bk"]
+texture = ExtResource("1")
+margins = Vector2i(96, 64)
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_3l3j1"]
+texture = ExtResource("1")
+margins = Vector2i(96, 32)
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ip1y8"]
+texture = ExtResource("1")
+margins = Vector2i(64, 0)
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_0h8x0"]
+texture = ExtResource("1")
+margins = Vector2i(0, 32)
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_t28xi"]
+texture = ExtResource("1")
+margins = Vector2i(32, 32)
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-15.202362, -15.256454, -10.71307, -15.202366, -10.71307, 11.354799, 9.5699005, 11.354799, 10.0026, -15.580978, 14.924601, -15.580978, 14.329599, 13.518299, -14.82375, 12.9774)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_2k7tt"]
+texture = ExtResource("1")
+margins = Vector2i(64, 32)
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_awodg"]
+texture = ExtResource("1")
+margins = Vector2i(0, 64)
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_hpng4"]
+texture = ExtResource("1")
+margins = Vector2i(32, 64)
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_qjvjm"]
+texture = ExtResource("1")
+margins = Vector2i(64, 64)
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_o3ued"]
+texture = ExtResource("1")
+margins = Vector2i(96, 0)
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(0, -32)
+
+[sub_resource type="TileSet" id="TileSet_5lk04"]
+tile_size = Vector2i(32, 32)
+physics_layer_0/collision_layer = 1
+sources/0 = SubResource("TileSetAtlasSource_7r6ti")
+sources/1 = SubResource("TileSetAtlasSource_6rnan")
+sources/2 = SubResource("TileSetAtlasSource_ip1y8")
+sources/3 = SubResource("TileSetAtlasSource_0h8x0")
+sources/4 = SubResource("TileSetAtlasSource_t28xi")
+sources/5 = SubResource("TileSetAtlasSource_2k7tt")
+sources/6 = SubResource("TileSetAtlasSource_awodg")
+sources/7 = SubResource("TileSetAtlasSource_hpng4")
+sources/8 = SubResource("TileSetAtlasSource_qjvjm")
+sources/9 = SubResource("TileSetAtlasSource_o3ued")
+sources/10 = SubResource("TileSetAtlasSource_su0bk")
+sources/11 = SubResource("TileSetAtlasSource_3l3j1")
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_coaxh"]
+texture = ExtResource("3")
+margins = Vector2i(32, 32)
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(-8, -5)
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(23.9566, 20.3985, -7.57959, 20.1194, -8.137756, 8.3979, 23.9566, 8.677)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_6satg"]
+texture = ExtResource("3")
+margins = Vector2i(64, 32)
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(-8, -5)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_7le0o"]
+texture = ExtResource("3")
+margins = Vector2i(32, 0)
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(-8, -5)
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(9.723499, 8.3036, 23.1194, 8.3036, 24, 21, 9.444401, 21.420399)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_6lfff"]
+texture = ExtResource("3")
+margins = Vector2i(64, 0)
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(-8, -5)
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-6.92705, 8.0245, 7.3061, 8.3036, 6.1898003, 20.3041, -8, 21)
+
+[sub_resource type="TileSet" id="TileSet_xtbkt"]
+tile_size = Vector2i(16, 23)
+physics_layer_0/collision_layer = 1
+sources/0 = SubResource("TileSetAtlasSource_coaxh")
+sources/1 = SubResource("TileSetAtlasSource_6satg")
+sources/2 = SubResource("TileSetAtlasSource_7le0o")
+sources/3 = SubResource("TileSetAtlasSource_6lfff")
+
+[node name="shop" type="Node2D" unique_id=431151482]
+script = ExtResource("7")
+
+[node name="background" type="TileMapLayer" parent="." unique_id=389833092]
+tile_map_data = PackedByteArray("AAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAA=")
+tile_set = SubResource("TileSet_g62no")
+
+[node name="walls" type="TileMapLayer" parent="." unique_id=922265435]
+tile_map_data = PackedByteArray("AAD/////AAAAAAAAAAAAAP//AQAAAAAAAAABAP//AQAAAAAAAAACAP//AQAAAAAAAAADAP//CgAAAAAAAAAEAP//AQAAAAAAAAAFAP//AQAAAAAAAAAGAP//AgAAAAAAAAD//wAAAwAAAAAAAAAGAAAABQAAAAAAAAD//wEAAwAAAAAAAAAGAAEABQAAAAAAAAD//wIAAwAAAAAAAAAGAAIABQAAAAAAAAD//wMABgAAAAAAAAAAAAMABwAAAAAAAAABAAMABAAAAAAAAAACAAMABwAAAAAAAAADAAMABwAAAAAAAAAEAAMABwAAAAAAAAAFAAMABwAAAAAAAAAGAAMACAAAAAAAAAA=")
+tile_set = SubResource("TileSet_5lk04")
+
+[node name="cameraRef" type="ReferenceRect" parent="." unique_id=1325776701]
+offset_left = -27.1591
+offset_top = -28.0
+offset_right = 221.841
+offset_bottom = 121.0
+
+[node name="seller" parent="." unique_id=784737638 instance=ExtResource("4")]
+position = Vector2(113, 31)
+
+[node name="furnitures" type="TileMapLayer" parent="." unique_id=786253615]
+position = Vector2(0, -0.5)
+tile_map_data = PackedByteArray("AAAAAP//AQAAAAAAAAACAP//AAAAAAAAAAAEAP//AQAAAAAAAAAIAP//AQAAAAAAAAAKAP//AAAAAAAAAAAAAAEAAAAAAAAAAAACAAEAAAAAAAAAAAADAAEAAAAAAAAAAAAEAAEAAgAAAAAAAAAFAAEAAAAAAAAAAAAGAAEAAAAAAAAAAAAHAAEAAAAAAAAAAAAIAAEAAAAAAAAAAAAKAAEAAAAAAAAAAAA=")
+tile_set = SubResource("TileSet_xtbkt")
+
+[node name="door" parent="." unique_id=825850519 instance=ExtResource("6")]
+position = Vector2(47.1434, 107.195)
+
+[node name="discussionArea" parent="." unique_id=1591557369 instance=ExtResource("6")]
+position = Vector2(110.998, 54.6582)
+
+[node name="playerAndControl" parent="." unique_id=947335210 instance=ExtResource("5")]
+position = Vector2(75.5099, 77.3977)
+
+[node name="simpleDialog" parent="." unique_id=386415836 instance=ExtResource("8")]
+
+[node name="shopList" parent="." unique_id=824626016 instance=ExtResource("9")]
+
+[connection signal="playerOpenedDoor" from="door" to="." method="_on_door_playerOpenedDoor"]
+[connection signal="playerOpenedDoor" from="discussionArea" to="." method="_on_discussionArea_playerOpenedDoor"]
+[connection signal="quit" from="playerAndControl" to="." method="_on_playerAndControl_quit"]
+[connection signal="save" from="playerAndControl" to="." method="_on_playerAndControl_save"]
+[connection signal="discussionFinished" from="simpleDialog" to="." method="_on_simpleDialog_discussionFinished"]
+[connection signal="buyItem" from="shopList" to="playerAndControl" method="_on_shopList_buyItem"]
