@@ -1,0 +1,134 @@
+name: V2N - Copy full unmodified My City game and build web
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/v2n-mycity-original.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v2n-mycity-original
+  cancel-in-progress: false
+
+jobs:
+  copy-complete-game:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout V2N repository (preserve the existing game)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Clone complete MIT-licensed My City upstream without changing files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone https://github.com/cesswhite/my-city.git /tmp/my-city-original
+          git -C /tmp/my-city-original checkout --detach 9cbf90f5214553305d69a0f7f6cac68f7121da36
+          test -f /tmp/my-city-original/LICENSE
+          test -f /tmp/my-city-original/THIRD_PARTY_NOTICES.md
+          test -f /tmp/my-city-original/game/project.godot
+          test -f /tmp/my-city-original/backend/README.md
+          mkdir -p v2n-reboot/mycity-original/source
+          rsync -a --delete --exclude='.git/' /tmp/my-city-original/ v2n-reboot/mycity-original/source/
+          diff -qr --exclude='.git' /tmp/my-city-original/ v2n-reboot/mycity-original/source/
+          git -C /tmp/my-city-original rev-parse HEAD > v2n-reboot/mycity-original/UPSTREAM_COMMIT.txt
+          echo "Complete original code, artwork, documents, and backend copied unchanged."
+
+      - name: Install Godot 4.7.2 and Web export templates
+        uses: solarlabyrinth/action-setup-godot@v3
+        with:
+          version: 4.7.2-stable
+          export-templates: true
+
+      - name: Prepare export preset only in the temporary build clone
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/my-city-original/game/export_presets.cfg <<'PRESET'
+          [preset.0]
+
+          name="Web"
+          platform="Web"
+          runnable=true
+          advanced_options=false
+          custom_features=""
+          export_filter="all_resources"
+          include_filter="*.json,*.png,*.ttf"
+          exclude_filter=""
+          export_path="../build/index.html"
+          script_export_mode=1
+
+          [preset.0.options]
+
+          custom_template/debug=""
+          custom_template/release=""
+          variant/extensions_support=false
+          vram_texture_compression/for_desktop=false
+          vram_texture_compression/for_mobile=false
+          html/export_icon=true
+          html/custom_html_shell=""
+          html/head_include=""
+          html/canvas_resize_policy=2
+          html/focus_canvas_on_start=true
+          progressive_web_app/enabled=false
+          progressive_web_app/ensure_cross_origin_isolation_headers=false
+          PRESET
+
+      - name: Import complete original game and run original simulation test
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path /tmp/my-city-original/game --import --quit
+          godot --headless --path /tmp/my-city-original/game --script res://tests/smoke.gd
+
+      - name: Export original, unmodified My City gameplay as a browser game
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p v2n-reboot/mycity-original/play
+          godot --headless --path /tmp/my-city-original/game --export-release "Web" "$GITHUB_WORKSPACE/v2n-reboot/mycity-original/play/index.html"
+          test -s v2n-reboot/mycity-original/play/index.html
+          test -n "$(find v2n-reboot/mycity-original/play -maxdepth 1 -name '*.wasm' -print -quit)"
+          test -n "$(find v2n-reboot/mycity-original/play -maxdepth 1 -name '*.pck' -print -quit)"
+          echo "Successfully exported unmodified upstream game."
+
+      - name: Add separate launcher for the complete upstream game
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > v2n-reboot/mycity-original/index.html <<'HTML'
+          <!doctype html>
+          <html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>V2N Base — My City Original</title>
+          <style>body{font:16px system-ui;background:#14231d;color:#f9f1df;min-height:100svh;display:grid;place-items:center;padding:20px}main{max-width:660px;background:#243c30;border:1px solid #78946c;border-radius:18px;padding:26px;line-height:1.6}a{color:#ffda8f}a.play{display:inline-block;background:#e9c775;color:#18281b;padding:14px 22px;text-decoration:none;border-radius:10px;font-weight:bold;margin:8px 0}small{color:#bdd1b8}</style></head>
+          <body><main><h1>🏡 My City — เกมต้นฉบับเต็ม</h1><p>นี่คือฐานเกม My City (Godot) ทั้งชุดโดยไม่เปลี่ยนภาพ ตัวละคร แผนที่ หรือระบบการเล่น ตัวเกมและ Source แยกจาก V2N เดิม เพื่อให้ลองเล่นแล้วค่อยเลือกสิ่งที่จะปรับแต่ง</p><p><a class="play" href="./play/">▶ เล่นเกมต้นฉบับ</a></p><p>วิธีเล่น: กด Nueva partida (New Game) · WASD เดิน · E โต้ตอบ · M ดูแผนที่ · มือถือแตะพื้นเพื่อเดิน</p><p><a href="./source/README.md">README ต้นฉบับ</a> · <a href="./source/LICENSE">MIT LICENSE</a> · <a href="https://github.com/seeker6131/village-to-nation/tree/main/v2n-reboot/mycity-original/source">Source ทั้งโปรเจกต์</a></p><small>ไม่ใช่ V2N ที่ปรับแต่งแล้ว • ยังใช้หน้าตาและภาษาต้นฉบับ</small></main></body></html>
+          HTML
+
+      - name: Commit source and game export as a separate addition
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add v2n-reboot/mycity-original/
+          if git diff --cached --quiet; then
+            echo "No changes."
+            exit 0
+          fi
+          git commit -m "Import full unmodified My City source and playable web export"
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              echo "Published complete original My City source and browser build."
+              exit 0
+            fi
+            git fetch origin main
+            git rebase origin/main
+          done
+          echo "Could not publish after retries" >&2
+          exit 1
